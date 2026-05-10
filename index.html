@@ -1,4 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Bonobo Card Game</title>
+  <meta name="description" content="Bonobo Card Game - GitHub Pages no-build version" />
+  <script>
+    window.addEventListener('error', function(e) {
+      var box = document.getElementById('boot-error');
+      if (!box) return;
+      box.style.display = 'block';
+      box.textContent = '読み込みエラー: ' + (e.message || '不明なエラー');
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var box = document.getElementById('boot-error');
+      if (!box) return;
+      box.style.display = 'block';
+      box.textContent = '通信/実行エラー: ' + ((e.reason && e.reason.message) || e.reason || '不明なエラー');
+    });
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.2.0",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js"
+    }
+  }
+  </script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    html, body, #root {
+      margin: 0;
+      min-height: 100%;
+      background: #020617;
+      overscroll-behavior-x: none;
+    }
+    body {
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+    #boot-error {
+      display: none;
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 99999;
+      padding: 12px 14px;
+      border: 1px solid #fb7185;
+      border-radius: 14px;
+      background: rgba(127, 29, 29, 0.95);
+      color: white;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Noto Sans JP", sans-serif;
+      font-weight: 800;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <noscript>このゲームを遊ぶにはJavaScriptをオンにしてください。</noscript>
+  <div id="root"></div>
+  <div id="boot-error"></div>
+
+  <script type="text/babel" data-type="module">
 import React, { useState, useEffect, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, onSnapshot, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -214,7 +284,7 @@ const HpBar = ({ hp, maxHp }) => {
 // ==========================================
 // 5. Main Application Component
 // ==========================================
-export default function App() {
+function App() {
   const [user, setUser] = useState(null);
   const [gameState, setGameState] = useState('title');
   const [saveData, setSaveData] = useState({ nickname: '', crystals: 1000, cards: [], deck: [], pveStage: 1, storyCleared: false });
@@ -986,3 +1056,10 @@ export default function App() {
     </div>
   );
 }
+
+const root = createRoot(document.getElementById('root'));
+root.render(<App />);
+
+  </script>
+</body>
+</html>
