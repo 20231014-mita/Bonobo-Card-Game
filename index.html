@@ -1,0 +1,988 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs, onSnapshot, updateDoc, deleteDoc } from 'firebase/firestore';
+
+// ==========================================
+// 1. Firebase Initialization & Safety
+// ==========================================
+let firebaseConfig = {};
+let app = null;
+let auth = null;
+let db = null;
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'tcg-pocket-clone';
+
+try {
+  if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+    firebaseConfig = typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
+  }
+  if (Object.keys(firebaseConfig).length > 0) {
+    if (!getApps().length) { app = initializeApp(firebaseConfig); } 
+    else { app = getApp(); }
+    auth = getAuth(app);
+    db = getFirestore(app);
+  }
+} catch (e) {
+  console.warn("Firebase Init Error:", e);
+}
+
+// ==========================================
+// 2. High-Quality SVG Icons & Game Data
+// ==========================================
+const SVGIcons = {
+  Fire: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.71 1.18c.24.16.4.42.4.7 0 2.92 1.95 5.25 4.81 5.92 1.83.43 3.32 1.8 3.86 3.61.56 1.85.1 3.88-1.2 5.28-1.77 1.9-4.7 2.45-7.05 1.34-2.16-1.02-3.56-3.18-3.56-5.58 0-1.46.52-2.85 1.45-3.95.14-.17.15-.42.02-.6-.13-.18-.38-.22-.57-.1-2.9 1.82-4.5 4.96-4.22 8.24.32 3.65 3.35 6.6 7.02 6.88 4.2.33 7.82-2.67 8.28-6.85.24-2.2-.42-4.32-1.78-5.96C18.15 8.84 17 7.7 15.65 7.15c-1.34-.55-2.2-1.84-2.2-3.3v-1.7c0-.4-.36-.7-.74-.6-.4.1-.73.43-.8.84-.4 2.1-2 3.8-4.04 4.38-1.47.4-2.58 1.6-2.84 3.1-.2 1.15.1 2.3.8 3.2.16.2.46.2.62 0 .15-.2.12-.48-.05-.65-1-1-1.3-2.5-.7-3.8.5-1.2 1.7-2 3-2.2 2.6-.4 4.7-2.3 5.3-4.9.06-.32-.23-.6-.54-.53z"/></svg>,
+  Water: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21c-4.41 0-8-3.59-8-8 0-3.3 2.5-7.4 6.74-11.43.68-.64 1.84-.64 2.52 0C17.5 5.6 20 9.7 20 13c0 4.41-3.59 8-8 8zm0-17.2C8.6 7.14 6 10.64 6 13c0 3.31 2.69 6 6 6s6-2.69 6-6c0-2.36-2.6-5.86-6-9.2z"/></svg>,
+  Wood: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 5.92L9 2v18H7v-4.25L3 18v-3.77l4-2.8V9.1L3 11.2V7.4l4-2.8V2H5V0h14v2h-2v3.92z"/></svg>,
+  Light: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5A7.5 7.5 0 1019.5 12 7.5 7.5 0 0012 4.5zm0 13A5.5 5.5 0 1117.5 12 5.5 5.5 0 0112 17.5zM12 2v2M12 20v2M22 12h-2M4 12H2M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M19.07 19.07l-1.41-1.41M6.34 6.34L4.93 4.93"/></svg>,
+  Dark: <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.39 5.39 0 01-4.4 2.26 5.4 5.4 0 01-5.4-5.4c0-2.02 1.12-3.8 2.76-4.7A8.96 8.96 0 0012 3z"/></svg>
+};
+
+const ELEMENTS = {
+  Fire: { name: '炎', color: 'text-red-500', bg: 'bg-gradient-to-br from-red-600 to-red-950', border: 'border-red-400', icon: SVGIcons.Fire, strongAgainst: 'Wood' },
+  Water: { name: '水', color: 'text-blue-500', bg: 'bg-gradient-to-br from-blue-600 to-blue-950', border: 'border-blue-400', icon: SVGIcons.Water, strongAgainst: 'Fire' },
+  Wood: { name: '木', color: 'text-green-500', bg: 'bg-gradient-to-br from-green-600 to-green-950', border: 'border-green-400', icon: SVGIcons.Wood, strongAgainst: 'Water' },
+  Light: { name: '光', color: 'text-yellow-400', bg: 'bg-gradient-to-br from-yellow-500 to-amber-900', border: 'border-yellow-300', icon: SVGIcons.Light, strongAgainst: 'Dark' },
+  Dark: { name: '闇', color: 'text-purple-500', bg: 'bg-gradient-to-br from-purple-700 to-slate-950', border: 'border-purple-400', icon: SVGIcons.Dark, strongAgainst: 'Light' }
+};
+
+const RARITIES = {
+  N: { name: 'Normal', effect: 'shadow-md border-opacity-50' },
+  R: { name: 'Rare', effect: 'shadow-glow-blue border-blue-400' },
+  SR: { name: 'Super Rare', effect: 'shadow-glow-gold border-yellow-400' },
+  UR: { name: 'Ultra Rare', effect: 'shadow-glow-rainbow hologram-effect border-pink-400' }
+};
+
+// 55種類の膨大なカードカタログ
+const CARD_CATALOG = [
+  { id: 'f1', name: '火の精霊', element: 'Fire', rarity: 'N', power: 2 }, { id: 'f2', name: 'フレイムスライム', element: 'Fire', rarity: 'N', power: 3 }, { id: 'f3', name: 'レッドゴブリン', element: 'Fire', rarity: 'N', power: 3 }, { id: 'f4', name: '炎の戦士', element: 'Fire', rarity: 'N', power: 4 }, { id: 'f5', name: 'マグマゴーレム', element: 'Fire', rarity: 'R', power: 5 }, { id: 'f6', name: '火炎魔導士', element: 'Fire', rarity: 'R', power: 6 }, { id: 'f7', name: 'ブレイズナイト', element: 'Fire', rarity: 'R', power: 7 }, { id: 'f8', name: '業火の竜', element: 'Fire', rarity: 'SR', power: 8 }, { id: 'f9', name: '炎帝の剣士', element: 'Fire', rarity: 'SR', power: 9 }, { id: 'f10', name: '不死鳥フェニックス', element: 'Fire', rarity: 'UR', power: 11 }, { id: 'f11', name: '神獣イフリート', element: 'Fire', rarity: 'UR', power: 12 },
+  { id: 'w1', name: '水の精霊', element: 'Water', rarity: 'N', power: 2 }, { id: 'w2', name: 'アクアスライム', element: 'Water', rarity: 'N', power: 3 }, { id: 'w3', name: 'マーメイド', element: 'Water', rarity: 'N', power: 3 }, { id: 'w4', name: '水兵', element: 'Water', rarity: 'N', power: 4 }, { id: 'w5', name: 'アイスゴーレム', element: 'Water', rarity: 'R', power: 5 }, { id: 'w6', name: '氷結魔導士', element: 'Water', rarity: 'R', power: 6 }, { id: 'w7', name: 'フロストナイト', element: 'Water', rarity: 'R', power: 7 }, { id: 'w8', name: '海竜リヴァイアサン', element: 'Water', rarity: 'SR', power: 8 }, { id: 'w9', name: '水王の槍使い', element: 'Water', rarity: 'SR', power: 9 }, { id: 'w10', name: '絶対零度フェンリル', element: 'Water', rarity: 'UR', power: 11 }, { id: 'w11', name: '海神ポセイドン', element: 'Water', rarity: 'UR', power: 12 },
+  { id: 'g1', name: '木の精霊', element: 'Wood', rarity: 'N', power: 2 }, { id: 'g2', name: 'リーフスライム', element: 'Wood', rarity: 'N', power: 3 }, { id: 'g3', name: '森のゴブリン', element: 'Wood', rarity: 'N', power: 3 }, { id: 'g4', name: '森の狩人', element: 'Wood', rarity: 'N', power: 4 }, { id: 'g5', name: 'ウッドゴーレム', element: 'Wood', rarity: 'R', power: 5 }, { id: 'g6', name: '大樹のドルイド', element: 'Wood', rarity: 'R', power: 6 }, { id: 'g7', name: 'エルフナイト', element: 'Wood', rarity: 'R', power: 7 }, { id: 'g8', name: '地竜ユグドラシル', element: 'Wood', rarity: 'SR', power: 8 }, { id: 'g9', name: '森王の弓使い', element: 'Wood', rarity: 'SR', power: 9 }, { id: 'g10', name: '世界樹の守護者', element: 'Wood', rarity: 'UR', power: 11 }, { id: 'g11', name: '豊穣神ガイア', element: 'Wood', rarity: 'UR', power: 12 },
+  { id: 'l1', name: '光の精霊', element: 'Light', rarity: 'N', power: 2 }, { id: 'l2', name: 'シャインスライム', element: 'Light', rarity: 'N', power: 3 }, { id: 'l3', name: 'ホーリーフェアリー', element: 'Light', rarity: 'N', power: 3 }, { id: 'l4', name: '神殿の僧兵', element: 'Light', rarity: 'N', power: 4 }, { id: 'l5', name: 'クリスタルゴーレム', element: 'Light', rarity: 'R', power: 5 }, { id: 'l6', name: '白魔導士', element: 'Light', rarity: 'R', power: 6 }, { id: 'l7', name: 'パラディン', element: 'Light', rarity: 'R', power: 7 }, { id: 'l8', name: '聖竜バハムート', element: 'Light', rarity: 'SR', power: 8 }, { id: 'l9', name: '光王の聖剣士', element: 'Light', rarity: 'SR', power: 9 }, { id: 'l10', name: '大天使ミカエル', element: 'Light', rarity: 'UR', power: 11 }, { id: 'l11', name: '太陽神アポロン', element: 'Light', rarity: 'UR', power: 12 },
+  { id: 'd1', name: '闇の精霊', element: 'Dark', rarity: 'N', power: 2 }, { id: 'd2', name: 'シャドウスライム', element: 'Dark', rarity: 'N', power: 3 }, { id: 'd3', name: 'インプ', element: 'Dark', rarity: 'N', power: 3 }, { id: 'd4', name: '骸骨兵', element: 'Dark', rarity: 'N', power: 4 }, { id: 'd5', name: 'ダークゴーレム', element: 'Dark', rarity: 'R', power: 5 }, { id: 'd6', name: '黒魔導士', element: 'Dark', rarity: 'R', power: 6 }, { id: 'd7', name: 'ダークナイト', element: 'Dark', rarity: 'R', power: 7 }, { id: 'd8', name: '魔竜ファフニール', element: 'Dark', rarity: 'SR', power: 8 }, { id: 'd9', name: '冥王の暗殺者', element: 'Dark', rarity: 'SR', power: 9 }, { id: 'd10', name: '堕天使ルシファー', element: 'Dark', rarity: 'UR', power: 11 }, { id: 'd11', name: '破壊神ハデス', element: 'Dark', rarity: 'UR', power: 12 },
+];
+
+const PACKS = [
+  { id: 'standard', name: 'STANDARD PACK', price: 100, desc: '全属性がバランスよく排出される基本パック。', color: 'from-blue-600 to-indigo-900', chances: { N: 0.60, R: 0.25, SR: 0.12, UR: 0.03 } },
+  { id: 'element', name: 'L&D PACK', price: 150, desc: '光と闇属性が3倍出やすい！特殊な戦術向けパック。', color: 'from-yellow-600 to-slate-900', chances: { N: 0.50, R: 0.30, SR: 0.15, UR: 0.05 }, pickups: ['Light', 'Dark'] },
+  { id: 'legend', name: 'LEGEND PACK', price: 300, desc: 'UR確率15%！超強力なカードを狙える高級パック。', color: 'from-red-600 to-yellow-600', chances: { N: 0.30, R: 0.30, SR: 0.25, UR: 0.15 } }
+];
+
+const PVE_STAGES = [
+  { id: 1, name: 'はじまりの森', hp: 5, deckPower: 2, reward: 100, texts: ["ここは「はじまりの森」。", "初心者デュエリストの登竜門だ。", "まずは野生のスライムを倒して、バトルの基礎を学ぼう！"] },
+  { id: 2, name: 'ゴブリンの洞窟', hp: 7, deckPower: 4, reward: 200, texts: ["森を抜けると、暗い洞窟にたどり着いた。", "「グガガ！ここは通さねぇ！」", "ゴブリンたちが群れをなして襲いかかってきた！"] },
+  { id: 3, name: '灼熱の火山', hp: 10, deckPower: 6, reward: 300, texts: ["熱気で息苦しい火山地帯。", "炎の番犬が鋭い牙を剥いて待ち構えている。", "水属性のカードがあれば有利に戦えるはずだ！"] },
+  { id: 4, name: '深淵の神殿', hp: 15, deckPower: 8, reward: 500, texts: ["怪しげな魔力が漂う古い神殿。", "「我が深淵の力、見せてやろう...」", "強力な魔導士の呪文に気をつけろ！"] },
+  { id: 5, name: '次元の狭間', hp: 20, deckPower: 10, reward: 1000, texts: ["ついに次元の覇王の元へたどり着いた！", "「よくぞここまで来た。だが、お前の旅もこれまでだ！」", "すべてを懸けて、最後のバトルに挑め！"] },
+];
+
+const INITIAL_PLAYER_HP = 10;
+
+// ==========================================
+// 3. Logic & Helpers
+// ==========================================
+const generateId = () => {
+  try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return Math.random().toString(36).substring(2, 15);
+};
+
+// 星の数で強さを表現
+const getStars = (power) => {
+  if (power >= 11) return '⭐⭐⭐⭐⭐';
+  if (power >= 8) return '⭐⭐⭐⭐';
+  if (power >= 6) return '⭐⭐⭐';
+  if (power >= 4) return '⭐⭐';
+  return '⭐';
+};
+
+const generateRandomCard = (packId) => {
+  const pack = PACKS.find(p => p.id === packId) || PACKS[0];
+  const rand = Math.random();
+  let rarity = 'N';
+  let cumulative = 0;
+  for (const [r, chance] of Object.entries(pack.chances)) {
+    cumulative += chance;
+    if (rand <= cumulative) { rarity = r; break; }
+  }
+  
+  let pool = CARD_CATALOG.filter(c => c.rarity === rarity);
+  if (pack.pickups) {
+    const pickups = pool.filter(c => pack.pickups.includes(c.element));
+    pool = [...pool, ...pickups, ...pickups];
+  }
+  
+  const baseCard = pool[Math.floor(Math.random() * pool.length)];
+  return JSON.parse(JSON.stringify({ ...baseCard, instanceId: generateId() })); // 安全なディープコピー
+};
+
+const calculateDamage = (card1, card2) => {
+  if (!card1 || !card2) return { p1: 0, p2: 0 };
+  let p1Power = card1.power || 0;
+  let p2Power = card2.power || 0;
+  if (ELEMENTS[card1.element]?.strongAgainst === card2.element) p1Power += 3;
+  if (ELEMENTS[card2.element]?.strongAgainst === card1.element) p2Power += 3;
+  if (p1Power > p2Power) return { p1: 1, p2: 0 };
+  if (p2Power > p1Power) return { p1: 0, p2: 1 };
+  return { p1: 0, p2: 0 };
+};
+
+const copyToClipboard = (text) => {
+  try {
+    const el = document.createElement('textarea'); el.value = text;
+    el.style.position = 'absolute'; el.style.left = '-9999px';
+    document.body.appendChild(el); el.select();
+    const res = document.execCommand('copy');
+    document.body.removeChild(el); return res;
+  } catch (e) { return false; }
+};
+
+// ==========================================
+// 4. UI Components (Card & HP Bar)
+// ==========================================
+const CardUI = ({ card, isRevealed, onClick, className = "", style = {} }) => {
+  if (!card || !card.element || !ELEMENTS[card.element]) {
+    return <div className={`w-24 h-36 md:w-32 md:h-48 rounded-xl border-2 border-dashed border-slate-600 flex items-center justify-center text-slate-500 font-black tracking-widest ${className}`} style={style}>EMPTY</div>;
+  }
+  const elem = ELEMENTS[card.element];
+  const rarityData = RARITIES[card.rarity];
+  
+  return (
+    <div className={`card-container w-24 h-36 md:w-32 md:h-48 group ${isRevealed ? 'revealed' : ''} ${className}`} onClick={onClick} style={style}>
+      <div className="card-inner">
+        {/* === CARD BACK === */}
+        <div className="card-back rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 border-2 md:border-[3px] border-slate-600 shadow-xl overflow-hidden flex flex-col items-center justify-center relative">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-50"></div>
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-950 flex items-center justify-center border-[3px] border-slate-700 shadow-[inset_0_0_15px_rgba(0,0,0,1)] z-10">
+            <span className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br from-blue-400 to-purple-500 tracking-tighter">TCG</span>
+          </div>
+        </div>
+        
+        {/* === CARD FRONT === */}
+        <div className={`card-front rounded-xl ${elem.bg} border-2 md:border-[3px] ${elem.border} ${rarityData.effect} shadow-2xl flex flex-col overflow-hidden relative`}>
+          
+          {/* 背景の透かしアイコン */}
+          <div className="absolute inset-0 opacity-10 scale-150 mix-blend-overlay flex items-center justify-center pointer-events-none">{elem.icon}</div>
+          
+          {/* メタリック反射エフェクト */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none z-30"></div>
+
+          {/* ヘッダー部（2段構成で星と名前の被りを解消） */}
+          <div className="flex flex-col bg-gradient-to-b from-black/80 to-black/40 px-2 py-1 border-b border-white/20 backdrop-blur-md relative z-10">
+            <div className="text-[7px] md:text-[9px] text-yellow-400 font-black tracking-widest drop-shadow-[0_1px_1px_rgba(0,0,0,1)] mb-0.5 text-left h-3 flex items-center">
+              {getStars(card.power)}
+            </div>
+            <div className="flex justify-between items-end">
+              <span className="text-[10px] md:text-xs font-black text-white truncate drop-shadow-lg leading-none">{card.name}</span>
+              <span className="w-3.5 h-3.5 md:w-4 md:h-4 text-white drop-shadow-md ml-1">{elem.icon}</span>
+            </div>
+          </div>
+          
+          {/* 中央部（属性アイコン大） */}
+          <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+             <div className="w-10 h-10 md:w-14 md:h-14 text-white filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition-transform duration-300">{elem.icon}</div>
+          </div>
+          
+          {/* フッター部（Rarity & ATK） */}
+          <div className="bg-gradient-to-t from-slate-950/90 to-slate-900/80 flex items-center justify-between px-2 py-1.5 border-t border-slate-600/50 backdrop-blur-sm relative z-10">
+             <div className="font-black text-[8px] md:text-[10px] text-slate-200 bg-black/60 px-1.5 py-0.5 rounded border border-slate-700 shadow-inner tracking-widest">{card.rarity}</div>
+             <div className="flex items-baseline gap-1 bg-red-900/40 px-2 py-0.5 rounded border border-red-500/30">
+                <span className="text-[8px] md:text-[9px] text-red-300 font-black tracking-wider">ATK</span>
+                <span className="font-black text-sm md:text-lg text-white drop-shadow-[0_0_5px_rgba(255,100,100,0.8)] leading-none">{card.power}</span>
+             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const HpBar = ({ hp, maxHp }) => {
+  const percent = Math.max(0, (hp / maxHp) * 100);
+  let color = 'from-green-400 via-green-500 to-green-600';
+  if (percent <= 50) color = 'from-yellow-400 via-yellow-500 to-yellow-600';
+  if (percent <= 25) color = 'from-red-400 via-red-500 to-red-600';
+  
+  return (
+    <div className="w-28 md:w-40 h-3.5 md:h-4 bg-slate-950 rounded-full overflow-hidden border border-slate-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] relative flex items-center">
+      <div className={`h-full bg-gradient-to-r ${color} transition-all duration-500 ease-out`} style={{ width: `${percent}%` }}></div>
+      <div className="absolute inset-0 flex items-center justify-center text-[10px] md:text-[11px] font-black text-white drop-shadow-[0_1px_1px_rgba(0,0,0,1)] tracking-widest">
+        {hp} / {maxHp}
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 5. Main Application Component
+// ==========================================
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [gameState, setGameState] = useState('title');
+  const [saveData, setSaveData] = useState({ nickname: '', crystals: 1000, cards: [], deck: [], pveStage: 1, storyCleared: false });
+  
+  const [nicknameInput, setNicknameInput] = useState('');
+  const [saveCodeInput, setSaveCodeInput] = useState('');
+  const [roomCodeInput, setRoomCodeInput] = useState('');
+  const [notification, setNotification] = useState('');
+
+  const [selectedPack, setSelectedPack] = useState(null);
+  const [gachaCards, setGachaCards] = useState([]);
+  const [gachaStep, setGachaStep] = useState('idle');
+  const [revealedCount, setRevealedCount] = useState(0);
+
+  const [deckBuilder, setDeckBuilder] = useState([]);
+  const [storyIndex, setStoryIndex] = useState(0);
+
+  const [battleData, setBattleData] = useState(null);
+  const [matchId, setMatchId] = useState(null);
+
+  useEffect(() => {
+    try {
+      const localSave = localStorage.getItem('tcg_save_v4');
+      if (localSave && localSave !== "undefined") {
+        const parsed = JSON.parse(localSave);
+        if (parsed?.nickname) {
+          setSaveData({
+            nickname: parsed.nickname,
+            crystals: typeof parsed.crystals === 'number' ? parsed.crystals : 1000,
+            cards: Array.isArray(parsed.cards) ? parsed.cards.filter(Boolean) : [],
+            deck: Array.isArray(parsed.deck) ? parsed.deck.filter(Boolean) : [],
+            pveStage: typeof parsed.pveStage === 'number' ? parsed.pveStage : 1,
+            storyCleared: !!parsed.storyCleared
+          });
+        }
+      }
+    } catch(e) {}
+
+    if (!auth) return;
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+        else await signInAnonymously(auth);
+      } catch (e) {}
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (saveData?.nickname) {
+      try { localStorage.setItem('tcg_save_v4', JSON.stringify(saveData)); } catch(e) {}
+      if (user && db) {
+        try {
+          const sRef = doc(db, 'artifacts', appId, 'users', user.uid, 'saveDataV4');
+          setDoc(sRef, {
+            nickname: saveData.nickname, crystals: saveData.crystals, pveStage: saveData.pveStage, storyCleared: saveData.storyCleared,
+            cards: JSON.parse(JSON.stringify(saveData.cards || [])), deck: JSON.parse(JSON.stringify(saveData.deck || []))
+          }).catch(()=>{});
+        } catch(e) {}
+      }
+    }
+  }, [saveData, user]);
+
+  const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(''), 3000); };
+
+  const startGame = () => {
+    if (!nicknameInput.trim() && !saveData?.nickname) return showNotification("ニックネームを入力してください");
+    if (!saveData?.nickname) setSaveData(p => ({ ...(p||{}), nickname: nicknameInput.trim() }));
+    setGameState('menu');
+  };
+
+  const generateSaveCode = () => {
+    try {
+      const code = btoa(encodeURIComponent(JSON.stringify(saveData || {})));
+      copyToClipboard(code);
+      showNotification("セーブコードをコピーしました！");
+    } catch(e) { showNotification("生成失敗"); }
+  };
+
+  const loadSaveCode = () => {
+    try {
+      if (!saveCodeInput) return;
+      const data = JSON.parse(decodeURIComponent(atob(saveCodeInput)));
+      if (data && typeof data === 'object' && data.nickname) {
+        setSaveData({
+          nickname: data.nickname || '', crystals: typeof data.crystals === 'number' ? data.crystals : 500,
+          cards: Array.isArray(data.cards) ? data.cards.filter(Boolean) : [], deck: Array.isArray(data.deck) ? data.deck.filter(Boolean) : [],
+          pveStage: typeof data.pveStage === 'number' ? data.pveStage : 1, storyCleared: !!data.storyCleared
+        });
+        showNotification("データを復元しました！");
+        setGameState('menu');
+      } else throw new Error("Invalid");
+    } catch (e) { showNotification("無効なセーブコードです。"); }
+  };
+
+  // --- Deck logic ---
+  const autoBuildDeck = () => {
+    const sorted = [...(saveData?.cards||[])].sort((a,b) => b.power - a.power);
+    return JSON.parse(JSON.stringify(sorted.slice(0, 5)));
+  };
+
+  const ensureDeck = () => {
+    if (Array.isArray(saveData?.deck) && saveData.deck.length === 5) {
+      return JSON.parse(JSON.stringify(saveData.deck));
+    }
+    if (!saveData?.cards || saveData.cards.length < 5) {
+      showNotification("カードが5枚以上必要です！パックを引きましょう！");
+      return null;
+    }
+    const autoDeck = autoBuildDeck();
+    setSaveData(p => ({ ...p, deck: autoDeck }));
+    showNotification("デッキが不足していたため自動編成しました！");
+    return autoDeck;
+  };
+
+  const saveDeck = () => {
+    if (deckBuilder.length !== 5) return showNotification("デッキはちょうど5枚選んでください！");
+    setSaveData(p => ({ ...p, deck: JSON.parse(JSON.stringify(deckBuilder)) }));
+    showNotification("デッキを保存しました！");
+    setGameState('menu');
+  };
+
+  const toggleDeckCard = (card) => {
+    if (deckBuilder.find(c => c.instanceId === card.instanceId)) {
+      setDeckBuilder(deckBuilder.filter(c => c.instanceId !== card.instanceId));
+    } else {
+      if (deckBuilder.length >= 5) return showNotification("デッキは5枚までです！");
+      setDeckBuilder([...deckBuilder, card]);
+    }
+  };
+
+  // --- Gacha ---
+  const openPackSelect = () => setGameState('packs');
+  const pullPack = (packId) => {
+    const pack = PACKS.find(p => p.id === packId);
+    if ((saveData?.crystals || 0) < pack.price) return showNotification("クリスタル不足です");
+    setSaveData(p => ({ ...(p||{}), crystals: Math.max(0, (p?.crystals||0) - pack.price) }));
+    setSelectedPack(pack);
+    setGachaCards([generateRandomCard(pack.id), generateRandomCard(pack.id), generateRandomCard(pack.id)]);
+    setGachaStep('shaking'); setRevealedCount(0); setGameState('gacha');
+    setTimeout(() => setGachaStep('opened'), 1500);
+  };
+
+  const revealCard = (index) => {
+    if (gachaStep !== 'opened') return;
+    const cards = [...(gachaCards || [])];
+    if (cards[index] && !cards[index].revealed) {
+      cards[index] = { ...cards[index], revealed: true };
+      setGachaCards(cards);
+      const newCount = revealedCount + 1;
+      setRevealedCount(newCount);
+      if (newCount >= 3) {
+        setGachaStep('revealed');
+        setSaveData(p => {
+          const arr = [...(p?.cards||[]), ...cards.map(c => { const n={...c}; delete n.revealed; return n; })];
+          return { ...(p||{}), cards: arr };
+        });
+      }
+    }
+  };
+
+  // --- PvE ---
+  const startStoryOrBattle = () => {
+    const deckToUse = ensureDeck();
+    if (!deckToUse) return;
+    const stageId = saveData?.pveStage || 1;
+    const stage = PVE_STAGES.find(s => s.id === stageId) || PVE_STAGES[PVE_STAGES.length-1];
+    
+    if (!saveData.storyCleared && stageId === stage.id && stage.texts) {
+      setStoryIndex(0);
+      setBattleData({ stage, playerDeck: deckToUse });
+      setGameState('story');
+    } else {
+      initPvEBattle(stage, deckToUse);
+    }
+  };
+
+  const nextStory = () => {
+    const stage = battleData.stage;
+    if (storyIndex < stage.texts.length - 1) {
+      setStoryIndex(storyIndex + 1);
+    } else {
+      initPvEBattle(stage, battleData.playerDeck);
+    }
+  };
+
+  const initPvEBattle = (stage, deckToUse) => {
+    // 完全に独立した手札を生成 (5枚)
+    const hand = JSON.parse(JSON.stringify(deckToUse));
+    setBattleData({
+      type: 'pve', stage, playerHand: hand,
+      playerHp: INITIAL_PLAYER_HP, enemyHp: stage.hp,
+      playerActive: null, enemyActive: null,
+      animating: false, effect: null, finished: false,
+      turnCount: 1
+    });
+    setGameState('pve');
+  };
+
+  const escapePvE = () => {
+    setGameState('menu');
+    setBattleData(null);
+  };
+
+  const playPvETurn = (idx) => {
+    if (battleData?.animating || battleData?.finished) return;
+    const hand = [...(battleData?.playerHand||[])];
+    const pCard = hand[idx];
+    if(!pCard) return;
+
+    // 手札から消費する
+    hand.splice(idx, 1);
+
+    const el = Object.keys(ELEMENTS);
+    const eCard = { id: 'e'+Date.now(), name: `幻影の${ELEMENTS[el[Math.floor(Math.random()*el.length)]].name}`, element: el[Math.floor(Math.random()*el.length)], rarity: 'R', power: (battleData?.stage?.deckPower||2) + Math.floor(Math.random()*3)-1 };
+
+    setBattleData(p => ({ ...p, playerHand: hand, playerActive: pCard, enemyActive: eCard, animating: true }));
+
+    setTimeout(() => {
+      const { p1, p2 } = calculateDamage(pCard, eCard);
+      setBattleData(p => ({ ...p, effect: { p1, p2 } }));
+
+      setTimeout(() => {
+        let nEHp = (battleData?.enemyHp||0) - p1;
+        let nPHp = (battleData?.playerHp||0) - p2;
+        
+        // 終了判定（HPが尽きるか、手札の5枚を使い切ったら終了）
+        if (nEHp <= 0 || nPHp <= 0 || hand.length === 0) {
+          let won = false;
+          if (nEHp <= 0) won = true;
+          else if (nPHp <= 0) won = false;
+          else won = nPHp >= nEHp; // 手札が尽きた場合はHPが同点以上なら勝ちとする
+
+          if (won) {
+            const nextStage = (battleData?.stage?.id || 1) + 1;
+            const isCleared = nextStage > PVE_STAGES.length;
+            setSaveData(p => ({ 
+              ...(p||{}), 
+              crystals: (p?.crystals||0) + (battleData?.stage?.reward||100), 
+              pveStage: isCleared ? p.pveStage : Math.max(p.pveStage, nextStage),
+              storyCleared: p.storyCleared || isCleared
+            }));
+          }
+          setBattleData(p => ({ ...p, enemyHp: Math.max(0, nEHp), playerHp: Math.max(0, nPHp), effect: null, finished: true, won }));
+        } else {
+          // 次のターンへ
+          setBattleData(p => ({ ...p, enemyHp: nEHp, playerHp: nPHp, playerActive: null, enemyActive: null, animating: false, effect: null, turnCount: p.turnCount + 1 }));
+        }
+      }, 1500);
+    }, 800);
+  };
+
+  // --- PvP ---
+  const startPvPMatchmaking = async () => {
+    if (!saveData.storyCleared) return showNotification("まずはPVEクエストをすべてクリアしてストーリーを見届けろ！");
+    if (!user || !db) return showNotification("通信エラー");
+    if (roomCodeInput.length !== 3) return showNotification("3桁入力必須");
+    
+    const deckToUse = ensureDeck();
+    if (!deckToUse) return;
+
+    setGameState('pvp_match');
+    const mRef = collection(db, 'artifacts', appId, 'public', 'data', 'matches');
+    try {
+      const snap = await getDocs(mRef);
+      const now = Date.now();
+      let fMatch = null;
+      snap.forEach(d => {
+        const dd = d.data();
+        if (dd.code === roomCodeInput && dd.status === 'waiting' && (now - dd.timestamp < 15000)) fMatch = { id: d.id, ...dd };
+      });
+
+      const pDeck = JSON.parse(JSON.stringify(deckToUse));
+      const pData = { uid: user.uid, name: saveData?.nickname || 'ゲスト', deck: pDeck };
+
+      if (fMatch) {
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', fMatch.id), { player2: pData, status: 'playing' });
+        setMatchId(fMatch.id); listenToMatch(fMatch.id, 2);
+      } else {
+        const nRef = doc(mRef);
+        await setDoc(nRef, { code: roomCodeInput, status: 'waiting', timestamp: now, player1: pData, p1Hp: INITIAL_PLAYER_HP, p2Hp: INITIAL_PLAYER_HP, turns: {}, currentTurn: 1 });
+        setMatchId(nRef.id); listenToMatch(nRef.id, 1);
+      }
+    } catch (e) { showNotification("エラー発生"); setGameState('menu'); }
+  };
+
+  const listenToMatch = (mId, pNum) => {
+    if (!db) return;
+    const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'matches', mId), (d) => {
+      if (!d.exists()) return;
+      const data = d.data();
+      if (data.status === 'playing' || data.status === 'finished') {
+        setGameState('pvp_battle');
+        setBattleData({ ...data, myPlayerNum: pNum, myDeck: pNum === 1 ? data.player1?.deck : data.player2?.deck, enemyData: pNum === 1 ? data.player2 : data.player1, animating: false });
+      }
+    });
+    if (pNum === 1) setTimeout(() => { getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', mId)).then(s => { if(s.exists() && s.data()?.status === 'waiting') { deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', mId)); showNotification("タイムアウト"); setGameState('menu'); setMatchId(null); unsub(); } }) }, 15000);
+  };
+
+  const playPvPTurn = async (idx) => {
+    if (!matchId || !db || !battleData || battleData.finished) return;
+    const mCard = battleData?.myDeck?.[idx];
+    if (!mCard) return;
+    const tData = battleData?.turns?.[`turn${battleData.currentTurn}`] || {};
+    if (tData[`p${battleData.myPlayerNum}Card`]) return; // 既に出している場合は無効
+
+    try {
+      // ローカルのUIから手札を消す
+      const nDeck = [...(battleData.myDeck || [])];
+      nDeck.splice(idx, 1);
+      setBattleData(p => ({ ...(p||{}), myDeck: nDeck }));
+
+      // Firestoreを更新
+      const isO = !!tData[`p${battleData.myPlayerNum===1?2:1}Card`];
+      const cCard = JSON.parse(JSON.stringify(mCard));
+      
+      let upd = { 
+        [`turns.turn${battleData.currentTurn}.p${battleData.myPlayerNum}Card`]: cCard,
+        [`player${battleData.myPlayerNum}.deck`]: nDeck
+      };
+
+      if (isO) {
+        const oCard = tData[`p${battleData.myPlayerNum===1?2:1}Card`];
+        const p1C = battleData.myPlayerNum===1 ? cCard : oCard;
+        const p2C = battleData.myPlayerNum===2 ? cCard : oCard;
+        const { p1, p2 } = calculateDamage(p1C, p2C);
+        
+        const nP1Hp = (battleData.p1Hp||0) - p2; 
+        const nP2Hp = (battleData.p2Hp||0) - p1;
+        
+        upd.p1Hp = nP1Hp; upd.p2Hp = nP2Hp;
+        upd[`turns.turn${battleData.currentTurn}.result`] = { p1, p2 };
+        if (nP1Hp <= 0 || nP2Hp <= 0 || (battleData.currentTurn||1) >= 5) upd.status = 'finished';
+        else upd.currentTurn = (battleData.currentTurn||1) + 1;
+      }
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', matchId), upd);
+    } catch (e) { console.warn(e); }
+  };
+
+  const surrenderPvP = async () => {
+    if (matchId && db && battleData && !battleData.finished) {
+      try {
+        let upd = { status: 'finished' };
+        upd[`p${battleData.myPlayerNum}Hp`] = 0; // 自殺して相手の勝利にする
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', matchId), upd);
+      } catch(e){}
+    }
+    setGameState('menu');
+    setBattleData(null);
+    setMatchId(null);
+  };
+
+  // ==========================================
+  // CSS & Layout
+  // ==========================================
+  const customStyles = `
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
+    body { font-family: 'Noto Sans JP', sans-serif; -webkit-font-smoothing: antialiased; }
+    @keyframes gradient-bg { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .bg-animated { background: linear-gradient(-45deg, #020617, #0f172a, #1e1b4b, #020617); background-size: 400% 400%; animation: gradient-bg 20s ease infinite; }
+    
+    .card-container { perspective: 1000px; cursor: pointer; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .card-container:hover { transform: translateY(-10px) scale(1.05) rotate(-2deg); }
+    .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+    .card-container.revealed .card-inner { transform: rotateY(180deg); }
+    .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 0.75rem; }
+    .card-front { transform: rotateY(180deg); }
+    
+    .shadow-glow-blue { box-shadow: 0 0 20px 5px rgba(59, 130, 246, 0.5); }
+    .shadow-glow-gold { box-shadow: 0 0 25px 8px rgba(234, 179, 8, 0.6); }
+    .shadow-glow-rainbow { box-shadow: 0 0 30px 10px rgba(236, 72, 153, 0.7); animation: rainbow-shadow 3s linear infinite; }
+    @keyframes rainbow-shadow { 0% { box-shadow: 0 0 30px 10px rgba(255, 0, 0, 0.7); } 33% { box-shadow: 0 0 30px 10px rgba(0, 255, 0, 0.7); } 66% { box-shadow: 0 0 30px 10px rgba(0, 0, 255, 0.7); } 100% { box-shadow: 0 0 30px 10px rgba(255, 0, 0, 0.7); } }
+    .hologram-effect::after { content: ""; position: absolute; inset:0; background: linear-gradient(125deg, transparent 20%, rgba(255,255,255,0.8) 40%, rgba(255,255,255,0.8) 60%, transparent 80%); background-size: 200% 200%; animation: holo-sweep 3s linear infinite; mix-blend-mode: overlay; pointer-events: none; }
+    @keyframes holo-sweep { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    @keyframes slide-up { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .anim-slide-up { animation: slide-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    
+    @keyframes attack-shake { 0%, 100% { transform: translate(0,0) scale(0.9); } 25% { transform: translate(10px,-10px) scale(0.9); } 50% { transform: translate(-10px,10px) scale(0.9); } 75% { transform: translate(10px,10px) scale(0.9); } }
+    .anim-attack { animation: attack-shake 0.3s ease-in-out infinite; }
+  `;
+
+  // --- Battle Arena Component (PvE & PvP Shared Layout) ---
+  const renderBattleArena = () => {
+    const isPvE = gameState === 'pve';
+    const eHp = isPvE ? battleData.enemyHp : (battleData.myPlayerNum === 1 ? battleData.p2Hp : battleData.p1Hp);
+    const eMax = isPvE ? battleData.stage.hp : INITIAL_PLAYER_HP;
+    const eName = isPvE ? battleData.stage.name : battleData.enemyData?.name;
+    const eActive = isPvE ? battleData.enemyActive : battleData?.turns?.[`turn${battleData.currentTurn}`]?.[`p${battleData.myPlayerNum===1?2:1}Card`];
+    
+    const pHp = isPvE ? battleData.playerHp : (battleData.myPlayerNum === 1 ? battleData.p1Hp : battleData.p2Hp);
+    const pMax = isPvE ? INITIAL_PLAYER_HP : INITIAL_PLAYER_HP;
+    const pActive = isPvE ? battleData.playerActive : battleData?.turns?.[`turn${battleData.currentTurn}`]?.[`p${battleData.myPlayerNum}Card`];
+    
+    const effect = battleData.effect; // PvE専用のダメージ演出用
+
+    // 既にカードを出したか？
+    const hasPlayedPvP = !isPvE && !!battleData?.turns?.[`turn${battleData.currentTurn}`]?.[`p${battleData.myPlayerNum}Card`];
+    
+    // 現在のターン数（UI表示用）
+    const currentTurnDisplay = isPvE ? battleData.turnCount : battleData.currentTurn;
+
+    return (
+      <div className="max-w-md mx-auto w-full h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col font-sans antialiased border-[3px] border-slate-700">
+        
+        {/* === ENEMY ZONE === */}
+        <div className="flex-1 flex flex-col p-4 bg-gradient-to-b from-red-950/60 to-slate-900 relative shadow-lg">
+          <div className="flex justify-between items-center bg-black/60 p-3 rounded-2xl border border-slate-600 backdrop-blur-md shadow-md z-10">
+             <div className="flex items-center gap-3 w-full">
+               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 border-2 border-red-500 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">👾</div>
+               <div className="flex-1">
+                 <div className="font-black text-sm text-slate-200 tracking-wide drop-shadow-md mb-1">{eName || 'Unknown'}</div>
+                 <HpBar hp={eHp} maxHp={eMax} />
+               </div>
+             </div>
+             {/* 逃げる/降参ボタン */}
+             {!battleData.finished && (
+                <button onClick={isPvE ? escapePvE : surrenderPvP} className="ml-2 px-4 py-2 bg-gradient-to-r from-red-800 to-red-600 hover:from-red-700 hover:to-red-500 rounded-xl text-[10px] text-white font-black tracking-widest border border-red-400 shadow-lg whitespace-nowrap transition-transform hover:scale-105">
+                  {isPvE ? 'ESCAPE' : 'SURRENDER'}
+                </button>
+             )}
+          </div>
+          
+          <div className="flex-1 flex items-center justify-center relative mt-2">
+             {eActive ? (
+               <CardUI card={eActive} isRevealed={isPvE ? true : hasPlayedPvP} className={`transform scale-90 md:scale-100 ${battleData.animating ? 'anim-attack' : 'anim-slide-up'}`} />
+             ) : (
+               <div className="w-24 h-36 md:w-32 md:h-48 rounded-xl border-[3px] border-dashed border-red-900/50 flex items-center justify-center text-red-900/60 font-black tracking-widest bg-red-950/20 shadow-inner">ACTIVE</div>
+             )}
+          </div>
+        </div>
+
+        {/* === CENTER VS LINE === */}
+        <div className="h-0 relative z-20">
+           <div className="absolute top-1/2 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-red-500 to-transparent transform -translate-y-1/2 opacity-80 blur-[1px]"></div>
+           <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-slate-900 rounded-full border-[4px] border-slate-600 flex items-center justify-center font-black italic text-2xl text-slate-200 shadow-[0_0_25px_rgba(255,50,50,0.5)]">VS</div>
+        </div>
+
+        {/* === PLAYER ZONE === */}
+        <div className="flex-[1.3] flex flex-col p-4 bg-gradient-to-t from-blue-950/60 to-slate-900 relative">
+          <div className="flex-1 flex items-center justify-center relative mb-4">
+             {pActive ? (
+               <CardUI card={pActive} isRevealed={true} className={`transform scale-90 md:scale-100 ${battleData.animating ? 'anim-attack' : 'anim-slide-up'}`} />
+             ) : (
+               <div className="w-24 h-36 md:w-32 md:h-48 rounded-xl border-[3px] border-dashed border-blue-900/50 flex items-center justify-center text-blue-900/60 font-black tracking-widest bg-blue-950/20 shadow-inner">ACTIVE</div>
+             )}
+          </div>
+
+          <div className="flex flex-col gap-4 z-10">
+            <div className="flex justify-between items-center bg-black/60 p-3 rounded-2xl border border-slate-600 backdrop-blur-md shadow-md">
+               <div className="flex items-center gap-3 w-full">
+                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 border-2 border-blue-500 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">👤</div>
+                 <div className="flex-1">
+                   <div className="font-black text-sm text-slate-200 tracking-wide drop-shadow-md mb-1">あなた</div>
+                   <HpBar hp={pHp} maxHp={pMax} />
+                 </div>
+               </div>
+               <div className="text-xs font-black text-yellow-400 bg-yellow-900/50 px-3 py-1.5 rounded-lg border border-yellow-500/50 flex-shrink-0 ml-2 shadow-inner">TURN {currentTurnDisplay}/5</div>
+            </div>
+            
+            <div className="flex gap-3 overflow-x-auto pb-2 px-1 scrollbar-hide h-36 items-center">
+               {(isPvE ? battleData.playerHand : battleData.myDeck).map((card, i) => (
+                 <button key={card?.instanceId || i} onClick={() => isPvE ? playPvETurn(i) : playPvPTurn(i)} disabled={battleData.animating || !!pActive || battleData.finished || (!isPvE && hasPlayedPvP)} className="transition-transform transform hover:-translate-y-4 focus:outline-none flex-shrink-0 relative group">
+                    <CardUI card={card} isRevealed={true} className={`transform scale-75 origin-bottom shadow-lg group-hover:shadow-[0_0_20px_rgba(59,130,246,0.6)] ${(!isPvE && hasPlayedPvP) ? 'opacity-50 grayscale' : ''}`} />
+                 </button>
+               ))}
+               {!(isPvE ? battleData.playerHand : battleData.myDeck)?.length && !battleData.finished && <div className="text-slate-500 w-full text-center font-black tracking-widest">NO CARDS</div>}
+            </div>
+          </div>
+        </div>
+
+        {/* === EFFECTS & OVERLAYS === */}
+        {effect && (
+           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+              <div className="absolute inset-0 bg-white opacity-20 animate-ping"></div>
+              <div className="flex flex-col items-center gap-32 md:gap-40">
+                 {effect.p1 > 0 && <div className="text-7xl md:text-9xl font-black text-red-500 drop-shadow-[0_0_25px_rgba(255,0,0,1)] animate-bounce stroke-black stroke-2">-1</div>}
+                 {effect.p2 > 0 && <div className="text-7xl md:text-9xl font-black text-blue-500 drop-shadow-[0_0_25px_rgba(0,150,255,1)] animate-bounce">-1</div>}
+              </div>
+           </div>
+        )}
+
+        {/* === RESULT OVERLAY === */}
+        {battleData.finished && (
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-6 backdrop-blur-md">
+            <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-8 rounded-3xl text-center max-w-sm w-full border-2 border-slate-500 shadow-[0_0_60px_rgba(0,0,0,0.8)] anim-slide-up">
+              {(() => {
+                const won = isPvE ? battleData.won : (battleData.myPlayerNum===1 ? battleData.p2Hp<=0 || battleData.p1Hp>battleData.p2Hp : battleData.p1Hp<=0 || battleData.p2Hp>battleData.p1Hp);
+                const draw = !isPvE && battleData.p1Hp === battleData.p2Hp;
+                
+                return (
+                  <>
+                    <h2 className={`text-6xl font-black mb-8 drop-shadow-xl ${draw ? 'text-slate-400' : (won ? 'text-yellow-400' : 'text-red-500')}`}>
+                      {draw ? 'DRAW' : (won ? 'VICTORY!' : 'DEFEAT')}
+                    </h2>
+                    {isPvE && won && (
+                      <div className="mb-8 bg-black/50 p-4 rounded-2xl border border-yellow-500/50 shadow-inner">
+                        <p className="text-xs text-slate-300 mb-1 font-black tracking-widest">REWARD</p>
+                        <p className="text-4xl font-mono font-black text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)]">💎 {battleData?.stage?.reward || 0}</p>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-4">
+                      {isPvE && won && <button onClick={() => { setGameState('packs'); }} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-black text-lg shadow-lg transform transition-transform hover:scale-105 tracking-widest">PACKSへ！</button>}
+                      <button onClick={() => { setGameState('menu'); setBattleData(null); setMatchId(null); }} className="w-full py-4 bg-slate-700 hover:bg-slate-600 rounded-xl font-black text-lg shadow-md transition-colors tracking-widest">MENU</button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-animated text-slate-100 font-sans antialiased overflow-x-hidden relative selection:bg-indigo-500 flex flex-col">
+      <style dangerouslySetInnerHTML={{ __html: customStyles }} />
+
+      {notification && <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.6)] font-black text-sm md:text-base border border-white/20 whitespace-nowrap">{notification}</div>}
+
+      {gameState !== 'title' && gameState !== 'gacha' && gameState !== 'pve' && gameState !== 'pvp_battle' && gameState !== 'story' && (
+        <header className="w-full bg-slate-900/80 backdrop-blur-xl z-40 p-4 flex justify-between items-center shadow-lg border-b border-slate-700/50 sticky top-0">
+          <div className="font-black text-3xl tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400 cursor-pointer drop-shadow-md hover:opacity-80 transition-opacity" onClick={() => setGameState('menu')}>NEXUS</div>
+          <div className="flex gap-4 items-center">
+            <div className="text-sm font-black text-slate-300 hidden md:block"><span className="text-indigo-400 mr-1">👤</span>{saveData?.nickname || 'ゲスト'}</div>
+            <div className="bg-slate-950 px-4 py-1.5 rounded-full border border-slate-700 flex items-center gap-2 font-mono shadow-inner"><span className="text-blue-400 text-lg drop-shadow-md">💎</span><span className="font-black">{saveData?.crystals || 0}</span></div>
+          </div>
+        </header>
+      )}
+
+      <main className={`flex-1 flex flex-col ${(gameState === 'title' || gameState === 'gacha' || gameState === 'pve' || gameState === 'pvp_battle' || gameState === 'story' || gameState === 'pvp_match') ? 'justify-center p-2 md:p-4' : 'pt-8 pb-10 px-4'} w-full max-w-6xl mx-auto`}>
+        
+        {gameState === 'title' && (
+          <div className="w-full max-w-sm mx-auto space-y-12">
+            <h1 className="text-7xl font-black text-center tracking-tighter leading-none">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 drop-shadow-2xl">NEXUS</span>
+              <span className="block text-2xl text-slate-300 mt-4 tracking-widest">POCKET CLONE</span>
+            </h1>
+            <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-3xl w-full flex flex-col gap-6 shadow-2xl border border-slate-700">
+              {saveData?.nickname ? (
+                <div className="text-center space-y-6">
+                  <p className="text-lg font-black">おかえり、<span className="text-indigo-300">{saveData.nickname}</span>！</p>
+                  <button onClick={() => setGameState('menu')} className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 font-black text-lg shadow-[0_0_25px_rgba(79,70,229,0.5)] hover:scale-105 transition-transform tracking-widest">GAME START</button>
+                  <button onClick={() => setSaveData({nickname: '', crystals: 1000, cards: [], deck: [], pveStage: 1, storyCleared: false})} className="text-xs text-slate-500 hover:text-slate-300 underline font-bold">データをリセット</button>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 tracking-widest">NEW GAME</label>
+                    <input type="text" value={nicknameInput} onChange={e => setNicknameInput(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-700 rounded-xl px-4 py-3 text-white font-bold focus:border-indigo-500 outline-none transition-colors" placeholder="プレイヤーネーム" maxLength={10} />
+                    <button onClick={startGame} className="w-full py-3 rounded-xl bg-indigo-600 font-black shadow-lg hover:bg-indigo-500 transition-colors tracking-widest">はじめる</button>
+                  </div>
+                  <div className="relative flex py-2 items-center"><div className="flex-grow border-t border-slate-700"></div><span className="mx-4 text-slate-500 text-[10px] font-bold">OR</span><div className="flex-grow border-t border-slate-700"></div></div>
+                  <div className="space-y-3">
+                    <label className="text-xs font-black text-slate-400 tracking-widest">LOAD DATA</label>
+                    <input type="text" value={saveCodeInput} onChange={e => setSaveCodeInput(e.target.value)} className="w-full bg-slate-950 border-2 border-slate-700 rounded-xl px-4 py-3 text-[10px] text-white focus:border-pink-500 outline-none" placeholder="セーブコード" />
+                    <button onClick={loadSaveCode} className="w-full py-3 rounded-xl bg-pink-700 font-black shadow-lg hover:bg-pink-600 transition-colors tracking-widest">復元する</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {gameState === 'menu' && (
+          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div onClick={openPackSelect} className="col-span-1 md:col-span-2 relative overflow-hidden rounded-3xl cursor-pointer group shadow-2xl border-2 border-slate-700 bg-slate-900 transition-transform hover:scale-[1.02]">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-purple-900/80 group-hover:opacity-100 transition-opacity z-10"></div>
+              <div className="absolute -right-20 -top-20 w-64 h-64 bg-pink-600 rounded-full mix-blend-screen filter blur-3xl opacity-40 animate-pulse"></div>
+              <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-blue-600 rounded-full mix-blend-screen filter blur-3xl opacity-40 animate-pulse" style={{animationDelay: '1s'}}></div>
+              <div className="relative p-12 flex flex-col items-center justify-center text-center space-y-6 z-20">
+                <h2 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] tracking-tighter">GET CARDS</h2>
+                <p className="font-black text-lg text-slate-200 tracking-widest">3種類の拡張パックから選んで引こう！</p>
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3 rounded-xl font-black text-xl shadow-lg mt-4 border border-indigo-400 group-hover:scale-110 transition-transform">PACK STORE ➡️</div>
+              </div>
+            </div>
+
+            <div onClick={startStoryOrBattle} className="bg-slate-900/80 p-8 rounded-3xl cursor-pointer hover:bg-slate-800 transition-colors border-2 border-slate-700 border-l-8 border-l-green-500 flex flex-col justify-between shadow-xl group">
+              <div>
+                <h3 className="text-3xl font-black mb-3 flex items-center gap-3"><span className="text-4xl group-hover:animate-bounce">⚔️</span> PVE QUEST</h3>
+                <p className="text-slate-400 text-sm font-bold leading-relaxed">ストーリーを進めてクリスタルを稼げ！<br/>5枚のオリジナルデッキで挑戦だ。</p>
+              </div>
+              <div className="mt-8 text-right font-black text-green-400 text-2xl tracking-widest">STAGE {saveData?.pveStage || 1}</div>
+            </div>
+
+            <div className="bg-slate-900/80 p-8 rounded-3xl border-2 border-slate-700 border-l-8 border-l-red-500 flex flex-col justify-between shadow-xl relative overflow-hidden group">
+              {!saveData.storyCleared && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
+                   <div className="text-6xl mb-4">🔒</div>
+                   <div className="font-black text-red-400 mb-2 tracking-widest">PVP LOCKED</div>
+                   <div className="text-xs text-slate-300 font-bold">PVEクエストをすべてクリアして<br/>ストーリーを最後まで読もう！</div>
+                </div>
+              )}
+              <div className={!saveData.storyCleared ? 'opacity-30' : ''}>
+                <h3 className="text-3xl font-black mb-3 flex items-center gap-3"><span className="text-4xl group-hover:animate-pulse">🔥</span> PVP BATTLE</h3>
+                <p className="text-slate-400 text-sm font-bold leading-relaxed">友達と同じ3桁の合言葉を入力。<br/>自慢のデッキで1v1の通信対戦！</p>
+              </div>
+              <div className={`flex gap-3 mt-8 ${!saveData.storyCleared ? 'opacity-30 pointer-events-none' : ''}`}>
+                <input type="text" value={roomCodeInput} onChange={e => setRoomCodeInput(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))} placeholder="000" className="w-24 bg-slate-950 border-2 border-slate-600 rounded-xl text-center text-2xl font-black focus:border-red-500 outline-none transition-colors" />
+                <button onClick={startPvPMatchmaking} className="flex-1 bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 rounded-xl font-black text-lg shadow-lg transition-transform hover:scale-105 tracking-widest">FIGHT</button>
+              </div>
+            </div>
+
+            <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
+               <button onClick={() => { setDeckBuilder(saveData?.deck||[]); setGameState('deck'); }} className="bg-slate-900/80 p-6 rounded-3xl font-black text-xl hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex items-center justify-center gap-4 transition-transform hover:-translate-y-1"><span className="text-3xl">🃏</span> DECK</button>
+               <button onClick={() => setGameState('collection')} className="bg-slate-900/80 p-6 rounded-3xl font-black text-xl hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex items-center justify-center gap-4 transition-transform hover:-translate-y-1"><span className="text-3xl">📁</span> CARDS ({Array.isArray(saveData?.cards) ? saveData.cards.length : 0})</button>
+               <button onClick={generateSaveCode} className="bg-slate-900/80 p-6 rounded-3xl font-black text-xl hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex items-center justify-center gap-4 transition-transform hover:-translate-y-1"><span className="text-3xl">🔑</span> SAVE CODE</button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'packs' && (
+          <div className="w-full flex flex-col items-center">
+            <h2 className="text-5xl font-black mb-10 tracking-widest drop-shadow-lg text-center">PACK STORE</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
+              {PACKS.map(pack => (
+                <div key={pack.id} onClick={() => pullPack(pack.id)} className={`relative flex flex-col items-center justify-between p-8 rounded-3xl cursor-pointer group shadow-2xl border-4 border-slate-600 bg-gradient-to-b ${pack.color} transition-all transform hover:-translate-y-4 hover:shadow-[0_20px_50px_rgba(0,0,0,0.8)]`}>
+                   <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors rounded-3xl"></div>
+                   <h3 className="text-3xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,1)] mb-4 relative z-10 text-center">{pack.name}</h3>
+                   
+                   <div className="w-32 h-48 bg-gradient-to-br from-white/20 to-black/40 border-4 border-white/50 rounded-xl mb-6 relative z-10 flex items-center justify-center shadow-2xl overflow-hidden group-hover:scale-110 transition-transform">
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/50 to-transparent opacity-0 group-hover:opacity-100 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                      <div className="text-5xl drop-shadow-xl">{pack.id === 'standard' ? '🌟' : pack.id === 'element' ? '🌓' : '👑'}</div>
+                   </div>
+                   
+                   <p className="text-sm font-bold text-slate-200 text-center mb-6 relative z-10 h-10">{pack.desc}</p>
+                   
+                   <div className="bg-slate-950/80 px-6 py-3 rounded-full font-mono font-black text-2xl flex items-center gap-3 border border-slate-500 shadow-xl relative z-10 w-full justify-center">
+                     <span>{pack.price}</span> <span className="text-blue-400">💎</span>
+                   </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setGameState('menu')} className="mt-12 px-10 py-4 bg-slate-800 hover:bg-slate-700 rounded-xl font-black tracking-widest border border-slate-600 shadow-lg hover:-translate-y-1 transition-transform">BACK TO MENU</button>
+          </div>
+        )}
+
+        {gameState === 'gacha' && (
+          <div className="flex-1 flex flex-col items-center justify-center relative w-full h-full">
+            {(gachaCards || []).some(c => c?.rarity === 'UR' && c?.revealed) && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/30 via-purple-500/30 to-yellow-500/30 mix-blend-screen animate-pulse z-0 pointer-events-none"></div>
+                {Array.from({length: 40}).map((_, i) => <div key={i} className="absolute w-2 h-2 bg-white rounded-full pointer-events-none" style={{left: `${Math.random()*100}%`, top: `${Math.random()*100}%`, animation: `slide-up ${1+Math.random()*2}s ease-in infinite`, opacity: Math.random()}}></div>)}
+              </>
+            )}
+
+            <h2 className="text-4xl font-black mb-12 z-10 drop-shadow-lg tracking-widest">{gachaStep === 'idle' ? 'TAP TO OPEN' : gachaStep === 'revealed' ? 'RESULT' : '...'}</h2>
+
+            {(gachaStep === 'idle' || gachaStep === 'shaking') && (
+              <div onClick={() => setGachaStep('shaking')} className={`relative w-64 h-96 rounded-2xl bg-gradient-to-b ${selectedPack?.color || 'from-indigo-900 to-slate-900'} border-[6px] border-slate-300 shadow-[0_0_80px_rgba(255,255,255,0.2)] flex flex-col items-center justify-center cursor-pointer overflow-hidden z-10 ${gachaStep === 'shaking' ? 'anim-shake' : ''} ${gachaStep === 'opened' ? 'anim-tear' : ''}`} style={{ transition: 'all 0.3s' }}>
+                 <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/50 to-transparent opacity-0 hover:opacity-100 transform -rotate-45 translate-x-[-150%] hover:translate-x-[150%] transition-all duration-700 ease-in-out"></div>
+                 <div className="text-7xl mb-4 drop-shadow-2xl">{selectedPack?.id === 'standard' ? '🌟' : selectedPack?.id === 'element' ? '🌓' : '👑'}</div>
+                 <div className="text-center font-black text-4xl text-white drop-shadow-[0_5px_5px_rgba(0,0,0,1)] border-y-4 border-white/50 py-2 w-full bg-black/40 backdrop-blur-sm tracking-widest">{selectedPack?.name.split(' ')[0]}<br/>PACK</div>
+              </div>
+            )}
+
+            {(gachaStep === 'opened' || gachaStep === 'revealed') && (
+              <div className="flex flex-wrap justify-center gap-6 md:gap-12 z-10">
+                {(gachaCards || []).map((card, index) => (
+                  <div key={index} className="flex flex-col items-center anim-slide-up" style={{animationDelay: `${index * 0.15}s`}}>
+                    <CardUI card={card} isRevealed={card?.revealed} onClick={() => revealCard(index)} className={card?.revealed && card?.rarity ? RARITIES[card.rarity]?.effect : ''} style={{width: '140px', height: '210px'}} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {gachaStep === 'revealed' && <button onClick={() => setGameState('packs')} className="mt-20 px-16 py-5 bg-white text-slate-900 rounded-full font-black text-2xl shadow-[0_0_30px_rgba(255,255,255,0.8)] z-10 hover:scale-110 transition-transform tracking-widest">OK</button>}
+          </div>
+        )}
+
+        {gameState === 'deck' && (
+          <div className="w-full flex flex-col h-[85vh]">
+             <div className="flex justify-between items-center mb-4 bg-slate-900/80 p-4 rounded-2xl border border-slate-700 backdrop-blur-md">
+                <h2 className="text-3xl font-black tracking-widest flex items-center gap-3"><span className="text-4xl">🃏</span> DECK BUILDER</h2>
+                <div className="flex gap-3">
+                   <div className="px-4 py-2 bg-slate-950 border border-slate-700 rounded-xl font-black text-xl"><span className={deckBuilder.length === 5 ? 'text-green-400' : 'text-red-400'}>{deckBuilder.length}</span> / 5</div>
+                   <button onClick={saveDeck} className="px-8 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-xl font-black tracking-widest shadow-lg transition-colors">SAVE</button>
+                   <button onClick={() => setGameState('menu')} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold transition-colors">CANCEL</button>
+                </div>
+             </div>
+
+             <div className="bg-slate-900/50 p-6 rounded-3xl border border-slate-700 mb-6 shadow-inner min-h-[220px] flex items-center justify-center gap-4 md:gap-6">
+                {[0, 1, 2, 3, 4].map(i => (
+                  <div key={i} className="w-24 h-36 md:w-32 md:h-48 border-[3px] border-dashed border-slate-600 rounded-xl flex items-center justify-center bg-slate-950/30">
+                     {deckBuilder[i] ? (
+                       <CardUI card={deckBuilder[i]} isRevealed={true} onClick={() => toggleDeckCard(deckBuilder[i])} className="transform hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]" />
+                     ) : <span className="font-black text-slate-600 tracking-widest">SLOT {i+1}</span>}
+                  </div>
+                ))}
+             </div>
+
+             <div className="flex-1 overflow-y-auto bg-slate-900/30 p-4 rounded-3xl border border-slate-700 shadow-inner">
+                <h3 className="text-xl font-black mb-4 tracking-widest text-slate-400">COLLECTION</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 content-start">
+                  {(!Array.isArray(saveData?.cards) || saveData.cards.length === 0) ? (
+                    <div className="col-span-full text-center text-slate-500 py-10 font-bold">NO CARDS</div>
+                  ) : (
+                    [...saveData.cards].sort((a,b) => (b?.power || 0) - (a?.power || 0)).map((card) => {
+                      const isSelected = deckBuilder.find(c => c.instanceId === card.instanceId);
+                      return (
+                        <div key={card.instanceId} className="flex justify-center relative">
+                          <CardUI card={card} isRevealed={true} onClick={() => toggleDeckCard(card)} className={`w-full h-auto aspect-[2/3] text-[0.5rem] transition-transform ${isSelected ? 'opacity-30 scale-95' : 'hover:-translate-y-2 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)]'}`} />
+                          {isSelected && <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-5xl font-black text-green-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] pointer-events-none z-10">✓</div>}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+             </div>
+          </div>
+        )}
+
+        {gameState === 'collection' && (
+          <div className="w-full flex flex-col h-[85vh]">
+            <div className="flex justify-between items-center mb-6 bg-slate-900/80 p-4 rounded-2xl border border-slate-700 backdrop-blur-md">
+              <h2 className="text-3xl font-black tracking-widest">COLLECTION</h2>
+              <button onClick={() => setGameState('menu')} className="px-8 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold transition-colors">BACK</button>
+            </div>
+            <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 content-start scrollbar-hide pb-10">
+              {(!Array.isArray(saveData?.cards) || saveData.cards.length === 0) ? (
+                <div className="col-span-full text-center text-slate-500 py-20 font-black text-2xl tracking-widest">NO CARDS</div>
+              ) : (
+                [...saveData.cards].sort((a,b) => (b?.power || 0) - (a?.power || 0)).map((card, idx) => (
+                  <div key={card?.instanceId || idx} className="flex justify-center"><CardUI card={card} isRevealed={true} className="w-full h-auto aspect-[2/3] text-[0.5rem] hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-transform" /></div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {gameState === 'story' && battleData && battleData.stage && (
+          <div className="max-w-2xl mx-auto w-full h-[70vh] flex flex-col justify-end relative bg-slate-900 border-4 border-slate-700 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] anim-slide-up">
+             {/* 簡易背景表現 */}
+             <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-black z-0 opacity-80"></div>
+             <div className="absolute top-16 w-full text-center z-10">
+                <div className="text-7xl mb-6 drop-shadow-2xl opacity-90">{battleData.stage.id === 1 ? '🌲' : battleData.stage.id === 2 ? '🪨' : battleData.stage.id === 3 ? '🌋' : battleData.stage.id === 4 ? '🏛️' : '🌌'}</div>
+                <h2 className="text-5xl font-black text-white tracking-widest drop-shadow-[0_5px_5px_rgba(0,0,0,1)]">{battleData.stage.name}</h2>
+             </div>
+             
+             <div className="bg-slate-950/95 p-10 z-10 border-t-[4px] border-indigo-500 min-h-[220px] flex flex-col justify-between backdrop-blur-xl">
+                <p className="text-2xl font-bold leading-loose text-slate-200">{battleData.stage.texts[storyIndex]}</p>
+                <div className="text-right mt-8">
+                   <button onClick={nextStory} className="px-12 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-full font-black text-xl tracking-widest shadow-[0_0_20px_rgba(79,70,229,0.5)] transition-transform hover:scale-105">
+                     {storyIndex < battleData.stage.texts.length - 1 ? 'NEXT ▽' : 'BATTLE START!!'}
+                   </button>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {(gameState === 'pve' || gameState === 'pvp_battle') && renderBattleArena()}
+
+        {gameState === 'pvp_match' && (
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="w-32 h-32 border-[8px] border-indigo-500 border-t-transparent rounded-full animate-spin mb-10 shadow-[0_0_30px_rgba(99,102,241,0.5)]"></div>
+            <h2 className="text-4xl font-black mb-6 tracking-widest drop-shadow-md">SEARCHING...</h2>
+            <div className="bg-slate-900 p-8 rounded-3xl border-4 border-slate-700 text-center mb-10 min-w-[300px] shadow-2xl">
+               <p className="text-slate-400 text-sm font-black mb-2 tracking-widest">MATCHING CODE</p>
+               <p className="font-mono text-7xl font-black text-white tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">{roomCodeInput}</p>
+            </div>
+            <button onClick={leavePvP} className="px-12 py-4 border-[3px] border-slate-600 text-slate-300 font-black tracking-widest rounded-xl hover:bg-slate-800 transition-colors">CANCEL</button>
+          </div>
+        )}
+
+      </main>
+    </div>
+  );
+}
