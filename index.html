@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Bonobo Card Game</title>
-  <meta name="description" content="Bonobo Card Game - GitHub Pages no-build version" />
+  <title>Bonobo Card Game - V4 FULL</title>
+  <meta name="description" content="Bonobo Card Game - V4 FULL GitHub Pages no-build version" />
   <script>
     window.addEventListener('error', function(e) {
       var box = document.getElementById('boot-error');
@@ -36,12 +36,20 @@
     html, body, #root {
       margin: 0;
       min-height: 100%;
+      width: 100%;
       background: #020617;
       overscroll-behavior-x: none;
+      overflow-x: hidden;
     }
+    * { box-sizing: border-box; }
     body {
       overflow-x: hidden;
+      touch-action: pan-y manipulation;
+      -webkit-text-size-adjust: 100%;
+    }
+    button, input, .card-container {
       touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     #boot-error {
       display: none;
@@ -164,24 +172,249 @@ const getStars = (power) => {
   return '⭐';
 };
 
-const generateRandomCard = (packId) => {
+
+
+const RARITY_HP_BONUS = { N: 0, R: 10, SR: 25, UR: 45 };
+const RARITY_RANK = { N: 1, R: 2, SR: 3, UR: 4 };
+const DAILY_BONUS_AMOUNT = 500;
+const DAILY_BONUS_KEY = 'tcg_daily_bonus_date_v4_full';
+const SAVE_KEY = 'tcg_save_v4';
+const VERSION_LABEL = 'V4 FULL';
+
+const EVOLUTION_LINES = {
+  f1: 'f4', f4: 'f9', f9: 'f10', f10: 'f11',
+  w1: 'w4', w4: 'w9', w9: 'w10', w10: 'w11',
+  g1: 'g4', g4: 'g9', g9: 'g10', g10: 'g11',
+  l1: 'l4', l4: 'l9', l9: 'l10', l10: 'l11',
+  d1: 'd4', d4: 'd9', d9: 'd10', d10: 'd11'
+};
+
+const DIFFICULTIES = {
+  EASY: { label: 'EASY', enemy: 0.75, reward: 0.75 },
+  NORMAL: { label: 'NORMAL', enemy: 1, reward: 1 },
+  HARD: { label: 'HARD', enemy: 1.35, reward: 1.6 },
+  LEGEND: { label: 'LEGEND', enemy: 1.8, reward: 2.5 }
+};
+
+const getLocalDateKey = (offset = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getWeekKey = () => {
+  const d = new Date();
+  const onejan = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2, '0')}`;
+};
+
+const getDefaultSave = (nickname = '') => ({
+  saveVersion: VERSION_LABEL,
+  nickname,
+  crystals: 1000,
+  cards: [],
+  deck: [],
+  pveStage: 1,
+  storyCleared: false,
+  lastDailyBonus: '',
+  lastLoginDay: '',
+  loginStreak: 0,
+  packTickets: 0,
+  srTickets: 0,
+  materials: 0,
+  pitySR: 0,
+  pityUR: 0,
+  collectionRewards: {},
+  missionProgress: {},
+  weeklyProgress: {},
+  claimedMissions: {},
+  claimedWeekly: {},
+  battlePass: { xp: 0, claimed: {} },
+  shop: { date: '', bought: {} },
+  pvpStats: { wins: 0, losses: 0, streak: 0, bestStreak: 0, history: [] },
+  unlockedSkins: [],
+  selectedSkins: {},
+  settings: { guideSeen: false }
+});
+
+const normalizeSaveData = (data = {}) => {
+  const base = getDefaultSave(data.nickname || '');
+  return {
+    ...base,
+    ...data,
+    crystals: typeof data.crystals === 'number' ? data.crystals : base.crystals,
+    cards: Array.isArray(data.cards) ? data.cards.filter(Boolean).map(c => ({ ...c, instanceId: c.instanceId || generateId() })) : [],
+    deck: Array.isArray(data.deck) ? data.deck.filter(Boolean) : [],
+    pveStage: typeof data.pveStage === 'number' ? data.pveStage : 1,
+    storyCleared: !!data.storyCleared,
+    collectionRewards: data.collectionRewards || {},
+    missionProgress: data.missionProgress || {},
+    weeklyProgress: data.weeklyProgress || {},
+    claimedMissions: data.claimedMissions || {},
+    claimedWeekly: data.claimedWeekly || {},
+    battlePass: data.battlePass || { xp: 0, claimed: {} },
+    shop: data.shop || { date: '', bought: {} },
+    pvpStats: data.pvpStats || { wins: 0, losses: 0, streak: 0, bestStreak: 0, history: [] },
+    unlockedSkins: Array.isArray(data.unlockedSkins) ? data.unlockedSkins : [],
+    selectedSkins: data.selectedSkins || {},
+    settings: data.settings || { guideSeen: false },
+    saveVersion: VERSION_LABEL
+  };
+};
+
+const getTodayPickup = (offset = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  const day = d.getDay();
+  const table = [
+    { element: 'Light', label: '日曜：光属性UP＋UR少しUP', weekend: true },
+    { element: 'Fire', label: '月曜：炎属性UP' },
+    { element: 'Water', label: '火曜：水属性UP' },
+    { element: 'Wood', label: '水曜：木属性UP' },
+    { element: 'Dark', label: '木曜：闇属性UP' },
+    { element: 'Light', label: '金曜：光属性UP' },
+    { element: 'Dark', label: '土曜：闇属性UP＋UR少しUP', weekend: true }
+  ];
+  return table[day];
+};
+
+const adjustChancesForEvent = (pack) => {
+  const today = getTodayPickup();
+  const chances = { ...(pack.chances || {}) };
+  if (today.weekend) {
+    const add = 0.02;
+    chances.UR = Math.min(0.25, (chances.UR || 0) + add);
+    chances.N = Math.max(0.05, (chances.N || 0) - add);
+  }
+  return chances;
+};
+
+const getCardLevel = (card) => Math.min(10, 1 + Math.floor((card?.xp || 0) / 40));
+const getCardLimit = (card) => 10 + ((card?.limitBreak || 0) * 5);
+const getCardEvoStage = (card) => card?.evoStage || 0;
+const getCardPower = (card) => (card?.power || 1) + Math.floor(getCardLevel(card) / 2) + getCardEvoStage(card) * 2;
+
+const getCardMaxHp = (card) => {
+  if (!card) return 0;
+  const base = 35 + (getCardPower(card) * 8);
+  return base + (RARITY_HP_BONUS[card.rarity] || 0) + getCardLevel(card) * 4 + getCardEvoStage(card) * 16;
+};
+
+const getDeckTotalHp = (cards) => {
+  const total = (cards || []).reduce((sum, card) => sum + getCardMaxHp(card), 0);
+  return Math.max(1, total);
+};
+
+const getCardCharacterIcon = (card) => {
+  if (!card) return '❔';
+  if (card.skin === 'holo') return '🌈';
+  if (card.skin === 'shadow') return '🕶️';
+  if (card.rarity === 'UR') return card.element === 'Fire' ? '🐦‍🔥' : card.element === 'Water' ? '🐉' : card.element === 'Wood' ? '🌳' : card.element === 'Light' ? '👼' : '😈';
+  if (card.rarity === 'SR') return card.element === 'Fire' ? '🐲' : card.element === 'Water' ? '🧜' : card.element === 'Wood' ? '🧝' : card.element === 'Light' ? '🪽' : '🦇';
+  if (card.rarity === 'R') return card.element === 'Fire' ? '🧙‍♂️' : card.element === 'Water' ? '🧊' : card.element === 'Wood' ? '🏹' : card.element === 'Light' ? '🛡️' : '🗡️';
+  return card.element === 'Fire' ? '🔥' : card.element === 'Water' ? '💧' : card.element === 'Wood' ? '🌿' : card.element === 'Light' ? '✨' : '🌑';
+};
+
+const getCardBackgroundIcon = (element) => element === 'Fire' ? '🌋' : element === 'Water' ? '🌊' : element === 'Wood' ? '🌲' : element === 'Light' ? '☀️' : '🌌';
+
+const getCardAttacks = (card) => {
+  if (!card) return [];
+  const base = Math.max(1, getCardPower(card));
+  const elementName = ELEMENTS[card.element]?.name || '属性';
+  const specialByElement = {
+    Fire: { status: 'burn', label: '火傷', desc: '相手に火傷。毎ターン追加ダメージ' },
+    Water: { status: 'heal', label: '回復', desc: '攻撃しながら少し回復' },
+    Wood: { status: 'barrier', label: 'バリア', desc: '次のダメージを半分にする' },
+    Light: { status: 'revive', label: '復活準備', desc: '倒れても少しだけ復活' },
+    Dark: { status: 'poison', label: '毒', desc: '相手に毒。数ターンHPを削る' }
+  };
+  const sp = specialByElement[card.element] || specialByElement.Fire;
+  return [
+    { id: 'quick', name: `${elementName}ショット`, damage: Math.max(6, base * 3), desc: '弱めだが安定。必殺ゲージ+20', gauge: 20 },
+    { id: 'charge', name: `${elementName}ブレイク`, damage: Math.max(10, base * 5 + 4), desc: '強い一撃。たまにクリティカル', gauge: 30, charge: true },
+    { id: 'special', name: `${sp.label}スキル`, damage: Math.max(12, base * 4 + 6), desc: sp.desc, gauge: 25, status: sp.status }
+  ];
+};
+
+const getUltimateAttack = (card) => {
+  const base = Math.max(1, getCardPower(card));
+  const names = { Fire: 'フェニックス・バースト', Water: 'リヴァイアサン・ヒール', Wood: 'ユグドラシル・ガード', Light: 'セイクリッド・リバイブ', Dark: 'アビス・ドレイン' };
+  return { id: 'ultimate', name: names[card?.element] || 'アルティメット', damage: base * 8 + 25, desc: 'ゲージ100で発動できる超必殺技' };
+};
+
+const createStarterDeck = () => {
+  const starterIds = ['f1', 'w1', 'g1', 'l1', 'd1'];
+  return starterIds.map(id => {
+    const base = CARD_CATALOG.find(c => c.id === id) || CARD_CATALOG[0];
+    return { ...base, instanceId: generateId(), xp: 0, limitBreak: 0, evoStage: 0 };
+  });
+};
+
+const createPvEEnemyCard = (stage) => {
+  const elements = Object.keys(ELEMENTS);
+  const element = elements[(stage.id - 1) % elements.length] || elements[Math.floor(Math.random() * elements.length)];
+  const rarity = stage.id >= 5 ? 'UR' : stage.id >= 4 ? 'SR' : stage.id >= 2 ? 'R' : 'N';
+  const power = Math.max(2, (stage.deckPower || 2) + Math.floor(stage.id / 2));
+  return {
+    id: `boss-${stage.id}`,
+    instanceId: `boss-${stage.id}`,
+    name: stage.id >= 5 ? '次元の覇王' : `${stage.name}の守護者`,
+    element,
+    rarity,
+    power,
+    xp: stage.id * 30,
+    evoStage: stage.id >= 4 ? 1 : 0
+  };
+};
+
+const getElementBonusDamage = (attacker, defender) => {
+  if (!attacker || !defender) return 0;
+  return ELEMENTS[attacker.element]?.strongAgainst === defender.element ? 8 : 0;
+};
+
+const getEffectText = (attacker, defender) => ELEMENTS[attacker?.element]?.strongAgainst === defender?.element ? '効果ばつぐん！' : '';
+
+const getPackAura = (cards) => {
+  const maxRank = Math.max(...(cards || []).map(c => RARITY_RANK[c.rarity] || 1));
+  if (maxRank >= 4) return { label: 'UR確定！虹色オーラ', className: 'pack-aura-ur', text: '虹色の光…URの気配！' };
+  if (maxRank >= 3) return { label: 'SR以上確定！金色オーラ', className: 'pack-aura-sr', text: '金色の光…SR以上確定！' };
+  return { label: '通常パック', className: 'pack-aura-normal', text: '青い光が出ている' };
+};
+
+const generateSeed = (str) => {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+  return Math.abs(h);
+};
+
+const seededPick = (arr, seed) => arr[seed % arr.length];
+
+const generateRandomCard = (packId, forcedRarity = null) => {
   const pack = PACKS.find(p => p.id === packId) || PACKS[0];
+  const chances = adjustChancesForEvent(pack);
   const rand = Math.random();
-  let rarity = 'N';
-  let cumulative = 0;
-  for (const [r, chance] of Object.entries(pack.chances)) {
-    cumulative += chance;
-    if (rand <= cumulative) { rarity = r; break; }
+  let rarity = forcedRarity || 'N';
+  if (!forcedRarity) {
+    let cumulative = 0;
+    for (const [r, chance] of Object.entries(chances)) {
+      cumulative += chance;
+      if (rand <= cumulative) { rarity = r; break; }
+    }
   }
   
   let pool = CARD_CATALOG.filter(c => c.rarity === rarity);
-  if (pack.pickups) {
-    const pickups = pool.filter(c => pack.pickups.includes(c.element));
-    pool = [...pool, ...pickups, ...pickups];
+  const todayPickup = getTodayPickup();
+  const pickupElements = [...(pack.pickups || []), todayPickup.element].filter(Boolean);
+  if (pickupElements.length) {
+    const pickups = pool.filter(c => pickupElements.includes(c.element));
+    pool = [...pool, ...pickups, ...pickups, ...pickups];
   }
-  
-  const baseCard = pool[Math.floor(Math.random() * pool.length)];
-  return JSON.parse(JSON.stringify({ ...baseCard, instanceId: generateId() })); // 安全なディープコピー
+  const baseCard = pool[Math.floor(Math.random() * pool.length)] || CARD_CATALOG[0];
+  return JSON.parse(JSON.stringify({ ...baseCard, instanceId: generateId(), xp: 0, limitBreak: 0, evoStage: 0, createdAt: Date.now() }));
 };
 
 const calculateDamage = (card1, card2) => {
@@ -220,10 +453,12 @@ const CardUI = ({ card, isRevealed, onClick, className = "", style = {} }) => {
       <div className="card-inner">
         {/* === CARD BACK === */}
         <div className="card-back rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 border-2 md:border-[3px] border-slate-600 shadow-xl overflow-hidden flex flex-col items-center justify-center relative">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-50"></div>
-          <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-950 flex items-center justify-center border-[3px] border-slate-700 shadow-[inset_0_0_15px_rgba(0,0,0,1)] z-10">
-            <span className="text-xl md:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br from-blue-400 to-purple-500 tracking-tighter">TCG</span>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_28%),radial-gradient(circle_at_70%_70%,rgba(99,102,241,0.28),transparent_30%)] opacity-80"></div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent"></div>
+          <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-slate-950 flex items-center justify-center border-[3px] border-indigo-400/70 shadow-[0_0_28px_rgba(99,102,241,0.7),inset_0_0_15px_rgba(0,0,0,1)] z-10 text-white">
+            <span className="text-3xl md:text-5xl font-black text-indigo-200 drop-shadow-[0_0_12px_rgba(255,255,255,0.8)]">?</span>
           </div>
+          <div className="mt-3 z-10 text-[10px] md:text-xs font-black text-slate-200 tracking-[0.35em]">UNKNOWN</div>
         </div>
         
         {/* === CARD FRONT === */}
@@ -231,6 +466,7 @@ const CardUI = ({ card, isRevealed, onClick, className = "", style = {} }) => {
           
           {/* 背景の透かしアイコン */}
           <div className="absolute inset-0 opacity-10 scale-150 mix-blend-overlay flex items-center justify-center pointer-events-none">{elem.icon}</div>
+          <div className="absolute inset-0 flex items-center justify-center text-7xl md:text-8xl opacity-10 pointer-events-none">{getCardBackgroundIcon(card.element)}</div>
           
           {/* メタリック反射エフェクト */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none z-30"></div>
@@ -244,19 +480,29 @@ const CardUI = ({ card, isRevealed, onClick, className = "", style = {} }) => {
               <span className="text-[10px] md:text-xs font-black text-white truncate drop-shadow-lg leading-none">{card.name}</span>
               <span className="w-3.5 h-3.5 md:w-4 md:h-4 text-white drop-shadow-md ml-1">{elem.icon}</span>
             </div>
+            <div className="mt-1 text-[7px] md:text-[9px] font-black text-cyan-200 text-left">Lv.{getCardLevel(card)} / {getCardLimit(card)} {card.evoStage ? `EVO${card.evoStage}` : ''}</div>
           </div>
           
-          {/* 中央部（属性アイコン大） */}
+          {/* 中央部（キャラクター化） */}
           <div className="flex-1 flex flex-col items-center justify-center relative z-10">
-             <div className="w-10 h-10 md:w-14 md:h-14 text-white filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] transform group-hover:scale-110 transition-transform duration-300">{elem.icon}</div>
+             <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-black/35 border border-white/25 flex items-center justify-center shadow-[0_0_18px_rgba(255,255,255,0.18)] transform group-hover:scale-110 transition-transform duration-300">
+               <span className="text-3xl md:text-5xl drop-shadow-[0_4px_10px_rgba(0,0,0,0.85)]">{getCardCharacterIcon(card)}</span>
+             </div>
+             <div className="mt-1 w-6 h-6 md:w-7 md:h-7 text-white/90 drop-shadow-md">{elem.icon}</div>
           </div>
           
-          {/* フッター部（Rarity & ATK） */}
-          <div className="bg-gradient-to-t from-slate-950/90 to-slate-900/80 flex items-center justify-between px-2 py-1.5 border-t border-slate-600/50 backdrop-blur-sm relative z-10">
-             <div className="font-black text-[8px] md:text-[10px] text-slate-200 bg-black/60 px-1.5 py-0.5 rounded border border-slate-700 shadow-inner tracking-widest">{card.rarity}</div>
-             <div className="flex items-baseline gap-1 bg-red-900/40 px-2 py-0.5 rounded border border-red-500/30">
-                <span className="text-[8px] md:text-[9px] text-red-300 font-black tracking-wider">ATK</span>
-                <span className="font-black text-sm md:text-lg text-white drop-shadow-[0_0_5px_rgba(255,100,100,0.8)] leading-none">{card.power}</span>
+          {/* フッター部（HP / ATK） */}
+          <div className="bg-gradient-to-t from-slate-950/90 to-slate-900/80 px-2 py-1.5 border-t border-slate-600/50 backdrop-blur-sm relative z-10 space-y-1">
+             <div className="flex items-center justify-between">
+               <div className="font-black text-[8px] md:text-[10px] text-slate-200 bg-black/60 px-1.5 py-0.5 rounded border border-slate-700 shadow-inner tracking-widest">{card.rarity}</div>
+               <div className="flex items-baseline gap-1 bg-red-900/40 px-2 py-0.5 rounded border border-red-500/30">
+                  <span className="text-[8px] md:text-[9px] text-red-300 font-black tracking-wider">ATK</span>
+                  <span className="font-black text-sm md:text-lg text-white drop-shadow-[0_0_5px_rgba(255,100,100,0.8)] leading-none">{getCardPower(card)}</span>
+               </div>
+             </div>
+             <div className="flex items-center justify-between text-[8px] md:text-[9px] font-black bg-emerald-950/60 border border-emerald-500/30 rounded px-1.5 py-0.5">
+               <span className="text-emerald-300">HP</span>
+               <span className="text-white">{card.currentHp ?? getCardMaxHp(card)} / {getCardMaxHp(card)}</span>
              </div>
           </div>
         </div>
@@ -287,7 +533,7 @@ const HpBar = ({ hp, maxHp }) => {
 function App() {
   const [user, setUser] = useState(null);
   const [gameState, setGameState] = useState('title');
-  const [saveData, setSaveData] = useState({ nickname: '', crystals: 1000, cards: [], deck: [], pveStage: 1, storyCleared: false });
+  const [saveData, setSaveData] = useState(getDefaultSave(''));
   
   const [nicknameInput, setNicknameInput] = useState('');
   const [saveCodeInput, setSaveCodeInput] = useState('');
@@ -298,27 +544,26 @@ function App() {
   const [gachaCards, setGachaCards] = useState([]);
   const [gachaStep, setGachaStep] = useState('idle');
   const [revealedCount, setRevealedCount] = useState(0);
+  const [gachaMeta, setGachaMeta] = useState(null);
+  const [swipeX, setSwipeX] = useState(0);
+  const swipeStartRef = useRef(null);
 
   const [deckBuilder, setDeckBuilder] = useState([]);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [difficulty, setDifficulty] = useState('NORMAL');
+  const [detailCard, setDetailCard] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const [battleData, setBattleData] = useState(null);
   const [matchId, setMatchId] = useState(null);
 
   useEffect(() => {
     try {
-      const localSave = localStorage.getItem('tcg_save_v4');
+      const localSave = localStorage.getItem(SAVE_KEY);
       if (localSave && localSave !== "undefined") {
         const parsed = JSON.parse(localSave);
         if (parsed?.nickname) {
-          setSaveData({
-            nickname: parsed.nickname,
-            crystals: typeof parsed.crystals === 'number' ? parsed.crystals : 1000,
-            cards: Array.isArray(parsed.cards) ? parsed.cards.filter(Boolean) : [],
-            deck: Array.isArray(parsed.deck) ? parsed.deck.filter(Boolean) : [],
-            pveStage: typeof parsed.pveStage === 'number' ? parsed.pveStage : 1,
-            storyCleared: !!parsed.storyCleared
-          });
+          setSaveData(normalizeSaveData(parsed));
         }
       }
     } catch(e) {}
@@ -337,14 +582,11 @@ function App() {
 
   useEffect(() => {
     if (saveData?.nickname) {
-      try { localStorage.setItem('tcg_save_v4', JSON.stringify(saveData)); } catch(e) {}
+      try { localStorage.setItem(SAVE_KEY, JSON.stringify(saveData)); } catch(e) {}
       if (user && db) {
         try {
           const sRef = doc(db, 'artifacts', appId, 'users', user.uid, 'saveDataV4');
-          setDoc(sRef, {
-            nickname: saveData.nickname, crystals: saveData.crystals, pveStage: saveData.pveStage, storyCleared: saveData.storyCleared,
-            cards: JSON.parse(JSON.stringify(saveData.cards || [])), deck: JSON.parse(JSON.stringify(saveData.deck || []))
-          }).catch(()=>{});
+          setDoc(sRef, JSON.parse(JSON.stringify(saveData))).catch(()=>{});
         } catch(e) {}
       }
     }
@@ -352,9 +594,37 @@ function App() {
 
   const showNotification = (msg) => { setNotification(msg); setTimeout(() => setNotification(''), 3000); };
 
+  useEffect(() => {
+    if (!saveData?.nickname) return;
+    const today = getLocalDateKey();
+    const storedDate = (() => { try { return localStorage.getItem(DAILY_BONUS_KEY); } catch(e) { return ''; } })();
+    const alreadyGot = saveData.lastDailyBonus === today || storedDate === today;
+    if (alreadyGot) return;
+    try { localStorage.setItem(DAILY_BONUS_KEY, today); } catch(e) {}
+    setSaveData(p => {
+      if (!p?.nickname || p.lastDailyBonus === today) return p;
+      const yesterday = getLocalDateKey(-1);
+      const streak = p.lastLoginDay === yesterday ? (p.loginStreak || 0) + 1 : 1;
+      const sevenDay = streak >= 7;
+      return {
+        ...(p || {}),
+        crystals: (p.crystals || 0) + DAILY_BONUS_AMOUNT + (streak >= 2 ? 200 : 0),
+        packTickets: (p.packTickets || 0) + (streak === 3 ? 1 : 0),
+        srTickets: (p.srTickets || 0) + (sevenDay ? 1 : 0),
+        lastDailyBonus: today,
+        lastLoginDay: today,
+        loginStreak: sevenDay ? 0 : streak
+      };
+    });
+    showNotification(`ログインボーナス 💎${DAILY_BONUS_AMOUNT}＋連続ボーナスを受け取りました！`);
+  }, [saveData?.nickname]);
+
   const startGame = () => {
     if (!nicknameInput.trim() && !saveData?.nickname) return showNotification("ニックネームを入力してください");
-    if (!saveData?.nickname) setSaveData(p => ({ ...(p||{}), nickname: nicknameInput.trim() }));
+    if (!saveData?.nickname) {
+      const starterDeck = createStarterDeck();
+      setSaveData(p => normalizeSaveData({ ...(p||{}), nickname: nicknameInput.trim(), cards: starterDeck, deck: starterDeck }));
+    }
     setGameState('menu');
   };
 
@@ -371,11 +641,7 @@ function App() {
       if (!saveCodeInput) return;
       const data = JSON.parse(decodeURIComponent(atob(saveCodeInput)));
       if (data && typeof data === 'object' && data.nickname) {
-        setSaveData({
-          nickname: data.nickname || '', crystals: typeof data.crystals === 'number' ? data.crystals : 500,
-          cards: Array.isArray(data.cards) ? data.cards.filter(Boolean) : [], deck: Array.isArray(data.deck) ? data.deck.filter(Boolean) : [],
-          pveStage: typeof data.pveStage === 'number' ? data.pveStage : 1, storyCleared: !!data.storyCleared
-        });
+setSaveData(normalizeSaveData(data));
         showNotification("データを復元しました！");
         setGameState('menu');
       } else throw new Error("Invalid");
@@ -384,7 +650,7 @@ function App() {
 
   // --- Deck logic ---
   const autoBuildDeck = () => {
-    const sorted = [...(saveData?.cards||[])].sort((a,b) => b.power - a.power);
+    const sorted = [...(saveData?.cards||[])].sort((a,b) => getCardPower(b) - getCardPower(a));
     return JSON.parse(JSON.stringify(sorted.slice(0, 5)));
   };
 
@@ -393,8 +659,10 @@ function App() {
       return JSON.parse(JSON.stringify(saveData.deck));
     }
     if (!saveData?.cards || saveData.cards.length < 5) {
-      showNotification("カードが5枚以上必要です！パックを引きましょう！");
-      return null;
+      const starterDeck = createStarterDeck();
+      setSaveData(p => ({ ...(p||{}), cards: starterDeck, deck: starterDeck }));
+      showNotification("スターターデッキを配布しました！");
+      return starterDeck;
     }
     const autoDeck = autoBuildDeck();
     setSaveData(p => ({ ...p, deck: autoDeck }));
@@ -418,16 +686,75 @@ function App() {
     }
   };
 
-  // --- Gacha ---
+  // --- Gacha / Pack Opening ---
   const openPackSelect = () => setGameState('packs');
+
+  const consumePackCost = (pack) => {
+    if ((saveData?.packTickets || 0) > 0) {
+      setSaveData(p => ({ ...(p || {}), packTickets: Math.max(0, (p.packTickets || 0) - 1) }));
+      return true;
+    }
+    if ((saveData?.crystals || 0) < pack.price) {
+      showNotification("クリスタル不足です");
+      return false;
+    }
+    setSaveData(p => ({ ...(p || {}), crystals: Math.max(0, (p.crystals || 0) - pack.price) }));
+    return true;
+  };
+
   const pullPack = (packId) => {
-    const pack = PACKS.find(p => p.id === packId);
-    if ((saveData?.crystals || 0) < pack.price) return showNotification("クリスタル不足です");
-    setSaveData(p => ({ ...(p||{}), crystals: Math.max(0, (p?.crystals||0) - pack.price) }));
+    const pack = PACKS.find(p => p.id === packId) || PACKS[0];
+    if (!consumePackCost(pack)) return;
+
+    const nextSR = (saveData?.pitySR || 0) + 1;
+    const nextUR = (saveData?.pityUR || 0) + 1;
+    let forced = null;
+    let pityMessage = '';
+    if (nextUR >= 100) { forced = 'UR'; pityMessage = '100パック天井：UR確定！'; }
+    else if (nextSR >= 30) { forced = 'SR'; pityMessage = '30パック天井：SR以上確定！'; }
+
+    const cards = [generateRandomCard(pack.id), generateRandomCard(pack.id), generateRandomCard(pack.id, forced)];
+    const hasUR = cards.some(c => c.rarity === 'UR');
+    const hasSR = cards.some(c => c.rarity === 'SR' || c.rarity === 'UR');
+    const meta = { ...getPackAura(cards), pityMessage };
+
+    setSaveData(p => ({
+      ...(p || {}),
+      pitySR: hasSR ? 0 : ((p?.pitySR || 0) + 1),
+      pityUR: hasUR ? 0 : ((p?.pityUR || 0) + 1),
+      battlePass: { ...(p?.battlePass || { xp: 0, claimed: {} }), xp: (p?.battlePass?.xp || 0) + 8 }
+    }));
+    trackMission('openPack', 1);
     setSelectedPack(pack);
-    setGachaCards([generateRandomCard(pack.id), generateRandomCard(pack.id), generateRandomCard(pack.id)]);
-    setGachaStep('shaking'); setRevealedCount(0); setGameState('gacha');
-    setTimeout(() => setGachaStep('opened'), 1500);
+    setGachaCards(cards.map(c => ({ ...c, revealed: false })));
+    setGachaMeta(meta);
+    setSwipeX(0);
+    setGachaStep('ready');
+    setRevealedCount(0);
+    setGameState('gacha');
+  };
+
+  const openGachaPack = () => {
+    if (gachaStep !== 'ready') return;
+    setGachaStep('shaking');
+    setTimeout(() => setGachaStep('opened'), gachaMeta?.className === 'pack-aura-ur' ? 1800 : 1000);
+  };
+
+  const handlePackTouchStart = (e) => {
+    swipeStartRef.current = e.touches?.[0]?.clientX || 0;
+    setSwipeX(0);
+  };
+
+  const handlePackTouchMove = (e) => {
+    if (swipeStartRef.current == null) return;
+    const x = e.touches?.[0]?.clientX || 0;
+    setSwipeX(Math.max(-120, Math.min(120, x - swipeStartRef.current)));
+  };
+
+  const handlePackTouchEnd = () => {
+    if (Math.abs(swipeX) > 70) openGachaPack();
+    setSwipeX(0);
+    swipeStartRef.current = null;
   };
 
   const revealCard = (index) => {
@@ -438,14 +765,146 @@ function App() {
       setGachaCards(cards);
       const newCount = revealedCount + 1;
       setRevealedCount(newCount);
+      if (index === 2 && RARITY_RANK[cards[index].rarity] >= 3) showNotification('ラスト1枚の特別演出！');
       if (newCount >= 3) {
         setGachaStep('revealed');
         setSaveData(p => {
-          const arr = [...(p?.cards||[]), ...cards.map(c => { const n={...c}; delete n.revealed; return n; })];
-          return { ...(p||{}), cards: arr };
+          const arr = [...(p?.cards || []), ...cards.map(c => { const n = { ...c }; delete n.revealed; return n; })];
+          return { ...(p || {}), cards: arr };
         });
       }
     }
+  };
+
+  // --- Missions / Shop / Growth ---
+  const trackMission = (key, amount = 1) => {
+    const today = getLocalDateKey();
+    const week = getWeekKey();
+    setSaveData(p => ({
+      ...(p || {}),
+      missionProgress: { ...(p?.missionProgress || {}), [today]: { ...((p?.missionProgress || {})[today] || {}), [key]: (((p?.missionProgress || {})[today] || {})[key] || 0) + amount } },
+      weeklyProgress: { ...(p?.weeklyProgress || {}), [week]: { ...((p?.weeklyProgress || {})[week] || {}), [key]: (((p?.weeklyProgress || {})[week] || {})[key] || 0) + amount } }
+    }));
+  };
+
+  const dailyMissionList = [
+    { key: 'openPack', name: 'パックを1回開ける', target: 1, reward: 150 },
+    { key: 'pveWin', name: 'PvEで1勝する', target: 1, reward: 200 },
+    { key: 'elementAttack', name: '属性攻撃を3回使う', target: 3, reward: 150 },
+    { key: 'pvpPlay', name: 'オンライン対戦を1回遊ぶ', target: 1, reward: 300 }
+  ];
+
+  const weeklyMissionList = [
+    { key: 'openPack', name: 'パックを10回開ける', target: 10, reward: 900 },
+    { key: 'pveWin', name: 'PvEで7勝する', target: 7, reward: 1200 },
+    { key: 'elementAttack', name: '攻撃を30回使う', target: 30, reward: 1000 }
+  ];
+
+  const claimMission = (m, weekly = false) => {
+    const keyDate = weekly ? getWeekKey() : getLocalDateKey();
+    const claimKey = `${weekly ? 'w' : 'd'}-${keyDate}-${m.key}`;
+    const progress = weekly ? (saveData.weeklyProgress?.[keyDate]?.[m.key] || 0) : (saveData.missionProgress?.[keyDate]?.[m.key] || 0);
+    if (progress < m.target) return showNotification('まだ達成していません');
+    if (saveData.claimedMissions?.[claimKey]) return showNotification('受け取り済みです');
+    setSaveData(p => ({
+      ...(p || {}),
+      crystals: (p?.crystals || 0) + m.reward,
+      claimedMissions: { ...(p?.claimedMissions || {}), [claimKey]: true },
+      battlePass: { ...(p?.battlePass || { xp: 0, claimed: {} }), xp: (p?.battlePass?.xp || 0) + (weekly ? 40 : 15) }
+    }));
+    showNotification(`報酬 💎${m.reward} を受け取りました！`);
+  };
+
+  const getDailyShopItems = () => {
+    const today = getLocalDateKey();
+    const seed = generateSeed(today);
+    const pickup = getTodayPickup();
+    const rareCard = seededPick(CARD_CATALOG.filter(c => c.element === pickup.element && ['R','SR'].includes(c.rarity)), seed + 3) || CARD_CATALOG[0];
+    return [
+      { id: `mat-${today}`, name: '強化素材 ×30', price: 350, type: 'materials', amount: 30, icon: '🔧' },
+      { id: `ticket-${today}`, name: 'パックチケット', price: 600, type: 'ticket', amount: 1, icon: '🎟️' },
+      { id: `skin-${today}`, name: '限定ホロスキン', price: 1500, type: 'skin', value: 'holo', icon: '🌈' },
+      { id: `card-${today}`, name: `${rareCard.name}`, price: rareCard.rarity === 'SR' ? 2200 : 1200, type: 'card', card: rareCard, icon: '🃏' },
+      { id: `sr-${today}`, name: 'SR以上チケット', price: 3000, type: 'srTicket', amount: 1, icon: '👑' }
+    ];
+  };
+
+  const buyShopItem = (item) => {
+    if (saveData.shop?.bought?.[item.id]) return showNotification('売り切れです');
+    if ((saveData.crystals || 0) < item.price) return showNotification('ダイヤが足りません');
+    setSaveData(p => {
+      const next = { ...(p || {}), crystals: (p?.crystals || 0) - item.price, shop: { ...(p?.shop || {}), date: getLocalDateKey(), bought: { ...(p?.shop?.bought || {}), [item.id]: true } } };
+      if (item.type === 'materials') next.materials = (next.materials || 0) + item.amount;
+      if (item.type === 'ticket') next.packTickets = (next.packTickets || 0) + item.amount;
+      if (item.type === 'srTicket') next.srTickets = (next.srTickets || 0) + item.amount;
+      if (item.type === 'skin') next.unlockedSkins = Array.from(new Set([...(next.unlockedSkins || []), item.value]));
+      if (item.type === 'card') next.cards = [...(next.cards || []), { ...item.card, instanceId: generateId(), xp: 0, limitBreak: 0, evoStage: 0 }];
+      return next;
+    });
+    showNotification(`${item.name}を購入しました！`);
+  };
+
+  const claimBattlePass = (level) => {
+    const xp = saveData.battlePass?.xp || 0;
+    const need = level * 50;
+    if (xp < need) return showNotification('バトルパスXPが足りません');
+    if (saveData.battlePass?.claimed?.[level]) return showNotification('受け取り済みです');
+    setSaveData(p => ({
+      ...(p || {}),
+      crystals: (p?.crystals || 0) + level * 120,
+      packTickets: (p?.packTickets || 0) + (level % 3 === 0 ? 1 : 0),
+      battlePass: { ...(p?.battlePass || { xp: 0, claimed: {} }), claimed: { ...(p?.battlePass?.claimed || {}), [level]: true } }
+    }));
+    showNotification(`バトルパスLv.${level}報酬を受け取りました！`);
+  };
+
+  const getUniqueIds = () => Array.from(new Set((saveData.cards || []).map(c => c.id)));
+  const claimCollectionReward = (key, reward) => {
+    if (saveData.collectionRewards?.[key]) return showNotification('受け取り済みです');
+    setSaveData(p => ({ ...(p || {}), crystals: (p?.crystals || 0) + reward, collectionRewards: { ...(p?.collectionRewards || {}), [key]: true } }));
+    showNotification(`図鑑報酬 💎${reward} を受け取りました！`);
+  };
+
+  const mergeSelectedCard = (card) => {
+    if (!card) return;
+    const duplicates = (saveData.cards || []).filter(c => c.id === card.id && c.instanceId !== card.instanceId);
+    if (duplicates.length < 2) return showNotification('同じカードがあと2枚必要です');
+    const consume = new Set(duplicates.slice(0, 2).map(c => c.instanceId));
+    setSaveData(p => ({
+      ...(p || {}),
+      cards: (p.cards || []).filter(c => !consume.has(c.instanceId)).map(c => c.instanceId === card.instanceId ? { ...c, xp: (c.xp || 0) + 120, limitBreak: (c.limitBreak || 0) + 1 } : c),
+      materials: (p.materials || 0) + 10
+    }));
+    showNotification('合成成功！レベル上限UP＋経験値追加！');
+    setDetailCard(null);
+  };
+
+  const evolveSelectedCard = (card) => {
+    if (!card) return;
+    const nextId = EVOLUTION_LINES[card.id];
+    const nextBase = CARD_CATALOG.find(c => c.id === nextId);
+    if (!nextBase) return showNotification('これ以上進化できません');
+    if (getCardLevel(card) < 5) return showNotification('Lv.5以上で進化できます');
+    if ((saveData.materials || 0) < 20) return showNotification('強化素材が20個必要です');
+    setSaveData(p => ({
+      ...(p || {}),
+      materials: (p.materials || 0) - 20,
+      cards: (p.cards || []).map(c => c.instanceId === card.instanceId ? { ...nextBase, instanceId: c.instanceId, xp: Math.max(0, (c.xp || 0) - 80), limitBreak: c.limitBreak || 0, evoStage: (c.evoStage || 0) + 1, skin: c.skin } : c),
+      deck: (p.deck || []).map(c => c.instanceId === card.instanceId ? { ...nextBase, instanceId: c.instanceId, xp: Math.max(0, (c.xp || 0) - 80), limitBreak: c.limitBreak || 0, evoStage: (c.evoStage || 0) + 1, skin: c.skin } : c)
+    }));
+    showNotification(`${nextBase.name}に進化！`);
+    setDetailCard(null);
+  };
+
+  const applySkinToCard = (card, skin) => {
+    if (!card) return;
+    setSaveData(p => ({
+      ...(p || {}),
+      cards: (p.cards || []).map(c => c.instanceId === card.instanceId ? { ...c, skin } : c),
+      deck: (p.deck || []).map(c => c.instanceId === card.instanceId ? { ...c, skin } : c)
+    }));
+    showNotification('スキンを変更しました');
+    setDetailCard(null);
   };
 
   // --- PvE ---
@@ -473,15 +932,18 @@ function App() {
     }
   };
 
-  const initPvEBattle = (stage, deckToUse) => {
-    // 完全に独立した手札を生成 (5枚)
-    const hand = JSON.parse(JSON.stringify(deckToUse));
+  const initPvEBattle = (stage, deckToUse, diffName = difficulty) => {
+    const hand = JSON.parse(JSON.stringify(deckToUse)).map(card => ({ ...card, currentHp: getCardMaxHp(card) }));
+    const enemy = createPvEEnemyCard(stage);
+    const diff = DIFFICULTIES[diffName] || DIFFICULTIES.NORMAL;
+    const enemyMaxHp = Math.floor((getCardMaxHp(enemy) + (stage.id * 12)) * diff.enemy);
     setBattleData({
-      type: 'pve', stage, playerHand: hand,
-      playerHp: INITIAL_PLAYER_HP, enemyHp: stage.hp,
-      playerActive: null, enemyActive: null,
-      animating: false, effect: null, finished: false,
-      turnCount: 1
+      type: 'pve', stage, difficulty: diffName, playerDeck: JSON.parse(JSON.stringify(deckToUse)), playerHand: hand,
+      playerHp: 0, playerMaxHp: getDeckTotalHp(hand),
+      enemyHp: enemyMaxHp, enemyMaxHp,
+      playerActive: null, selectedHandIndex: null, enemyActive: { ...enemy, currentHp: enemyMaxHp },
+      animating: false, effect: null, finished: false, won: false,
+      turnCount: 1, ultimateGauge: 0, playerStatus: {}, enemyStatus: {}, defendNext: false, lastActionText: 'カードを選んでフィールドに出そう！'
     });
     setGameState('pve');
   };
@@ -491,57 +953,179 @@ function App() {
     setBattleData(null);
   };
 
-  const playPvETurn = (idx) => {
-    if (battleData?.animating || battleData?.finished) return;
-    const hand = [...(battleData?.playerHand||[])];
-    const pCard = hand[idx];
-    if(!pCard) return;
+  const selectPvECard = (idx) => {
+    if (battleData?.animating || battleData?.finished || battleData?.playerActive) return;
+    const hand = [...(battleData?.playerHand || [])];
+    const card = hand[idx];
+    if (!card) return;
+    const maxHp = getCardMaxHp(card);
+    setBattleData(p => ({
+      ...p,
+      selectedHandIndex: idx,
+      playerActive: { ...card, currentHp: card.currentHp ?? maxHp },
+      playerHp: card.currentHp ?? maxHp,
+      playerMaxHp: maxHp,
+      effect: null,
+      lastActionText: `${card.name}をフィールドに出した！攻撃を選ぼう。`
+    }));
+  };
 
-    // 手札から消費する
-    hand.splice(idx, 1);
+  const usePvEAttack = (attackIndex) => {
+    if (battleData?.animating || battleData?.finished || !battleData?.playerActive) return;
+    const pCard = { ...(battleData.playerActive || {}) };
+    const eCard = { ...(battleData.enemyActive || createPvEEnemyCard(battleData.stage)) };
+    const attacks = getCardAttacks(pCard);
+    const isUltimate = attackIndex === 99;
+    const attack = isUltimate ? getUltimateAttack(pCard) : (attacks[attackIndex] || attacks[0]);
+    if (isUltimate && (battleData.ultimateGauge || 0) < 100) return showNotification('必殺ゲージが足りません');
+    if (!attack) return;
 
-    const el = Object.keys(ELEMENTS);
-    const eCard = { id: 'e'+Date.now(), name: `幻影の${ELEMENTS[el[Math.floor(Math.random()*el.length)]].name}`, element: el[Math.floor(Math.random()*el.length)], rarity: 'R', power: (battleData?.stage?.deckPower||2) + Math.floor(Math.random()*3)-1 };
+    trackMission('elementAttack', 1);
+    const enemyAttacks = getCardAttacks(eCard);
+    const enemyFrozen = (battleData.enemyStatus?.freeze || 0) > 0;
+    const enemyAttack = enemyFrozen ? { name: '凍結中', damage: 0 } : (enemyAttacks[Math.floor(Math.random() * enemyAttacks.length)] || { name: '反撃', damage: 6 });
+    const critical = attack.charge && Math.random() < 0.22;
+    const evaded = Math.random() < Math.min(0.18, 0.04 + getCardLevel(pCard) * 0.01);
+    let enemyDamage = Math.max(1, attack.damage + getElementBonusDamage(pCard, eCard));
+    if (critical) enemyDamage *= 2;
+    let playerDamage = evaded ? 0 : Math.max(0, Math.floor(enemyAttack.damage * 0.65) + getElementBonusDamage(eCard, pCard));
+    if (battleData.playerStatus?.barrier) playerDamage = Math.floor(playerDamage / 2);
 
-    setBattleData(p => ({ ...p, playerHand: hand, playerActive: pCard, enemyActive: eCard, animating: true }));
+    setBattleData(p => ({
+      ...p,
+      animating: true,
+      effect: null,
+      lastActionText: `${pCard.name}の「${attack.name}」！ ${getEffectText(pCard, eCard)} ${critical ? 'クリティカル！' : ''} ${evaded ? '回避成功！' : ''}`
+    }));
 
     setTimeout(() => {
-      const { p1, p2 } = calculateDamage(pCard, eCard);
-      setBattleData(p => ({ ...p, effect: { p1, p2 } }));
+      setBattleData(p => ({
+        ...p,
+        effect: { enemyDamage, playerDamage, attackName: attack.name, enemyAttackName: enemyAttack.name, critical, evaded }
+      }));
 
       setTimeout(() => {
-        let nEHp = (battleData?.enemyHp||0) - p1;
-        let nPHp = (battleData?.playerHp||0) - p2;
-        
-        // 終了判定（HPが尽きるか、手札の5枚を使い切ったら終了）
-        if (nEHp <= 0 || nPHp <= 0 || hand.length === 0) {
-          let won = false;
-          if (nEHp <= 0) won = true;
-          else if (nPHp <= 0) won = false;
-          else won = nPHp >= nEHp; // 手札が尽きた場合はHPが同点以上なら勝ちとする
+        setBattleData(p => {
+          const hand = [...(p.playerHand || [])];
+          const selectedIndex = typeof p.selectedHandIndex === 'number' ? p.selectedHandIndex : 0;
+          let nextEnemyStatus = { ...(p.enemyStatus || {}) };
+          let nextPlayerStatus = { ...(p.playerStatus || {}) };
+          if (attack.status === 'burn') nextEnemyStatus.burn = 3;
+          if (attack.status === 'poison') nextEnemyStatus.poison = 3;
+          if (attack.status === 'barrier') nextPlayerStatus.barrier = 1;
+          if (attack.status === 'heal') nextPlayerStatus.heal = 1;
+          if (attack.status === 'revive') nextPlayerStatus.revive = 1;
+          if (isUltimate && pCard.element === 'Water') nextPlayerStatus.heal = 2;
+          if (isUltimate && pCard.element === 'Wood') nextPlayerStatus.barrier = 2;
+          if (isUltimate && pCard.element === 'Light') nextPlayerStatus.revive = 1;
+          if (isUltimate && pCard.element === 'Dark') nextEnemyStatus.poison = 4;
+          if (isUltimate && pCard.element === 'Fire') nextEnemyStatus.burn = 4;
 
-          if (won) {
-            const nextStage = (battleData?.stage?.id || 1) + 1;
-            const isCleared = nextStage > PVE_STAGES.length;
-            setSaveData(p => ({ 
-              ...(p||{}), 
-              crystals: (p?.crystals||0) + (battleData?.stage?.reward||100), 
-              pveStage: isCleared ? p.pveStage : Math.max(p.pveStage, nextStage),
-              storyCleared: p.storyCleared || isCleared
-            }));
+          const burnPoisonDamage = (nextEnemyStatus.burn ? 5 : 0) + (nextEnemyStatus.poison ? 4 : 0);
+          const healAmount = nextPlayerStatus.heal ? 10 : 0;
+          const nextEnemyHp = Math.max(0, (p.enemyHp || 0) - enemyDamage - burnPoisonDamage);
+          let nextPlayerHp = Math.max(0, Math.min(p.playerMaxHp || getCardMaxHp(pCard), (p.playerHp || 0) - playerDamage + healAmount));
+          let nextPlayerActive = p.playerActive ? { ...p.playerActive, currentHp: nextPlayerHp } : null;
+          if (nextPlayerHp <= 0 && nextPlayerStatus.revive) {
+            nextPlayerHp = Math.max(1, Math.floor((p.playerMaxHp || getCardMaxHp(pCard)) * 0.25));
+            nextPlayerStatus.revive = 0;
+            nextPlayerActive = { ...p.playerActive, currentHp: nextPlayerHp };
           }
-          setBattleData(p => ({ ...p, enemyHp: Math.max(0, nEHp), playerHp: Math.max(0, nPHp), effect: null, finished: true, won }));
-        } else {
-          // 次のターンへ
-          setBattleData(p => ({ ...p, enemyHp: nEHp, playerHp: nPHp, playerActive: null, enemyActive: null, animating: false, effect: null, turnCount: p.turnCount + 1 }));
-        }
-      }, 1500);
-    }, 800);
+          if (hand[selectedIndex]) hand[selectedIndex] = { ...hand[selectedIndex], currentHp: nextPlayerHp };
+
+          nextEnemyStatus = Object.fromEntries(Object.entries(nextEnemyStatus).map(([k,v]) => [k, Math.max(0, (v || 0) - 1)]).filter(([,v]) => v > 0));
+          nextPlayerStatus = Object.fromEntries(Object.entries(nextPlayerStatus).map(([k,v]) => [k, Math.max(0, (v || 0) - 1)]).filter(([,v]) => v > 0));
+
+          const enemyDefeated = nextEnemyHp <= 0;
+          const playerCardDefeated = nextPlayerHp <= 0;
+          let nextHand = hand;
+          let finished = false;
+          let won = false;
+          let message = `敵に${enemyDamage}${burnPoisonDamage ? `+${burnPoisonDamage}` : ''} / 自分に${playerDamage}${healAmount ? ` / 回復${healAmount}` : ''}`;
+          let nextGauge = isUltimate ? 0 : Math.min(100, (p.ultimateGauge || 0) + (attack.gauge || 20));
+
+          if (enemyDefeated) {
+            finished = true;
+            won = true;
+            message = `${attack.name}で勝利！`;
+            const diff = DIFFICULTIES[p.difficulty] || DIFFICULTIES.NORMAL;
+            const nextStage = (p.stage?.id || 1) + 1;
+            const isCleared = nextStage > PVE_STAGES.length;
+            const reward = Math.floor((p.stage?.reward || 100) * diff.reward);
+            setSaveData(prev => ({
+              ...(prev || {}),
+              crystals: (prev?.crystals || 0) + reward,
+              materials: (prev?.materials || 0) + (p.difficulty === 'LEGEND' ? 15 : p.difficulty === 'HARD' ? 8 : 4),
+              pveStage: isCleared ? prev.pveStage : Math.max(prev.pveStage || 1, nextStage),
+              storyCleared: prev.storyCleared || isCleared,
+              cards: (prev.cards || []).map(c => c.instanceId === pCard.instanceId ? { ...c, xp: (c.xp || 0) + 25 } : c),
+              deck: (prev.deck || []).map(c => c.instanceId === pCard.instanceId ? { ...c, xp: (c.xp || 0) + 25 } : c),
+              battlePass: { ...(prev.battlePass || { xp: 0, claimed: {} }), xp: (prev.battlePass?.xp || 0) + 20 }
+            }));
+            trackMission('pveWin', 1);
+          } else if (playerCardDefeated) {
+            nextHand = hand.filter((_, i) => i !== selectedIndex);
+            nextPlayerActive = null;
+            if (nextHand.length === 0) {
+              finished = true;
+              won = false;
+              message = '全カードが倒された…';
+            } else {
+              message = `${pCard.name}は倒れた。ベンチから次のカードを選ぼう！`;
+            }
+          }
+
+          return {
+            ...p,
+            playerHand: nextHand,
+            enemyHp: nextEnemyHp,
+            enemyActive: { ...(p.enemyActive || eCard), currentHp: nextEnemyHp },
+            playerHp: nextPlayerActive ? nextPlayerHp : 0,
+            playerActive: nextPlayerActive,
+            selectedHandIndex: nextPlayerActive ? selectedIndex : null,
+            enemyStatus: nextEnemyStatus,
+            playerStatus: nextPlayerStatus,
+            ultimateGauge: nextGauge,
+            animating: false,
+            effect: null,
+            finished,
+            won,
+            turnCount: (p.turnCount || 1) + 1,
+            lastActionText: message
+          };
+        });
+      }, 950);
+    }, 450);
+  };
+
+  const switchActiveCard = () => {
+    if (!battleData?.playerActive || battleData?.animating || battleData?.finished) return;
+    setBattleData(p => ({ ...p, playerActive: null, playerHp: 0, selectedHandIndex: null, lastActionText: '交代します。ベンチからカードを選んでください。' }));
+  };
+
+  const defendPvE = () => {
+    if (!battleData?.playerActive || battleData?.animating || battleData?.finished) return;
+    setBattleData(p => ({ ...p, playerStatus: { ...(p.playerStatus || {}), barrier: 1 }, lastActionText: '防御！次のダメージを半分にします。' }));
+  };
+
+  const startSpecificStage = (stage, diffName = difficulty) => {
+    const deckToUse = ensureDeck();
+    if (!deckToUse) return;
+    setDifficulty(diffName);
+    initPvEBattle(stage, deckToUse, diffName);
+  };
+
+  const startDailyDungeon = () => {
+    const today = getLocalDateKey();
+    if (saveData.dailyDungeonDate === today) return showNotification('デイリーダンジョンは今日はクリア済みです');
+    const pickup = getTodayPickup();
+    const stage = { id: 6, name: `デイリー${ELEMENTS[pickup.element].name}ダンジョン`, hp: 26, deckPower: 11, reward: 900, texts: [`今日は${pickup.label}`, '1日1回だけ挑戦できる特別ステージ！'] };
+    setSaveData(p => ({ ...(p || {}), dailyDungeonDate: today }));
+    startSpecificStage(stage, 'HARD');
   };
 
   // --- PvP ---
   const startPvPMatchmaking = async () => {
-    if (!saveData.storyCleared) return showNotification("まずはPVEクエストをすべてクリアしてストーリーを見届けろ！");
     if (!user || !db) return showNotification("通信エラー");
     if (roomCodeInput.length !== 3) return showNotification("3桁入力必須");
     
@@ -549,6 +1133,7 @@ function App() {
     if (!deckToUse) return;
 
     setGameState('pvp_match');
+    trackMission('pvpPlay', 1);
     const mRef = collection(db, 'artifacts', appId, 'public', 'data', 'matches');
     try {
       const snap = await getDocs(mRef);
@@ -639,12 +1224,70 @@ function App() {
     setMatchId(null);
   };
 
+  const leavePvP = async () => {
+    if (matchId && db) {
+      try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'matches', matchId)); } catch(e) {}
+    }
+    setGameState('menu');
+    setBattleData(null);
+    setMatchId(null);
+  };
+
+  const resetAllData = () => {
+    try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(DAILY_BONUS_KEY); } catch(e) {}
+    setSaveData(getDefaultSave(''));
+    setConfirmReset(false);
+    setGameState('title');
+    showNotification('データをリセットしました');
+  };
+
+  const finishBattleAndReturn = () => {
+    if (gameState === 'pvp_battle' && battleData?.finished) {
+      const draw = battleData.p1Hp === battleData.p2Hp;
+      const won = !draw && (battleData.myPlayerNum === 1 ? (battleData.p2Hp <= 0 || battleData.p1Hp > battleData.p2Hp) : (battleData.p1Hp <= 0 || battleData.p2Hp > battleData.p1Hp));
+      const usedCard = (battleData?.turns?.turn1?.[`p${battleData.myPlayerNum}Card`]?.name) || (battleData?.myDeck?.[0]?.name) || '不明';
+      setSaveData(p => {
+        const stats = p?.pvpStats || { wins: 0, losses: 0, streak: 0, bestStreak: 0, history: [] };
+        const nextStreak = won ? (stats.streak || 0) + 1 : 0;
+        return {
+          ...(p || {}),
+          crystals: (p?.crystals || 0) + (won ? 300 + nextStreak * 50 : draw ? 100 : 50),
+          pvpStats: {
+            wins: (stats.wins || 0) + (won ? 1 : 0),
+            losses: (stats.losses || 0) + (!won && !draw ? 1 : 0),
+            streak: nextStreak,
+            bestStreak: Math.max(stats.bestStreak || 0, nextStreak),
+            history: [...(stats.history || []), { result: draw ? 'DRAW' : won ? 'WIN' : 'LOSE', date: getLocalDateKey(), card: usedCard }].slice(-30)
+          },
+          battlePass: { ...(p?.battlePass || { xp: 0, claimed: {} }), xp: (p?.battlePass?.xp || 0) + (won ? 30 : 12) }
+        };
+      });
+      showNotification(won ? 'オンライン勝利報酬を受け取りました！' : '対戦報酬を受け取りました！');
+    }
+    setGameState('menu');
+    setBattleData(null);
+    setMatchId(null);
+  };
+
   // ==========================================
   // CSS & Layout
   // ==========================================
   const customStyles = `
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap');
     body { font-family: 'Noto Sans JP', sans-serif; -webkit-font-smoothing: antialiased; }
+    .pve-battle-shell { min-height: calc(100svh - 16px); max-height: none; }
+    @media (min-width: 768px) { .pve-battle-shell { height: 90vh; min-height: 650px; } }
+    .pve-hand-card { transform: scale(0.82); transform-origin: bottom center; }
+    @media (max-width: 420px) { .pve-hand-card { transform: scale(0.72); } }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+    input { min-height: 44px; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes pack-shake { 0%, 100% { transform: translate(0,0) rotate(0deg) scale(1); } 15% { transform: translate(-8px,4px) rotate(-3deg) scale(1.02); } 30% { transform: translate(8px,-4px) rotate(3deg) scale(1.03); } 45% { transform: translate(-6px,-6px) rotate(-2deg) scale(1.04); } 60% { transform: translate(6px,6px) rotate(2deg) scale(1.04); } 75% { transform: translate(-3px,3px) rotate(-1deg) scale(1.02); } }
+    .anim-shake { animation: pack-shake 0.55s ease-in-out infinite; }
+    @keyframes pack-spark { 0% { opacity: 0; transform: scale(0.8) rotate(0deg); } 50% { opacity: 1; transform: scale(1.08) rotate(8deg); } 100% { opacity: 0; transform: scale(1.2) rotate(16deg); } }
+    .pack-spark { animation: pack-spark 1.1s ease-in-out infinite; }
     @keyframes gradient-bg { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
     .bg-animated { background: linear-gradient(-45deg, #020617, #0f172a, #1e1b4b, #020617); background-size: 400% 400%; animation: gradient-bg 20s ease infinite; }
     
@@ -665,32 +1308,47 @@ function App() {
     @keyframes slide-up { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .anim-slide-up { animation: slide-up 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     
-    @keyframes attack-shake { 0%, 100% { transform: translate(0,0) scale(0.9); } 25% { transform: translate(10px,-10px) scale(0.9); } 50% { transform: translate(-10px,10px) scale(0.9); } 75% { transform: translate(10px,10px) scale(0.9); } }
-    .anim-attack { animation: attack-shake 0.3s ease-in-out infinite; }
+    @keyframes clash-pop { 0% { transform: scale(0.9); filter: brightness(1); } 50% { transform: scale(1.02); filter: brightness(1.35); } 100% { transform: scale(0.9); filter: brightness(1); } }
+    .anim-attack { animation: none; }
+    .anim-clash { animation: clash-pop 0.45s ease-in-out 1; }
+
+    .pack-aura-normal { box-shadow: 0 0 70px rgba(59,130,246,0.65); }
+    .pack-aura-sr { box-shadow: 0 0 90px rgba(234,179,8,0.85); }
+    .pack-aura-ur { box-shadow: 0 0 120px rgba(236,72,153,1); animation: rainbow-shadow 1.6s linear infinite; }
+    @keyframes rare-explosion { 0% { transform: scale(0.2); opacity: 0; } 40% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+    .rare-explosion { animation: rare-explosion 0.9s ease-out 1; }
+    @keyframes slow-reveal { from { transform: rotateY(0deg) scale(0.9); filter: brightness(0.7); } to { transform: rotateY(180deg) scale(1.05); filter: brightness(1.4); } }
+    .last-card-special .card-inner { transition-duration: 1.4s; }
+    .bottom-nav-safe { padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)); }
+
   `;
 
   // --- Battle Arena Component (PvE & PvP Shared Layout) ---
   const renderBattleArena = () => {
     const isPvE = gameState === 'pve';
+    const handCards = isPvE
+      ? (Array.isArray(battleData?.playerHand) ? battleData.playerHand : [])
+      : (Array.isArray(battleData?.myDeck) ? battleData.myDeck : []);
     const eHp = isPvE ? battleData.enemyHp : (battleData.myPlayerNum === 1 ? battleData.p2Hp : battleData.p1Hp);
-    const eMax = isPvE ? battleData.stage.hp : INITIAL_PLAYER_HP;
-    const eName = isPvE ? battleData.stage.name : battleData.enemyData?.name;
+    const eMax = isPvE ? (battleData.enemyMaxHp || getCardMaxHp(battleData.enemyActive) || battleData.stage.hp) : INITIAL_PLAYER_HP;
+    const eName = isPvE ? (battleData.enemyActive?.name || battleData.stage.name) : battleData.enemyData?.name;
     const eActive = isPvE ? battleData.enemyActive : battleData?.turns?.[`turn${battleData.currentTurn}`]?.[`p${battleData.myPlayerNum===1?2:1}Card`];
     
-    const pHp = isPvE ? battleData.playerHp : (battleData.myPlayerNum === 1 ? battleData.p1Hp : battleData.p2Hp);
-    const pMax = isPvE ? INITIAL_PLAYER_HP : INITIAL_PLAYER_HP;
     const pActive = isPvE ? battleData.playerActive : battleData?.turns?.[`turn${battleData.currentTurn}`]?.[`p${battleData.myPlayerNum}Card`];
+    const pHp = isPvE ? (battleData.playerHp || 0) : (battleData.myPlayerNum === 1 ? battleData.p1Hp : battleData.p2Hp);
+    const pMax = isPvE ? (battleData.playerMaxHp || (pActive ? getCardMaxHp(pActive) : getDeckTotalHp(handCards))) : INITIAL_PLAYER_HP;
     
-    const effect = battleData.effect; // PvE専用のダメージ演出用
+    const effect = battleData.effect;
 
-    // 既にカードを出したか？
     const hasPlayedPvP = !isPvE && !!battleData?.turns?.[`turn${battleData.currentTurn}`]?.[`p${battleData.myPlayerNum}Card`];
-    
-    // 現在のターン数（UI表示用）
     const currentTurnDisplay = isPvE ? battleData.turnCount : battleData.currentTurn;
+    const canSelectCard = isPvE
+      ? (!battleData?.animating && !battleData?.finished && !pActive)
+      : (!battleData?.animating && !battleData?.finished && !hasPlayedPvP);
+    const canUsePveAttack = isPvE && !!pActive && !battleData?.animating && !battleData?.finished;
 
     return (
-      <div className="max-w-md mx-auto w-full h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col font-sans antialiased border-[3px] border-slate-700">
+      <div className={`max-w-md mx-auto w-full bg-slate-900 rounded-3xl shadow-2xl relative flex flex-col font-sans antialiased border-[3px] border-slate-700 ${isPvE ? 'pve-battle-shell overflow-y-auto' : 'h-[90vh] overflow-hidden'}`}>
         
         {/* === ENEMY ZONE === */}
         <div className="flex-1 flex flex-col p-4 bg-gradient-to-b from-red-950/60 to-slate-900 relative shadow-lg">
@@ -712,7 +1370,7 @@ function App() {
           
           <div className="flex-1 flex items-center justify-center relative mt-2">
              {eActive ? (
-               <CardUI card={eActive} isRevealed={isPvE ? true : hasPlayedPvP} className={`transform scale-90 md:scale-100 ${battleData.animating ? 'anim-attack' : 'anim-slide-up'}`} />
+               <CardUI card={eActive} isRevealed={isPvE ? true : hasPlayedPvP} className={`transform scale-90 md:scale-100 ${battleData.animating ? 'anim-clash' : 'anim-slide-up'}`} />
              ) : (
                <div className="w-24 h-36 md:w-32 md:h-48 rounded-xl border-[3px] border-dashed border-red-900/50 flex items-center justify-center text-red-900/60 font-black tracking-widest bg-red-950/20 shadow-inner">ACTIVE</div>
              )}
@@ -729,7 +1387,7 @@ function App() {
         <div className="flex-[1.3] flex flex-col p-4 bg-gradient-to-t from-blue-950/60 to-slate-900 relative">
           <div className="flex-1 flex items-center justify-center relative mb-4">
              {pActive ? (
-               <CardUI card={pActive} isRevealed={true} className={`transform scale-90 md:scale-100 ${battleData.animating ? 'anim-attack' : 'anim-slide-up'}`} />
+               <CardUI card={pActive} isRevealed={true} className={`transform scale-90 md:scale-100 ${battleData.animating ? 'anim-clash' : 'anim-slide-up'}`} />
              ) : (
                <div className="w-24 h-36 md:w-32 md:h-48 rounded-xl border-[3px] border-dashed border-blue-900/50 flex items-center justify-center text-blue-900/60 font-black tracking-widest bg-blue-950/20 shadow-inner">ACTIVE</div>
              )}
@@ -746,14 +1404,47 @@ function App() {
                </div>
                <div className="text-xs font-black text-yellow-400 bg-yellow-900/50 px-3 py-1.5 rounded-lg border border-yellow-500/50 flex-shrink-0 ml-2 shadow-inner">TURN {currentTurnDisplay}/5</div>
             </div>
+            {isPvE && battleData?.lastActionText && !battleData.finished && <div className="text-center text-xs font-black text-cyan-200 bg-cyan-950/40 border border-cyan-500/30 rounded-xl py-2">{battleData.lastActionText}</div>}
             
-            <div className="flex gap-3 overflow-x-auto pb-2 px-1 scrollbar-hide h-36 items-center">
-               {(isPvE ? battleData.playerHand : battleData.myDeck).map((card, i) => (
-                 <button key={card?.instanceId || i} onClick={() => isPvE ? playPvETurn(i) : playPvPTurn(i)} disabled={battleData.animating || !!pActive || battleData.finished || (!isPvE && hasPlayedPvP)} className="transition-transform transform hover:-translate-y-4 focus:outline-none flex-shrink-0 relative group">
-                    <CardUI card={card} isRevealed={true} className={`transform scale-75 origin-bottom shadow-lg group-hover:shadow-[0_0_20px_rgba(59,130,246,0.6)] ${(!isPvE && hasPlayedPvP) ? 'opacity-50 grayscale' : ''}`} />
+            {isPvE && !battleData.finished && (
+              <div className="bg-slate-950/70 border border-blue-500/30 rounded-2xl px-3 py-2 text-center shadow-inner">
+                <div className="text-[11px] font-black text-blue-200 tracking-widest">{pActive ? '3つの攻撃から選んでください' : 'カードを下から選んでフィールドに出してください'}</div>
+                <div className="text-[10px] text-slate-400 mt-1">カードHPが0になると次のカードに交代します。</div>
+              </div>
+            )}
+
+            {canUsePveAttack && (
+              <div className="space-y-2">
+                <div className="bg-slate-950/70 border border-yellow-500/30 rounded-2xl p-2">
+                  <div className="flex justify-between text-[10px] font-black text-yellow-200 mb-1"><span>必殺ゲージ</span><span>{battleData.ultimateGauge || 0}/100</span></div>
+                  <div className="h-3 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-yellow-400 to-pink-500" style={{width: `${battleData.ultimateGauge || 0}%`}}></div></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {getCardAttacks(pActive).map((attack, atkIndex) => (
+                    <button key={attack.id} onClick={() => usePvEAttack(atkIndex)} className="bg-gradient-to-r from-cyan-700 to-blue-700 hover:from-cyan-600 hover:to-blue-600 border border-cyan-300/50 rounded-2xl p-3 text-left shadow-lg transition-transform hover:scale-[1.02]">
+                      <div className="text-white font-black text-sm">{attack.name}</div>
+                      <div className="text-cyan-100 text-[11px] font-bold">DMG {attack.damage}{getElementBonusDamage(pActive, eActive) > 0 ? ' + 有利8' : ''}</div>
+                      <div className="text-slate-300 text-[10px] mt-1">{attack.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button onClick={defendPvE} className="bg-slate-800 border border-slate-500 rounded-xl py-2 text-xs font-black">防御</button>
+                  <button onClick={switchActiveCard} className="bg-slate-800 border border-slate-500 rounded-xl py-2 text-xs font-black">交代</button>
+                  <button onClick={() => usePvEAttack(99)} disabled={(battleData.ultimateGauge || 0) < 100} className="bg-gradient-to-r from-yellow-500 to-pink-600 disabled:from-slate-700 disabled:to-slate-700 rounded-xl py-2 text-xs font-black">必殺技</button>
+                </div>
+                <div className="text-center text-[10px] text-slate-400">状態：自分 {Object.keys(battleData.playerStatus || {}).join(' / ') || 'なし'}　敵 {Object.keys(battleData.enemyStatus || {}).join(' / ') || 'なし'}</div>
+              </div>
+            )}
+
+            <div className={`flex gap-3 overflow-x-auto pb-3 px-2 scrollbar-hide items-center rounded-2xl ${isPvE ? 'h-52 bg-black/25 border border-blue-500/20' : 'h-36'}`}>
+               {handCards.map((card, i) => (
+                 <button key={card?.instanceId || i} onClick={() => isPvE ? selectPvECard(i) : playPvPTurn(i)} disabled={!canSelectCard} className="transition-transform transform hover:-translate-y-4 focus:outline-none flex-shrink-0 relative group pt-2">
+                    <CardUI card={card} isRevealed={true} className={`${isPvE ? 'pve-hand-card' : 'transform scale-75 origin-bottom'} shadow-lg group-hover:shadow-[0_0_20px_rgba(59,130,246,0.6)] ${(!isPvE && hasPlayedPvP) ? 'opacity-50 grayscale' : ''}`} />
+                    {isPvE && <div className="-mt-4 mx-auto w-20 rounded-full bg-blue-600 border border-blue-300 text-white text-[10px] font-black py-1 shadow-lg relative z-20">攻撃</div>}
                  </button>
                ))}
-               {!(isPvE ? battleData.playerHand : battleData.myDeck)?.length && !battleData.finished && <div className="text-slate-500 w-full text-center font-black tracking-widest">NO CARDS</div>}
+               {!handCards.length && !battleData.finished && <div className="text-slate-400 w-full text-center font-black tracking-widest bg-slate-950/70 border border-slate-700 rounded-2xl py-6">手札がありません</div>}
             </div>
           </div>
         </div>
@@ -763,8 +1454,8 @@ function App() {
            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
               <div className="absolute inset-0 bg-white opacity-20 animate-ping"></div>
               <div className="flex flex-col items-center gap-32 md:gap-40">
-                 {effect.p1 > 0 && <div className="text-7xl md:text-9xl font-black text-red-500 drop-shadow-[0_0_25px_rgba(255,0,0,1)] animate-bounce stroke-black stroke-2">-1</div>}
-                 {effect.p2 > 0 && <div className="text-7xl md:text-9xl font-black text-blue-500 drop-shadow-[0_0_25px_rgba(0,150,255,1)] animate-bounce">-1</div>}
+                 {effect.enemyDamage > 0 && <div className="text-center"><div className="text-sm font-black text-red-200 mb-1">{effect.attackName}</div><div className="text-6xl md:text-8xl font-black text-red-500 drop-shadow-[0_0_25px_rgba(255,0,0,1)] animate-bounce stroke-black stroke-2">-{effect.enemyDamage}</div></div>}
+                 {effect.playerDamage > 0 && <div className="text-center"><div className="text-sm font-black text-blue-200 mb-1">敵の{effect.enemyAttackName}</div><div className="text-6xl md:text-8xl font-black text-blue-500 drop-shadow-[0_0_25px_rgba(0,150,255,1)] animate-bounce">-{effect.playerDamage}</div></div>}
               </div>
            </div>
         )}
@@ -790,7 +1481,7 @@ function App() {
                     )}
                     <div className="flex flex-col gap-4">
                       {isPvE && won && <button onClick={() => { setGameState('packs'); }} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl font-black text-lg shadow-lg transform transition-transform hover:scale-105 tracking-widest">PACKSへ！</button>}
-                      <button onClick={() => { setGameState('menu'); setBattleData(null); setMatchId(null); }} className="w-full py-4 bg-slate-700 hover:bg-slate-600 rounded-xl font-black text-lg shadow-md transition-colors tracking-widest">MENU</button>
+                      <button onClick={finishBattleAndReturn} className="w-full py-4 bg-slate-700 hover:bg-slate-600 rounded-xl font-black text-lg shadow-md transition-colors tracking-widest">MENU</button>
                     </div>
                   </>
                 );
@@ -823,15 +1514,15 @@ function App() {
         {gameState === 'title' && (
           <div className="w-full max-w-sm mx-auto space-y-12">
             <h1 className="text-7xl font-black text-center tracking-tighter leading-none">
-              <span className="block text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 drop-shadow-2xl">NEXUS</span>
-              <span className="block text-2xl text-slate-300 mt-4 tracking-widest">POCKET CLONE</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 drop-shadow-2xl">BONOBO</span>
+              <span className="block text-2xl text-slate-300 mt-4 tracking-widest">CARD QUEST</span>
             </h1>
             <div className="bg-slate-900/60 backdrop-blur-xl p-8 rounded-3xl w-full flex flex-col gap-6 shadow-2xl border border-slate-700">
               {saveData?.nickname ? (
                 <div className="text-center space-y-6">
                   <p className="text-lg font-black">おかえり、<span className="text-indigo-300">{saveData.nickname}</span>！</p>
                   <button onClick={() => setGameState('menu')} className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 font-black text-lg shadow-[0_0_25px_rgba(79,70,229,0.5)] hover:scale-105 transition-transform tracking-widest">GAME START</button>
-                  <button onClick={() => setSaveData({nickname: '', crystals: 1000, cards: [], deck: [], pveStage: 1, storyCleared: false})} className="text-xs text-slate-500 hover:text-slate-300 underline font-bold">データをリセット</button>
+                  <button onClick={() => setConfirmReset(true)} className="text-xs text-slate-500 hover:text-slate-300 underline font-bold">データをリセット</button>
                 </div>
               ) : (
                 <>
@@ -868,40 +1559,52 @@ function App() {
             <div onClick={startStoryOrBattle} className="bg-slate-900/80 p-8 rounded-3xl cursor-pointer hover:bg-slate-800 transition-colors border-2 border-slate-700 border-l-8 border-l-green-500 flex flex-col justify-between shadow-xl group">
               <div>
                 <h3 className="text-3xl font-black mb-3 flex items-center gap-3"><span className="text-4xl group-hover:animate-bounce">⚔️</span> PVE QUEST</h3>
-                <p className="text-slate-400 text-sm font-bold leading-relaxed">ストーリーを進めてクリスタルを稼げ！<br/>5枚のオリジナルデッキで挑戦だ。</p>
+                <p className="text-slate-400 text-sm font-bold leading-relaxed">HPつきカードをフィールドに出して戦う！<br/>3種類の攻撃で敵キャラを倒そう。</p>
               </div>
               <div className="mt-8 text-right font-black text-green-400 text-2xl tracking-widest">STAGE {saveData?.pveStage || 1}</div>
             </div>
 
             <div className="bg-slate-900/80 p-8 rounded-3xl border-2 border-slate-700 border-l-8 border-l-red-500 flex flex-col justify-between shadow-xl relative overflow-hidden group">
-              {!saveData.storyCleared && (
-                <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
-                   <div className="text-6xl mb-4">🔒</div>
-                   <div className="font-black text-red-400 mb-2 tracking-widest">PVP LOCKED</div>
-                   <div className="text-xs text-slate-300 font-bold">PVEクエストをすべてクリアして<br/>ストーリーを最後まで読もう！</div>
-                </div>
-              )}
-              <div className={!saveData.storyCleared ? 'opacity-30' : ''}>
+              <div>
                 <h3 className="text-3xl font-black mb-3 flex items-center gap-3"><span className="text-4xl group-hover:animate-pulse">🔥</span> PVP BATTLE</h3>
                 <p className="text-slate-400 text-sm font-bold leading-relaxed">友達と同じ3桁の合言葉を入力。<br/>自慢のデッキで1v1の通信対戦！</p>
               </div>
-              <div className={`flex gap-3 mt-8 ${!saveData.storyCleared ? 'opacity-30 pointer-events-none' : ''}`}>
+              <div className="flex gap-3 mt-8">
                 <input type="text" value={roomCodeInput} onChange={e => setRoomCodeInput(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))} placeholder="000" className="w-24 bg-slate-950 border-2 border-slate-600 rounded-xl text-center text-2xl font-black focus:border-red-500 outline-none transition-colors" />
-                <button onClick={startPvPMatchmaking} className="flex-1 bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 rounded-xl font-black text-lg shadow-lg transition-transform hover:scale-105 tracking-widest">FIGHT</button>
+                <button onClick={() => { const deckNames = (saveData?.deck || []).map(c => c.name).join(' / ') || '自動デッキ'; if (window.confirm(`このデッキで対戦しますか？\n${deckNames}`)) startPvPMatchmaking(); }} className="flex-1 bg-gradient-to-r from-red-700 to-red-600 hover:from-red-600 hover:to-red-500 rounded-xl font-black text-lg shadow-lg transition-transform hover:scale-105 tracking-widest">FIGHT</button>
               </div>
             </div>
 
-            <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
-               <button onClick={() => { setDeckBuilder(saveData?.deck||[]); setGameState('deck'); }} className="bg-slate-900/80 p-6 rounded-3xl font-black text-xl hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex items-center justify-center gap-4 transition-transform hover:-translate-y-1"><span className="text-3xl">🃏</span> DECK</button>
-               <button onClick={() => setGameState('collection')} className="bg-slate-900/80 p-6 rounded-3xl font-black text-xl hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex items-center justify-center gap-4 transition-transform hover:-translate-y-1"><span className="text-3xl">📁</span> CARDS ({Array.isArray(saveData?.cards) ? saveData.cards.length : 0})</button>
-               <button onClick={generateSaveCode} className="bg-slate-900/80 p-6 rounded-3xl font-black text-xl hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex items-center justify-center gap-4 transition-transform hover:-translate-y-1"><span className="text-3xl">🔑</span> SAVE CODE</button>
+            <div className="col-span-1 md:col-span-2 bg-slate-900/60 p-5 rounded-3xl border border-slate-700 shadow-xl">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm font-bold text-slate-300">
+                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-700"><span className="text-xl">①</span> パックを引いてカードを集める</div>
+                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-700"><span className="text-xl">②</span> 強い5枚でデッキを作る</div>
+                <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-700"><span className="text-xl">③</span> 毎日ログインで💎500もらう</div>
+              </div>
+            </div>
+
+            <div className="col-span-1 md:col-span-2 grid grid-cols-2 md:grid-cols-5 gap-4">
+               <button onClick={() => { setDeckBuilder(saveData?.deck||[]); setGameState('deck'); }} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">🃏</span> DECK</button>
+               <button onClick={() => setGameState('collection')} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">📁</span> CARDS <span className="text-xs text-slate-400">{Array.isArray(saveData?.cards) ? saveData.cards.length : 0}枚</span></button>
+               <button onClick={() => setGameState('map')} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">🗺️</span> MAP</button>
+               <button onClick={() => setGameState('missions')} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">✅</span> MISSIONS</button>
+               <button onClick={() => setGameState('shop')} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">🛒</span> SHOP</button>
+               <button onClick={() => setGameState('battlepass')} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">🎫</span> PASS</button>
+               <button onClick={() => setGameState('pvpstats')} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">🏆</span> RANK</button>
+               <button onClick={startDailyDungeon} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">💎</span> DAILY</button>
+               <button onClick={() => setGameState('guide')} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">🔰</span> GUIDE</button>
+               <button onClick={generateSaveCode} className="bg-slate-900/80 p-5 rounded-3xl font-black text-lg hover:bg-slate-800 border-2 border-slate-700 shadow-xl flex flex-col items-center justify-center gap-2 transition-transform hover:-translate-y-1"><span className="text-3xl">🔑</span> SAVE</button>
             </div>
           </div>
         )}
 
         {gameState === 'packs' && (
           <div className="w-full flex flex-col items-center">
-            <h2 className="text-5xl font-black mb-10 tracking-widest drop-shadow-lg text-center">PACK STORE</h2>
+            <h2 className="text-5xl font-black mb-4 tracking-widest drop-shadow-lg text-center">PACK STORE</h2>
+            <div className="mb-8 bg-slate-900/80 border border-indigo-500/40 rounded-2xl p-4 text-center font-bold text-slate-200 max-w-2xl">
+              <div>今日のピックアップ：<span className="text-yellow-300">{getTodayPickup().label}</span></div>
+              <div className="text-xs text-slate-400 mt-1">天井：SRまであと {Math.max(0, 30 - (saveData?.pitySR || 0))} パック / URまであと {Math.max(0, 100 - (saveData?.pityUR || 0))} パック / チケット {saveData?.packTickets || 0}枚</div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
               {PACKS.map(pack => (
                 <div key={pack.id} onClick={() => pullPack(pack.id)} className={`relative flex flex-col items-center justify-between p-8 rounded-3xl cursor-pointer group shadow-2xl border-4 border-slate-600 bg-gradient-to-b ${pack.color} transition-all transform hover:-translate-y-4 hover:shadow-[0_20px_50px_rgba(0,0,0,0.8)]`}>
@@ -934,13 +1637,16 @@ function App() {
               </>
             )}
 
-            <h2 className="text-4xl font-black mb-12 z-10 drop-shadow-lg tracking-widest">{gachaStep === 'idle' ? 'TAP TO OPEN' : gachaStep === 'revealed' ? 'RESULT' : '...'}</h2>
+            <h2 className="text-4xl font-black mb-12 z-10 drop-shadow-lg tracking-widest">{gachaStep === 'ready' ? 'SWIPE OR TAP TO OPEN' : gachaStep === 'opened' ? 'TAP CARDS' : gachaStep === 'revealed' ? 'RESULT' : 'OPENING...'}</h2>
 
-            {(gachaStep === 'idle' || gachaStep === 'shaking') && (
-              <div onClick={() => setGachaStep('shaking')} className={`relative w-64 h-96 rounded-2xl bg-gradient-to-b ${selectedPack?.color || 'from-indigo-900 to-slate-900'} border-[6px] border-slate-300 shadow-[0_0_80px_rgba(255,255,255,0.2)] flex flex-col items-center justify-center cursor-pointer overflow-hidden z-10 ${gachaStep === 'shaking' ? 'anim-shake' : ''} ${gachaStep === 'opened' ? 'anim-tear' : ''}`} style={{ transition: 'all 0.3s' }}>
+            {(gachaStep === 'ready' || gachaStep === 'shaking') && (
+              <div onClick={openGachaPack} onTouchStart={handlePackTouchStart} onTouchMove={handlePackTouchMove} onTouchEnd={handlePackTouchEnd} className={`relative w-64 h-96 rounded-2xl bg-gradient-to-b ${selectedPack?.color || 'from-indigo-900 to-slate-900'} border-[6px] border-slate-300 flex flex-col items-center justify-center cursor-pointer overflow-hidden z-10 ${gachaMeta?.className || ''} ${gachaStep === 'shaking' ? 'anim-shake' : ''}`} style={{ transition: 'all 0.3s', transform: `translateX(${swipeX}px) rotate(${swipeX/12}deg)` }}>
+                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 pack-spark"></div>
                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/50 to-transparent opacity-0 hover:opacity-100 transform -rotate-45 translate-x-[-150%] hover:translate-x-[150%] transition-all duration-700 ease-in-out"></div>
                  <div className="text-7xl mb-4 drop-shadow-2xl">{selectedPack?.id === 'standard' ? '🌟' : selectedPack?.id === 'element' ? '🌓' : '👑'}</div>
                  <div className="text-center font-black text-4xl text-white drop-shadow-[0_5px_5px_rgba(0,0,0,1)] border-y-4 border-white/50 py-2 w-full bg-black/40 backdrop-blur-sm tracking-widest">{selectedPack?.name.split(' ')[0]}<br/>PACK</div>
+                 <div className="mt-5 px-4 py-2 rounded-full bg-black/60 border border-white/30 text-xs font-black text-white">{gachaMeta?.text}</div>
+                 {gachaMeta?.pityMessage && <div className="mt-2 px-4 py-2 rounded-full bg-yellow-400 text-black text-xs font-black">{gachaMeta.pityMessage}</div>}
               </div>
             )}
 
@@ -948,13 +1654,18 @@ function App() {
               <div className="flex flex-wrap justify-center gap-6 md:gap-12 z-10">
                 {(gachaCards || []).map((card, index) => (
                   <div key={index} className="flex flex-col items-center anim-slide-up" style={{animationDelay: `${index * 0.15}s`}}>
-                    <CardUI card={card} isRevealed={card?.revealed} onClick={() => revealCard(index)} className={card?.revealed && card?.rarity ? RARITIES[card.rarity]?.effect : ''} style={{width: '140px', height: '210px'}} />
+                    <CardUI card={card} isRevealed={card?.revealed} onClick={() => revealCard(index)} className={`${index === 2 ? 'last-card-special' : ''} ${card?.revealed && card?.rarity ? RARITIES[card.rarity]?.effect : ''}`} style={{width: '140px', height: '210px'}} />
                   </div>
                 ))}
               </div>
             )}
 
-            {gachaStep === 'revealed' && <button onClick={() => setGameState('packs')} className="mt-20 px-16 py-5 bg-white text-slate-900 rounded-full font-black text-2xl shadow-[0_0_30px_rgba(255,255,255,0.8)] z-10 hover:scale-110 transition-transform tracking-widest">OK</button>}
+            {gachaStep === 'revealed' && (
+              <div className="mt-16 flex flex-col sm:flex-row gap-4 z-10">
+                <button onClick={() => setGameState('packs')} className="px-12 py-4 bg-white text-slate-900 rounded-full font-black text-xl shadow-[0_0_30px_rgba(255,255,255,0.8)] hover:scale-110 transition-transform tracking-widest">PACKS</button>
+                {selectedPack && (saveData?.crystals || 0) >= selectedPack.price && <button onClick={() => pullPack(selectedPack.id)} className="px-12 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full font-black text-xl shadow-[0_0_25px_rgba(79,70,229,0.7)] hover:scale-110 transition-transform tracking-widest">もう一回</button>}
+              </div>
+            )}
           </div>
         )}
 
@@ -985,7 +1696,7 @@ function App() {
                   {(!Array.isArray(saveData?.cards) || saveData.cards.length === 0) ? (
                     <div className="col-span-full text-center text-slate-500 py-10 font-bold">NO CARDS</div>
                   ) : (
-                    [...saveData.cards].sort((a,b) => (b?.power || 0) - (a?.power || 0)).map((card) => {
+                    [...saveData.cards].sort((a,b) => getCardPower(b) - getCardPower(a)).map((card) => {
                       const isSelected = deckBuilder.find(c => c.instanceId === card.instanceId);
                       return (
                         <div key={card.instanceId} className="flex justify-center relative">
@@ -1006,15 +1717,162 @@ function App() {
               <h2 className="text-3xl font-black tracking-widest">COLLECTION</h2>
               <button onClick={() => setGameState('menu')} className="px-8 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold transition-colors">BACK</button>
             </div>
+            <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              {['N','R','SR','UR'].map(r => (
+                <div key={r} className="bg-slate-950/70 border border-slate-700 rounded-2xl p-3 font-black">
+                  <div className="text-slate-400 text-xs tracking-widest">{RARITIES[r].name}</div>
+                  <div className="text-2xl text-white">{(saveData?.cards || []).filter(c => c?.rarity === r).length}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mb-4 bg-slate-900/70 border border-yellow-500/30 rounded-3xl p-4">
+              <div className="font-black text-yellow-300 mb-3">図鑑報酬</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm font-black">
+                <button onClick={() => getUniqueIds().length >= 10 ? claimCollectionReward('unique10', 500) : showNotification('10種類集めると受け取れます')} className="bg-slate-950 border border-slate-700 rounded-2xl p-3">10種類：💎500<br/><span className="text-xs text-slate-400">{getUniqueIds().length}/10</span></button>
+                <button onClick={() => ['Fire','Water','Wood','Light','Dark'].some(el => CARD_CATALOG.filter(c => c.element === el).every(c => getUniqueIds().includes(c.id))) ? claimCollectionReward('elementComplete', 1500) : showNotification('どれか1属性を全部集めると受け取れます')} className="bg-slate-950 border border-slate-700 rounded-2xl p-3">属性コンプ：💎1500</button>
+                <button onClick={() => getUniqueIds().length >= CARD_CATALOG.length ? claimCollectionReward('allComplete', 5000) : showNotification('全カードコンプで受け取れます')} className="bg-slate-950 border border-slate-700 rounded-2xl p-3">全カード：💎5000<br/><span className="text-xs text-slate-400">{getUniqueIds().length}/{CARD_CATALOG.length}</span></button>
+              </div>
+            </div>
             <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 content-start scrollbar-hide pb-10">
               {(!Array.isArray(saveData?.cards) || saveData.cards.length === 0) ? (
                 <div className="col-span-full text-center text-slate-500 py-20 font-black text-2xl tracking-widest">NO CARDS</div>
               ) : (
-                [...saveData.cards].sort((a,b) => (b?.power || 0) - (a?.power || 0)).map((card, idx) => (
-                  <div key={card?.instanceId || idx} className="flex justify-center"><CardUI card={card} isRevealed={true} className="w-full h-auto aspect-[2/3] text-[0.5rem] hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-transform" /></div>
+                [...saveData.cards].sort((a,b) => getCardPower(b) - getCardPower(a)).map((card, idx) => (
+                  <div key={card?.instanceId || idx} className="flex justify-center"><CardUI card={card} isRevealed={true} onClick={() => setDetailCard(card)} className="w-full h-auto aspect-[2/3] text-[0.5rem] hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-transform" /></div>
                 ))
               )}
             </div>
+          </div>
+        )}
+
+
+        {gameState === 'map' && (
+          <div className="w-full space-y-6">
+            <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-700">
+              <h2 className="text-3xl font-black tracking-widest">STAGE MAP</h2>
+              <button onClick={() => setGameState('menu')} className="px-6 py-2 bg-slate-700 rounded-xl font-black">BACK</button>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Object.keys(DIFFICULTIES).map(d => <button key={d} onClick={() => setDifficulty(d)} className={`p-3 rounded-2xl border font-black ${difficulty === d ? 'bg-yellow-500 text-black border-yellow-200' : 'bg-slate-900 border-slate-700 text-slate-200'}`}>{d}</button>)}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {PVE_STAGES.map((st, idx) => {
+                const unlocked = (saveData?.pveStage || 1) >= st.id || saveData?.storyCleared;
+                return <button key={st.id} disabled={!unlocked} onClick={() => startSpecificStage(st, difficulty)} className={`p-5 rounded-3xl border-2 text-left shadow-xl ${unlocked ? 'bg-slate-900 border-indigo-500/60 hover:-translate-y-1 transition-transform' : 'bg-slate-950 border-slate-800 opacity-50'}`}>
+                  <div className="text-5xl mb-3">{['🌲','🪨','🌋','🏛️','🌌'][idx]}</div>
+                  <div className="text-xl font-black">{st.name}</div>
+                  <div className="text-xs text-slate-400 mt-2">報酬 💎{Math.floor(st.reward * (DIFFICULTIES[difficulty]?.reward || 1))}</div>
+                  {st.id === 5 && <div className="mt-2 text-xs text-pink-300 font-black">ボス第2形態あり</div>}
+                </button>;
+              })}
+            </div>
+            <button onClick={startDailyDungeon} className="w-full p-5 bg-gradient-to-r from-blue-700 to-purple-700 rounded-3xl font-black text-xl border border-blue-300 shadow-xl">今日のデイリーダンジョンに挑戦</button>
+          </div>
+        )}
+
+        {gameState === 'missions' && (
+          <div className="w-full space-y-6">
+            <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-700">
+              <h2 className="text-3xl font-black tracking-widest">MISSIONS</h2>
+              <button onClick={() => setGameState('menu')} className="px-6 py-2 bg-slate-700 rounded-xl font-black">BACK</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-slate-900/70 border border-slate-700 rounded-3xl p-5">
+                <h3 className="text-2xl font-black mb-4">デイリーミッション</h3>
+                {dailyMissionList.map(m => {
+                  const today = getLocalDateKey();
+                  const progress = saveData.missionProgress?.[today]?.[m.key] || 0;
+                  const claimKey = `d-${today}-${m.key}`;
+                  return <div key={m.key} className="mb-3 bg-slate-950/70 border border-slate-700 rounded-2xl p-4">
+                    <div className="flex justify-between gap-3"><div className="font-black">{m.name}</div><div className="text-cyan-300 font-black">{Math.min(progress, m.target)}/{m.target}</div></div>
+                    <button onClick={() => claimMission(m, false)} className="mt-3 w-full py-2 bg-indigo-600 rounded-xl font-black disabled:bg-slate-700" disabled={progress < m.target || saveData.claimedMissions?.[claimKey]}>{saveData.claimedMissions?.[claimKey] ? '受け取り済み' : `報酬 💎${m.reward}`}</button>
+                  </div>;
+                })}
+              </div>
+              <div className="bg-slate-900/70 border border-slate-700 rounded-3xl p-5">
+                <h3 className="text-2xl font-black mb-4">ウィークリーミッション</h3>
+                {weeklyMissionList.map(m => {
+                  const week = getWeekKey();
+                  const progress = saveData.weeklyProgress?.[week]?.[m.key] || 0;
+                  const claimKey = `w-${week}-${m.key}`;
+                  return <div key={m.key} className="mb-3 bg-slate-950/70 border border-slate-700 rounded-2xl p-4">
+                    <div className="flex justify-between gap-3"><div className="font-black">{m.name}</div><div className="text-yellow-300 font-black">{Math.min(progress, m.target)}/{m.target}</div></div>
+                    <button onClick={() => claimMission(m, true)} className="mt-3 w-full py-2 bg-yellow-600 text-black rounded-xl font-black disabled:bg-slate-700 disabled:text-white" disabled={progress < m.target || saveData.claimedMissions?.[claimKey]}>{saveData.claimedMissions?.[claimKey] ? '受け取り済み' : `報酬 💎${m.reward}`}</button>
+                  </div>;
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'shop' && (
+          <div className="w-full space-y-6">
+            <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-700">
+              <h2 className="text-3xl font-black tracking-widest">DAILY SHOP</h2>
+              <button onClick={() => setGameState('menu')} className="px-6 py-2 bg-slate-700 rounded-xl font-black">BACK</button>
+            </div>
+            <div className="text-center text-slate-300 font-bold">毎日5個だけ入れ替わります。購入したものは保存されます。</div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {getDailyShopItems().map(item => <div key={item.id} className="bg-slate-900/80 border border-slate-700 rounded-3xl p-5 text-center shadow-xl">
+                <div className="text-5xl mb-3">{item.icon}</div>
+                <div className="font-black min-h-[3rem]">{item.name}</div>
+                <div className="text-blue-300 font-black my-3">💎{item.price}</div>
+                <button onClick={() => buyShopItem(item)} disabled={saveData.shop?.bought?.[item.id]} className="w-full py-2 bg-purple-600 rounded-xl font-black disabled:bg-slate-700">{saveData.shop?.bought?.[item.id] ? 'SOLD' : 'BUY'}</button>
+              </div>)}
+            </div>
+          </div>
+        )}
+
+        {gameState === 'battlepass' && (
+          <div className="w-full space-y-6">
+            <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-700">
+              <h2 className="text-3xl font-black tracking-widest">BATTLE PASS</h2>
+              <button onClick={() => setGameState('menu')} className="px-6 py-2 bg-slate-700 rounded-xl font-black">BACK</button>
+            </div>
+            <div className="bg-slate-950/70 rounded-2xl border border-yellow-500/40 p-4 font-black text-yellow-200">XP: {saveData.battlePass?.xp || 0}</div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {[1,2,3,4,5,6,7,8,9,10].map(level => {
+                const need = level * 50;
+                const claimed = saveData.battlePass?.claimed?.[level];
+                return <div key={level} className="bg-slate-900/80 border border-slate-700 rounded-3xl p-4 text-center">
+                  <div className="text-3xl font-black text-yellow-300">Lv.{level}</div>
+                  <div className="text-xs text-slate-400 mt-2">必要XP {need}</div>
+                  <div className="my-3 text-sm font-bold">💎{level * 120}{level % 3 === 0 ? ' + 🎟️' : ''}</div>
+                  <button onClick={() => claimBattlePass(level)} disabled={(saveData.battlePass?.xp || 0) < need || claimed} className="w-full py-2 bg-yellow-500 text-black rounded-xl font-black disabled:bg-slate-700 disabled:text-white">{claimed ? 'OK' : 'CLAIM'}</button>
+                </div>;
+              })}
+            </div>
+          </div>
+        )}
+
+        {gameState === 'pvpstats' && (
+          <div className="w-full space-y-6">
+            <div className="flex justify-between items-center bg-slate-900/80 p-4 rounded-2xl border border-slate-700">
+              <h2 className="text-3xl font-black tracking-widest">RANK / HISTORY</h2>
+              <button onClick={() => setGameState('menu')} className="px-6 py-2 bg-slate-700 rounded-xl font-black">BACK</button>
+            </div>
+            {(() => {
+              const wins = saveData.pvpStats?.wins || 0;
+              const rank = wins >= 50 ? 'LEGEND' : wins >= 25 ? 'DIAMOND' : wins >= 12 ? 'GOLD' : wins >= 5 ? 'SILVER' : 'BRONZE';
+              return <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-slate-900 rounded-3xl p-5 border border-yellow-500/40 text-center"><div className="text-slate-400 text-xs font-black">RANK</div><div className="text-4xl font-black text-yellow-300">{rank}</div></div>
+                <div className="bg-slate-900 rounded-3xl p-5 border border-slate-700 text-center"><div className="text-slate-400 text-xs font-black">WIN</div><div className="text-4xl font-black">{wins}</div></div>
+                <div className="bg-slate-900 rounded-3xl p-5 border border-slate-700 text-center"><div className="text-slate-400 text-xs font-black">LOSE</div><div className="text-4xl font-black">{saveData.pvpStats?.losses || 0}</div></div>
+                <div className="bg-slate-900 rounded-3xl p-5 border border-slate-700 text-center"><div className="text-slate-400 text-xs font-black">BEST STREAK</div><div className="text-4xl font-black">{saveData.pvpStats?.bestStreak || 0}</div></div>
+              </div>;
+            })()}
+            <div className="bg-slate-900/80 rounded-3xl border border-slate-700 p-5">
+              <h3 className="font-black text-xl mb-3">対戦履歴</h3>
+              {!(saveData.pvpStats?.history || []).length ? <div className="text-slate-500 font-bold">まだ履歴がありません</div> : (saveData.pvpStats.history || []).slice(-10).reverse().map((h, i) => <div key={i} className="border-b border-slate-700 py-2 text-sm font-bold">{h.result} / {h.date} / よく使ったカード: {h.card || '不明'}</div>)}
+            </div>
+          </div>
+        )}
+
+        {gameState === 'guide' && (
+          <div className="max-w-3xl mx-auto w-full bg-slate-900/80 border border-slate-700 rounded-3xl p-8 space-y-5">
+            <h2 className="text-4xl font-black">初心者ガイド</h2>
+            {['パックを開けてカードを集めよう','デッキで5枚を選ぼう','クエストでカードを育てよう','図鑑報酬・ミッション・バトルパスでダイヤを増やそう','オンラインは3桁コードで友達と同じ番号を入れよう'].map((t,i) => <div key={i} className="bg-slate-950/70 rounded-2xl p-4 font-black"><span className="text-yellow-300 mr-3">{i+1}</span>{t}</div>)}
+            <button onClick={() => setGameState('menu')} className="w-full py-3 bg-indigo-600 rounded-xl font-black">OK</button>
           </div>
         )}
 
@@ -1053,6 +1911,63 @@ function App() {
         )}
 
       </main>
+
+      {detailCard && (
+        <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setDetailCard(null)}>
+          <div className="max-w-3xl w-full bg-slate-900 border-2 border-indigo-500 rounded-3xl p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-start gap-4 mb-5">
+              <div>
+                <h2 className="text-3xl font-black">{detailCard.name}</h2>
+                <div className="text-slate-400 font-bold">{ELEMENTS[detailCard.element]?.name} / {detailCard.rarity} / Lv.{getCardLevel(detailCard)} / HP {getCardMaxHp(detailCard)}</div>
+              </div>
+              <button onClick={() => setDetailCard(null)} className="px-4 py-2 bg-slate-700 rounded-xl font-black">閉じる</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6">
+              <div className="flex justify-center"><CardUI card={detailCard} isRevealed={true} /></div>
+              <div className="space-y-4">
+                <div className="bg-slate-950/70 border border-slate-700 rounded-2xl p-4">
+                  <h3 className="font-black mb-2">技</h3>
+                  {getCardAttacks(detailCard).map(a => <div key={a.id} className="text-sm border-b border-slate-800 py-2"><b>{a.name}</b>：DMG {a.damage} / {a.desc}</div>)}
+                  <div className="text-sm py-2"><b>{getUltimateAttack(detailCard).name}</b>：DMG {getUltimateAttack(detailCard).damage} / 必殺技</div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button onClick={() => mergeSelectedCard(detailCard)} className="bg-blue-700 rounded-xl p-3 font-black">同カード合成</button>
+                  <button onClick={() => evolveSelectedCard(detailCard)} className="bg-green-700 rounded-xl p-3 font-black">進化</button>
+                  <button onClick={() => applySkinToCard(detailCard, '')} className="bg-slate-700 rounded-xl p-3 font-black">通常スキン</button>
+                </div>
+                {!!(saveData.unlockedSkins || []).length && <div className="grid grid-cols-2 gap-3">{saveData.unlockedSkins.map(sk => <button key={sk} onClick={() => applySkinToCard(detailCard, sk)} className="bg-purple-700 rounded-xl p-3 font-black">{sk}スキン</button>)}</div>}
+                <div className="text-xs text-slate-400">合成：同じカード2枚を素材にしてレベル上限アップ。進化：Lv.5以上＋強化素材20個。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmReset && (
+        <div className="fixed inset-0 z-[90] bg-black/80 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-red-500 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <h2 className="text-3xl font-black text-red-400 mb-4">本当にリセット？</h2>
+            <p className="text-slate-300 font-bold mb-6">カード・ダイヤ・進行状況が消えます。</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setConfirmReset(false)} className="bg-slate-700 rounded-xl py-3 font-black">やめる</button>
+              <button onClick={resetAllData} className="bg-red-700 rounded-xl py-3 font-black">消す</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gameState !== 'title' && gameState !== 'gacha' && gameState !== 'pve' && gameState !== 'pvp_battle' && gameState !== 'story' && gameState !== 'pvp_match' && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-xl border-t border-slate-700 bottom-nav-safe px-2 pt-2">
+          <div className="max-w-3xl mx-auto grid grid-cols-5 gap-2 text-[10px] font-black text-center">
+            <button onClick={() => setGameState('menu')} className="py-2 rounded-xl bg-slate-800">🏠<br/>HOME</button>
+            <button onClick={() => setGameState('packs')} className="py-2 rounded-xl bg-slate-800">🎁<br/>PACK</button>
+            <button onClick={() => { setDeckBuilder(saveData?.deck||[]); setGameState('deck'); }} className="py-2 rounded-xl bg-slate-800">🃏<br/>DECK</button>
+            <button onClick={() => setGameState('map')} className="py-2 rounded-xl bg-slate-800">⚔️<br/>BATTLE</button>
+            <button onClick={() => setGameState('collection')} className="py-2 rounded-xl bg-slate-800">📁<br/>CARDS</button>
+          </div>
+        </nav>
+      )}
+
     </div>
   );
 }
