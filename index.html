@@ -1318,34 +1318,111 @@ setSaveData(normalizeSaveData(data));
   };
 
   const mergeSelectedCard = (card) => {
-    if (!card) return;
-    const duplicates = (saveData.cards || []).filter(c => c.id === card.id && c.instanceId !== card.instanceId);
-    if (duplicates.length < 2) return showNotification('同じカードがあと2枚必要です');
-    const consume = new Set(duplicates.slice(0, 2).map(c => c.instanceId));
-    setSaveData(p => ({
-      ...(p || {}),
-      cards: (p.cards || []).filter(c => !consume.has(c.instanceId)).map(c => c.instanceId === card.instanceId ? { ...c, xp: (c.xp || 0) + 120, limitBreak: (c.limitBreak || 0) + 1 } : c),
-      materials: (p.materials || 0) + 10
-    }));
-    showNotification('合成成功！レベル上限UP＋経験値追加！');
-    setDetailCard(null);
+    if (!card) return showNotification('カードが選択されていません');
+    let resultMessage = '';
+    let mergedCard = null;
+    setSaveData(prev => {
+      const current = normalizeSaveData(prev || saveData || {});
+      const cards = [...(current.cards || [])];
+      const targetIndex = cards.findIndex(c => c.instanceId === card.instanceId);
+      if (targetIndex < 0) {
+        resultMessage = 'このカードが見つかりませんでした';
+        return current;
+      }
+
+      const duplicateIndex = cards.findIndex((c, i) => i !== targetIndex && c.id === card.id);
+      const canUseMaterial = (current.materials || 0) >= 40;
+      if (duplicateIndex < 0 && !canUseMaterial) {
+        resultMessage = '同じカード1枚、または強化素材40個で合成できます';
+        return current;
+      }
+
+      const target = cards[targetIndex];
+      const duplicate = duplicateIndex >= 0 ? cards[duplicateIndex] : null;
+      const gainedXp = 140 + (duplicate ? Math.floor((duplicate.xp || 0) / 2) : 0);
+      const nextTarget = {
+        ...target,
+        xp: (target.xp || 0) + gainedXp,
+        limitBreak: (target.limitBreak || 0) + 1,
+        power: Math.max(target.power || 1, (target.power || 1) + (duplicate ? 1 : 0))
+      };
+
+      let nextCards = cards.map((c, i) => i === targetIndex ? nextTarget : c);
+      if (duplicateIndex >= 0) nextCards = nextCards.filter((_, i) => i !== duplicateIndex);
+      const nextDeck = (current.deck || []).map(c => c.instanceId === target.instanceId ? nextTarget : c).filter(c => c.instanceId !== duplicate?.instanceId);
+      mergedCard = nextTarget;
+      resultMessage = duplicate ? '合成成功！同じカードを素材にして強化しました' : '素材合成成功！強化素材40個で強化しました';
+      return {
+        ...current,
+        cards: nextCards,
+        deck: nextDeck,
+        materials: Math.max(0, (current.materials || 0) - (duplicate ? 0 : 40)) + (duplicate ? 10 : 0)
+      };
+    });
+    setTimeout(() => {
+      if (mergedCard) setDetailCard(mergedCard);
+      showNotification(resultMessage || '合成しました');
+    }, 0);
   };
 
   const evolveSelectedCard = (card) => {
-    if (!card) return;
-    const nextId = EVOLUTION_LINES[card.id];
-    const nextBase = CARD_CATALOG.find(c => c.id === nextId);
-    if (!nextBase) return showNotification('これ以上進化できません');
-    if (getCardLevel(card) < 5) return showNotification('Lv.5以上で進化できます');
-    if ((saveData.materials || 0) < 20) return showNotification('強化素材が20個必要です');
-    setSaveData(p => ({
-      ...(p || {}),
-      materials: (p.materials || 0) - 20,
-      cards: (p.cards || []).map(c => c.instanceId === card.instanceId ? { ...nextBase, instanceId: c.instanceId, xp: Math.max(0, (c.xp || 0) - 80), limitBreak: c.limitBreak || 0, evoStage: (c.evoStage || 0) + 1, skin: c.skin } : c),
-      deck: (p.deck || []).map(c => c.instanceId === card.instanceId ? { ...nextBase, instanceId: c.instanceId, xp: Math.max(0, (c.xp || 0) - 80), limitBreak: c.limitBreak || 0, evoStage: (c.evoStage || 0) + 1, skin: c.skin } : c)
-    }));
-    showNotification(`${nextBase.name}に進化！`);
-    setDetailCard(null);
+    if (!card) return showNotification('カードが選択されていません');
+    let resultMessage = '';
+    let evolvedCard = null;
+    setSaveData(prev => {
+      const current = normalizeSaveData(prev || saveData || {});
+      const cards = [...(current.cards || [])];
+      const targetIndex = cards.findIndex(c => c.instanceId === card.instanceId);
+      if (targetIndex < 0) {
+        resultMessage = 'このカードが見つかりませんでした';
+        return current;
+      }
+
+      const target = cards[targetIndex];
+      const nextId = EVOLUTION_LINES[target.id];
+      const nextBase = CARD_CATALOG.find(c => c.id === nextId);
+      const materialCost = Math.min(20, current.materials || 0);
+
+      if (nextBase) {
+        evolvedCard = {
+          ...nextBase,
+          instanceId: target.instanceId,
+          xp: Math.max(0, (target.xp || 0) + 40),
+          limitBreak: target.limitBreak || 0,
+          evoStage: (target.evoStage || 0) + 1,
+          skin: target.skin,
+          createdAt: target.createdAt || Date.now()
+        };
+        resultMessage = `${nextBase.name}に進化しました！`;
+      } else {
+        const rarityOrder = ['N', 'R', 'SR', 'UR'];
+        const currentRank = Math.max(0, rarityOrder.indexOf(target.rarity));
+        const nextRarity = rarityOrder[Math.min(rarityOrder.length - 1, currentRank + 1)] || target.rarity || 'UR';
+        evolvedCard = {
+          ...target,
+          rarity: nextRarity,
+          xp: (target.xp || 0) + 80,
+          power: (target.power || 1) + 2,
+          limitBreak: (target.limitBreak || 0) + 1,
+          evoStage: (target.evoStage || 0) + 1,
+          cardClass: target.cardClass && String(target.cardClass).includes('EVOLVE') ? target.cardClass : `${target.cardClass || target.rarity || 'CARD'} EVOLVE`.trim()
+        };
+        resultMessage = `${target.name}を覚醒進化しました！`;
+      }
+
+      const nextCards = cards.map((c, i) => i === targetIndex ? evolvedCard : c);
+      const nextDeck = (current.deck || []).map(c => c.instanceId === target.instanceId ? evolvedCard : c);
+      return {
+        ...current,
+        materials: Math.max(0, (current.materials || 0) - materialCost),
+        cards: nextCards,
+        deck: nextDeck
+      };
+    });
+    setTimeout(() => {
+      if (evolvedCard) setDetailCard(evolvedCard);
+      showNotification(resultMessage || '進化しました');
+    }, 0);
   };
 
   const applySkinToCard = (card, skin) => {
@@ -2533,18 +2610,22 @@ setSaveData(normalizeSaveData(data));
             <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6">
               <div className="flex justify-center"><CardUI card={detailCard} isRevealed={true} /></div>
               <div className="space-y-4">
+                <div className="bg-slate-950/70 border border-slate-700 rounded-2xl p-3 text-xs font-black text-slate-300 grid grid-cols-2 gap-2">
+                  <div>同カード素材：{(saveData.cards || []).filter(c => c.id === detailCard.id && c.instanceId !== detailCard.instanceId).length}枚</div>
+                  <div>強化素材：{saveData.materials || 0}個</div>
+                </div>
                 <div className="bg-slate-950/70 border border-slate-700 rounded-2xl p-4">
                   <h3 className="font-black mb-2">技</h3>
                   {getCardAttacks(detailCard).map(a => <div key={a.id} className="text-sm border-b border-slate-800 py-2"><b>{a.name}</b>：DMG {a.damage} / {a.desc}</div>)}
                   <div className="text-sm py-2"><b>{getUltimateAttack(detailCard).name}</b>：DMG {getUltimateAttack(detailCard).damage} / 必殺技</div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <button onClick={() => mergeSelectedCard(detailCard)} className="bg-blue-700 rounded-xl p-3 font-black">同カード合成</button>
-                  <button onClick={() => evolveSelectedCard(detailCard)} className="bg-green-700 rounded-xl p-3 font-black">進化</button>
-                  <button onClick={() => applySkinToCard(detailCard, '')} className="bg-slate-700 rounded-xl p-3 font-black">通常スキン</button>
+                  <button onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); mergeSelectedCard(detailCard); }} className="bg-blue-700 hover:bg-blue-600 rounded-xl p-3 font-black transition-colors">合成する</button>
+                  <button onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); evolveSelectedCard(detailCard); }} className="bg-green-700 hover:bg-green-600 rounded-xl p-3 font-black transition-colors">進化する</button>
+                  <button onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); applySkinToCard(detailCard, ''); }} className="bg-slate-700 hover:bg-slate-600 rounded-xl p-3 font-black transition-colors">通常スキン</button>
                 </div>
                 {!!(saveData.unlockedSkins || []).length && <div className="grid grid-cols-2 gap-3">{saveData.unlockedSkins.map(sk => <button key={sk} onClick={() => applySkinToCard(detailCard, sk)} className="bg-purple-700 rounded-xl p-3 font-black">{sk}スキン</button>)}</div>}
-                <div className="text-xs text-slate-400">合成：同じカード2枚を素材にしてレベル上限アップ。進化：Lv.5以上＋強化素材20個。</div>
+                <div className="text-xs text-slate-400">合成：同じカード1枚、または素材40個で強化。進化：通常進化または覚醒進化できます。</div>
               </div>
             </div>
           </div>
