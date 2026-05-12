@@ -470,9 +470,9 @@ button:disabled{pointer-events:none;opacity:.45;filter:grayscale(.6)}
     const deck = saveData.deck.map(cardById);
     return `<main class="screen battleWrap">
       <div class="between"><button class="back" data-action="endBattle">← 降参</button><div class="pill">${esc(boss.name)}</div></div>
-      <section class="arena panel">
+      <section class="arena panel ${tStep===2?'tutorialFocus':''}">
         <div class="hpBox enemyHp"><div class="hpName">ENEMY</div><div class="hpNum">${Math.ceil(b.enemyHp)}</div><div class="bar"><i style="width:${ehpw}%"></i></div></div>
-        <div class="hpBox playerHp"><div class="hpName">${esc(saveData.nickname)}</div><div class="hpNum">${Math.ceil(b.playerHp)}</div><div class="bar"><i style="width:${hpw}%"></i></div><div class="energyBar">${[1,2,3,4,5,6,7,8].map(n=>`<i class="energyDot ${b.energy>=n?'on':''}"></i>`).join('')}</div></div>
+        <div class="hpBox playerHp ${tStep===3?'tutorialFocus':''}"><div class="hpName">${esc(saveData.nickname)}</div><div class="hpNum">${Math.ceil(b.playerHp)}</div><div class="bar"><i style="width:${hpw}%"></i></div><div class="energyBar">${[1,2,3,4,5,6,7,8].map(n=>`<i class="energyDot ${b.energy>=n?'on':''}"></i>`).join('')}</div></div>
         <div class="enemyAvatar">${boss.icon}</div><div class="vs">VS</div><div class="playerField">${b.activeCard?cardHTML(cardById(b.activeCard)):'<div class="emptySlot">CARD</div>'}</div>
       </section>
       <section><div class="panel logBox">${esc(b.log[0]||'カードを選んでACTIONを押そう。')}</div><div class="hand">${deck.map((c,i)=>`<button style="background:transparent;padding:0" data-action="selectBattleCard" data-index="${i}">${cardHTML(c,'',b.selected===i)}</button>`).join('')}</div>${battleMovePanel(b, deck)}<div class="actionBar"><button class="btn secondary" data-action="autoSelect">おすすめ選択</button><button class="btn secondary" data-action="chargeEnergy">⚡ エネルギー+2</button></div></section>
@@ -546,7 +546,7 @@ button:disabled{pointer-events:none;opacity:.45;filter:grayscale(.6)}
     const lost = st.status==='finished' && st.winnerId!==saveData.clientId;
     return `<main class="screen battleWrap">
       <div class="between"><button class="back" data-action="leaveOnline">← オンライン終了</button><div class="pill">ROOM ${esc(st.passcode||'')}</div><div class="${myTurn?'onlineBadge':'offlineBadge'}">${myTurn?'YOUR TURN':'WAIT'}</div></div>
-      <section class="arena panel">
+      <section class="arena panel ${tStep===2?'tutorialFocus':''}">
         <div class="hpBox enemyHp"><div class="hpName">${esc(opName)}</div><div class="hpNum">${Math.ceil(opHp)}</div><div class="bar"><i style="width:${ehpw}%"></i></div></div>
         <div class="hpBox playerHp"><div class="hpName">${esc(myName)}</div><div class="hpNum">${Math.ceil(myHp)}</div><div class="bar"><i style="width:${hpw}%"></i></div><div class="energyBar">${[1,2,3,4,5,6,7,8].map(n=>`<i class="energyDot ${myEnergy>=n?'on':''}"></i>`).join('')}</div></div>
         <div class="enemyAvatar">👤</div><div class="vs">ONLINE</div><div class="playerField">${st.lastCardId?cardHTML(cardById(st.lastCardId)):'<div class="emptySlot">CARD</div>'}</div>
@@ -1155,15 +1155,15 @@ button:disabled{pointer-events:none;opacity:.45;filter:grayscale(.6)}
     return `<main class="screen battleWrap finalBattle">
       <div class="battleHeader"><button class="back" data-action="endBattle">← 降参</button><div class="pill">${esc(boss.name)}</div><div class="turnState">${b.result?'RESULT':'カードを選んで技を発動'}</div></div>
       ${story}
-      <section class="arena panel">
+      <section class="arena panel ${tStep===2?'tutorialFocus':''}">
         <div class="hpBox enemyHp"><div class="hpName">ENEMY</div><div class="hpNum">${Math.ceil(b.enemyHp)}</div><div class="bar"><i style="width:${ehpw}%"></i></div></div>
-        <div class="hpBox playerHp"><div class="hpName">${esc(saveData.nickname)}</div><div class="hpNum">${Math.ceil(b.playerHp)}</div><div class="bar"><i style="width:${hpw}%"></i></div><div class="energyBar">${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<i class="energyDot ${b.energy>=n?'on':''}"></i>`).join('')}</div></div>
+        <div class="hpBox playerHp ${tStep===3?'tutorialFocus':''}"><div class="hpName">${esc(saveData.nickname)}</div><div class="hpNum">${Math.ceil(b.playerHp)}</div><div class="bar"><i style="width:${hpw}%"></i></div><div class="energyBar">${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<i class="energyDot ${b.energy>=n?'on':''}"></i>`).join('')}</div></div>
         <div class="enemyAvatar">${boss.icon}</div><div class="vs">VS</div><div class="playerField">${picked?cardHTML(picked,'',true):'<div class="emptySlot">PICK</div>'}</div>
       </section>
       <section class="battleControlPanel panel"><div class="panel logBox">${esc((b.log||[])[0]||'カードを選んで技を押そう。')}</div>
-        <div class="pickedArea"><div class="pickedCard">${picked?cardHTML(picked,'',true):'<div class="pickedEmpty">下の手札から<br>カードを1枚選択</div>'}</div>${finalBattleMovePanel(b)}</div>
-        <div class="safeActionRow"><button class="btn secondary" data-action="autoSelect">おすすめ選択</button><button class="btn secondary" data-action="chargeEnergy">⚡ エネルギー+3</button></div>
-        <div class="fanWrap">${deck.map((c,i)=>`<button class="fanCardBtn ${b.selected===i?'selected':''}" style="${fanStyle(i,deck.length)}" data-action="selectBattleCard" data-index="${i}" aria-label="${esc(c.name)}を選択">${cardHTML(c,'',b.selected===i)}</button>`).join('')}</div><div class="fanHint">扇状の手札から1枚選ぶ → 上で技を選ぶ</div>
+        <div class="pickedArea ${tStep===1?'tutorialFocus':''}"><div class="pickedCard">${picked?cardHTML(picked,'',true):'<div class="pickedEmpty">下の手札から<br>カードを1枚選択</div>'}</div>${finalBattleMovePanel(b)}</div>
+        <div class="safeActionRow"><button class="btn secondary" data-action="autoSelect">おすすめ選択</button><button class="btn secondary ${tStep===3?'tutorialFocus':''}" data-action="chargeEnergy">⚡ エネルギー+3</button></div>
+        <div class="fanWrap ${tStep===0?'tutorialFocus':''}">${deck.map((c,i)=>`<button class="fanCardBtn ${b.selected===i?'selected':''}" style="${fanStyle(i,deck.length)}" data-action="selectBattleCard" data-index="${i}" aria-label="${esc(c.name)}を選択">${cardHTML(c,'',b.selected===i)}</button>`).join('')}</div><div class="fanHint">扇状の手札から1枚選ぶ → 上で技を選ぶ</div>
       </section>
       ${b.result?`<div class="resultOverlay"><div class="panel resultCard"><h1 style="color:${b.result==='win'?'var(--gold)':'#8790aa'}">${b.result==='win'?'VICTORY':'DEFEAT'}</h1><p class="muted strong">${b.result==='win'?`報酬 ★${boss.reward} とカード経験値を獲得！`:'デッキを強化してもう一度挑戦しよう。'}</p><div class="storyNextBox">${b.result==='win'&&BOSSES[saveData.storyProgress]?`<button class="btn gold" data-action="nextStoryBattle">次の章へ</button>`:''}<button class="btn secondary" data-action="finishBattle">ストーリー一覧へ</button><button class="btn secondary" data-action="retryBattle" data-boss="${boss.id}">もう一度</button></div></div></div>`:''}
     </main>`;
@@ -1204,6 +1204,7 @@ button:disabled{pointer-events:none;opacity:.45;filter:grayscale(.6)}
     const boss=bossById(b.bossId); let dmg=Math.floor(boss.power*(.82+Math.random()*.42));
     if(b.guard){ const reduce=Math.min(dmg,b.guard); dmg-=reduce; b.guard=Math.max(0,b.guard-reduce); }
     b.playerHp=Math.max(0,b.playerHp-dmg); b.energy=Math.min(12,(b.energy||0)+4); b.activeCard=null; b.selected=null; b.turn=(b.turn||1)+1;
+    if(b.tutorial&&!b.result) b.tutorialStage=Math.max(Number(b.tutorialStage||0),3);
     b.log.unshift(`${boss.name} の反撃！ ${dmg}ダメージ！ / エネルギー+4`); enemyEffect(boss.element,dmg);
     if(b.playerHp<=0) loseBattle(); save(); safeRender();
   };
@@ -1239,6 +1240,297 @@ button:disabled{pointer-events:none;opacity:.45;filter:grayscale(.6)}
     }
   }, true);
   window.addEventListener('error',function(e){ const b=getBattle(); if(b&&!b.result){ b.locked=false; b.log.unshift('エラーから自動復帰しました'); try{ safeRender(); }catch(_){} } });
+
+// ===== FINAL COMPLETE USER PATCH: no cooldown + playable tutorial + stronger FX + story flow + uniform cards =====
+(function(){
+  'use strict';
+  const FINAL_PATCH_VERSION = 'final-no-cooldown-tutorial-fx-story-uniform-cards-v1';
+  window.__chronoFinalCompletePatch = FINAL_PATCH_VERSION;
+
+  const finalStyle = document.createElement('style');
+  finalStyle.textContent = `
+    /* Final complete patch: all cards same visible size and image cards do not stretch in pack reveal */
+    .cardGrid{grid-template-columns:repeat(auto-fill,minmax(148px,1fr))!important;align-items:start!important}
+    .card,.card.specialCard,.hand .card,.fanCardBtn .card,.pickedCard .card,.playerField .card,.detailGrid .card,.revealRow .card{
+      width:148px!important;min-width:148px!important;max-width:148px!important;height:226px!important;min-height:226px!important;max-height:226px!important;flex:0 0 148px!important;
+    }
+    .playerField{width:148px!important}.pickedCard{min-height:226px!important}.pickedEmpty{height:226px!important}.fanCardBtn{width:148px!important}.hand .card,.hand .backCard{min-width:148px!important}.backCard{width:148px!important;height:226px!important}
+    .cardArt,.hand .card .cardArt,.card.specialCard .cardArt,.detailGrid .card .cardArt{height:104px!important;margin:7px 0 5px!important;padding:3px!important;background:#07091a!important;display:grid!important;place-items:center!important}
+    .cardArt img,.card.specialCard .cardArt img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center center!important;background:#07091a!important;border-radius:10px!important;display:block!important}
+    .cardArtEmoji{font-size:48px!important}.cardName{font-size:13px!important}.cardMove{font-size:10px!important}.cardStats{gap:4px!important}.stat{font-size:11px!important;padding:5px 3px!important}.moveCount{display:none!important}.coolBadge{display:none!important}
+    .tutorialCoach{position:fixed;left:50%;bottom:calc(18px + var(--safeBottom));transform:translateX(-50%);z-index:210;width:min(560px,94vw);padding:14px;border-radius:22px;background:rgba(4,5,18,.92);border:1px solid rgba(65,232,255,.42);box-shadow:0 0 34px rgba(65,232,255,.22);backdrop-filter:blur(14px);pointer-events:none}.tutorialCoach *{pointer-events:auto}.tutorialCoach h3{margin:0 0 6px;font-size:18px}.tutorialCoach p{margin:0;color:var(--muted);font-weight:850;line-height:1.55}.tutorialSteps{display:flex;gap:6px;margin:9px 0}.tutorialSteps i{height:6px;flex:1;border-radius:99px;background:rgba(255,255,255,.16)}.tutorialSteps i.on{background:linear-gradient(90deg,var(--cyan),var(--pink));box-shadow:0 0 12px rgba(65,232,255,.55)}.tutorialCoach .row{margin-top:10px;justify-content:flex-end}.tutorialMini{font-size:12px;color:var(--gold);font-weight:1000;margin-top:5px}.storyIntro p,.battleStoryBox{line-height:1.75!important}.turnState{color:var(--gold)!important}.fxStar,.fxRune,.fxPillar{position:fixed;pointer-events:none;z-index:86}.fxStar{font-size:34px;filter:drop-shadow(0 0 12px var(--pc));animation:fxStarFly .9s ease-out forwards}.fxRune{left:50%;top:48%;width:120px;height:120px;border-radius:50%;border:2px solid var(--pc);box-shadow:0 0 30px var(--pc),inset 0 0 20px var(--pc);transform:translate(-50%,-50%);animation:fxRune .85s ease-out forwards}.fxPillar{left:64%;top:18%;width:28px;height:62%;border-radius:99px;background:linear-gradient(180deg,transparent,var(--pc),white,var(--pc),transparent);box-shadow:0 0 26px var(--pc),0 0 60px var(--pc);animation:fxPillar .65s ease-out forwards}
+    @keyframes fxStarFly{0%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.4) rotate(0deg)}20%{opacity:1}100%{opacity:0;transform:translate(var(--ex),var(--ey)) scale(1.2) rotate(540deg)}}
+    @keyframes fxRune{0%{opacity:0;transform:translate(-50%,-50%) scale(.25) rotate(0deg)}45%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(2.4) rotate(180deg)}}
+    @keyframes fxPillar{0%{opacity:0;transform:scaleY(.1)}40%{opacity:1}100%{opacity:0;transform:scaleY(1.2)}}
+    @media(max-width:760px){.card,.card.specialCard,.hand .card,.fanCardBtn .card,.pickedCard .card,.playerField .card,.detailGrid .card,.revealRow .card,.backCard{width:138px!important;min-width:138px!important;max-width:138px!important;height:214px!important;min-height:214px!important;max-height:214px!important}.fanCardBtn{width:138px!important}.playerField{width:138px!important}.cardArt,.hand .card .cardArt,.card.specialCard .cardArt,.detailGrid .card .cardArt{height:96px!important}.tutorialCoach{bottom:calc(10px + var(--safeBottom));padding:12px}.pickedArea{grid-template-columns:1fr!important}.fanWrap{height:245px!important}}
+  `;
+  document.head.appendChild(finalStyle);
+
+  const tutorialReadableStyle = document.createElement('style');
+  tutorialReadableStyle.textContent = `
+    /* readable playable tutorial overlay */
+    .tutorialCoach{position:sticky!important;top:64px!important;left:auto!important;bottom:auto!important;transform:none!important;z-index:120!important;width:100%!important;max-width:none!important;margin:0 0 10px!important;padding:14px 16px!important;border-radius:22px!important;background:linear-gradient(135deg,rgba(6,10,28,.96),rgba(22,14,48,.96))!important;border:2px solid rgba(65,232,255,.55)!important;box-shadow:0 0 0 1px rgba(255,255,255,.10),0 16px 46px rgba(0,0,0,.42),0 0 36px rgba(65,232,255,.25)!important;backdrop-filter:blur(14px)!important;pointer-events:auto!important;display:grid!important;grid-template-columns:auto 1fr!important;gap:12px!important;align-items:start!important}.tutorialCoach *{pointer-events:auto!important}.tutorialIcon{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,var(--cyan),var(--pink));font-size:26px;box-shadow:0 0 22px rgba(65,232,255,.35);color:#06101c}.tutorialCoach h3{margin:0 0 5px!important;font-size:20px!important;line-height:1.25!important}.tutorialCoach p{margin:0!important;color:#eef4ff!important;font-weight:900!important;line-height:1.65!important}.tutorialNow{display:inline-flex;align-items:center;gap:6px;margin:7px 0 0;padding:7px 10px;border-radius:999px;background:rgba(255,212,95,.14);border:1px solid rgba(255,212,95,.42);color:#ffeaa2;font-weight:1000;font-size:13px}.tutorialWhy{margin-top:7px!important;color:var(--muted)!important;font-size:13px!important;font-weight:850!important;line-height:1.55!important}.tutorialSteps{display:flex!important;gap:6px!important;margin:11px 0 0!important}.tutorialSteps i{height:7px!important;flex:1!important;border-radius:99px!important;background:rgba(255,255,255,.18)!important}.tutorialSteps i.on{background:linear-gradient(90deg,var(--cyan),var(--pink),var(--gold))!important;box-shadow:0 0 12px rgba(255,212,95,.45)!important}.tutorialCoach .row{margin-top:10px!important;justify-content:space-between!important}.tutorialStepText{font-size:12px;color:var(--muted);font-weight:1000;letter-spacing:.06em}.tutorialFocus{outline:3px solid var(--gold)!important;box-shadow:0 0 0 7px rgba(255,212,95,.18),0 0 36px rgba(255,212,95,.42)!important;position:relative!important;z-index:12!important;animation:tutorialPulse2 1.15s ease-in-out infinite}.tutorialFocus::after{content:'ここを使う';position:absolute;right:8px;top:8px;z-index:99;border-radius:999px;padding:5px 9px;background:var(--gold);color:#1b0c00;font-size:11px;font-weight:1000;box-shadow:0 0 18px rgba(255,212,95,.45)}.tutorialActionHint{margin-top:8px;text-align:center;color:#ffeaa2;font-size:13px;font-weight:1000}.battleControlPanel.tutorialFocus::after{content:'カードと技をここで操作';}.fanWrap.tutorialFocus::after{content:'① カードをタップ';}.pickedArea.tutorialFocus::after{content:'② 技をタップ';}.safeActionRow .tutorialFocus::after{content:'③ エネルギーを増やす';}.playerHp.tutorialFocus::after{content:'エネルギー確認';}.arena.tutorialFocus::after{content:'敵とHPを確認';}
+    @keyframes tutorialPulse2{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+    @media(max-width:760px){.tutorialCoach{top:8px!important;grid-template-columns:1fr!important;padding:12px!important}.tutorialIcon{width:42px;height:42px}.tutorialCoach h3{font-size:18px!important}.tutorialCoach p{font-size:14px!important}.tutorialFocus::after{font-size:10px;right:6px;top:6px}.tutorialNow{font-size:12px}}
+  `;
+  document.head.appendChild(tutorialReadableStyle);
+
+
+  function finalNormalize(){
+    try{ if(typeof normalizeSaveV2==='function') normalizeSaveV2(); }catch(e){}
+    saveData.stats = saveData.stats || {};
+    saveData.settings = saveData.settings || {};
+    if(saveData.tutorialDone === undefined) saveData.tutorialDone = false;
+    if(!Array.isArray(saveData.deck) || saveData.deck.length<5) saveData.deck = [...START_DECK];
+  }
+
+  function removeAllCooldowns(){
+    try{ moveCooldown = function(){ return 0; }; }catch(e){}
+    CARDS.forEach(c=>{
+      if(!c.moves || !c.moves.length) c.moves = baseMovesFor(c);
+      c.moves = c.moves.map(m=>{
+        const next = {...m, cooldown:0};
+        delete next.cool;
+        return next;
+      });
+    });
+  }
+  removeAllCooldowns();
+
+  const storyAdd = {
+    b1:'放課後、古いカード研究所で光る端末を見つけた君は、カードの力で戦うネオン世界へ引き込まれる。端末は「世界の時間が壊れ始めている」と告げた。最初の敵は暴走した実験データ、ラボ・スライム。カードを選び、エネルギーを使い、技を放つ基本を覚えよう。',
+    b2:'森では草の精霊たちが黒いノイズに包まれていた。木々の記憶を食べる種が広がり、道そのものが消えかけている。守護者リーフゴーレムを倒し、森のコアを浄化しよう。',
+    b3:'炎の洞窟の奥には、赤い紋章と眠ったレジェンドカードがあった。紋章を守るフレイム・ガーディアンは力で押し切る強敵。水属性や回復を使い、炎の試練を突破しよう。',
+    b4:'氷晶の神殿では時計も風も止まり、足音だけが響いていた。氷晶の騎士は時間を守る番人。彼を倒すことで、クロノカードがただの武器ではないことが見えてくる。',
+    b5:'砂時計の街では、人々の記憶が戻っては消えていた。タイム・イーターは時間を食べ、街を何度も同じ一日に閉じ込めている。エネルギーをためて、大技で流れを変えよう。',
+    b6:'闇市場では危険なブラックパックが売られ、弱いカードまで暴走していた。闇商人を倒すと、背後にネオン魔王城の影が現れる。ここから物語は大きく動き出す。',
+    b7:'紅蓮竜サラマンダーは敵ではなく、君の覚悟を試す守護者だった。炎の試練を越えれば、竜の紋章がデッキに眠る力を呼び起こす。攻撃と回復のタイミングを見極めよう。',
+    b8:'月影アリーナには、過去のカード使いたちの幻影が集まっていた。勝者だけが次の扉を開けられる。幻影に飲まれず、自分のデッキの一番強い流れを作ろう。',
+    b9:'天空ライブラリには、最初のカード使いの記録が残っていた。そこには「クロノ・ゼロは世界を壊す敵ではない」と書かれている。真実を知るため、守護書庫を突破しよう。',
+    b10:'冥界ゲートの王ハデスは、黒幕に利用されていた。闇の王を倒せば、魔王城へ続く門が開く。光属性、回復、ガードを使い分けて、長い戦いを乗り越えよう。',
+    b11:'魔王城の前に現れた黒翼の支配者は、深淵の力でカード世界を支配しようとしていた。恐れずにエネルギーをため、強い技を連続でぶつけて突破しよう。',
+    b12:'ネオン魔王城の中心には、全てのパックを作り替える巨大なカードコアがあった。ここから先は負けても何度でも挑み、カードを進化させながら進むしかない。',
+    b13:'空を覆う闇が、ネオン世界のルールそのものを壊し始めた。終焉ノヴァ・アビスは、これまでの敵とは違う圧力を放つ。ためたエネルギーを一気に解放し、最後の扉を開けよう。',
+    b14:'クロノ・ゼロは世界をリセットして守ろうとしていた。しかし、君は別の未来を選べるはずだ。これまで集めたカード、進化、技、すべてを使い、カード世界を救え。'
+  };
+  BOSSES.forEach((b,i)=>{ b.story = storyAdd[b.id] || b.story; b.desc = b.desc || `第${i+1}章のボス`; });
+
+  function finalDeck(){ finalNormalize(); return (saveData.deck||[]).slice(0,5).map(cardById); }
+  function finalSelectedCard(){ const b=ui.battle; if(!b || b.selected===null || b.selected===undefined) return null; return cardById(saveData.deck[b.selected]); }
+  function finalFanStyle(i,n){ const mid=(n-1)/2; const x=(i-mid)*112; const r=(i-mid)*-8; return `--x:${x}px;--r:${r}deg;--z:${10+i}`; }
+  function finalMoveClass(b,m){ if((b.energy||0)<(m.cost||0)) return 'energyLow'; return 'ready'; }
+  function finalMoveDisabled(b,m){ return !!(b.result || b.locked || (b.energy||0)<(m.cost||0)); }
+  function tutorialActive(){ return ui.battle && ui.battle.tutorial && !ui.battle.result; }
+  function tutorialStepFromBattle(b){
+    if(!tutorialActive()) return -1;
+    const manualStage = Number.isFinite(Number(b.tutorialStage)) ? Number(b.tutorialStage) : null;
+    if(manualStage !== null){
+      if(manualStage>=3 && b.selected!==null && b.selected!==undefined) return 4;
+      return Math.max(0, Math.min(4, manualStage));
+    }
+    const latest = String((b.log||[])[0]||'');
+    if(latest.includes('エネルギーを集中')) return 4;
+    if(latest.includes('反撃')) return 3;
+    if(b.locked) return 2;
+    if(b.selected!==null && b.selected!==undefined) return 1;
+    return 0;
+  }
+  function tutorialHTML(b){
+    if(!tutorialActive()) return '';
+    const step = Math.max(0, Math.min(4, tutorialStepFromBattle(b)));
+    const data = [
+      {icon:'👆',title:'1. まずカードを1枚選ぼう',todo:'下にある手札カードを1枚タップします。',body:'カードを選ぶと、中央に大きく表示されて、そのカードの技が出ます。',why:'カードを選ばないと技を使えません。'},
+      {icon:'⚔️',title:'2. 次に技をタップしよう',todo:'右側に出た技ボタンを押します。',body:'技には必要なエネルギーがあります。足りている技だけ使えます。クールダウンはないので、エネルギーがあればすぐ使えます。',why:'強い技ほどダメージが大きいですが、エネルギーを多く使います。'},
+      {icon:'💥',title:'3. 技の後は敵が反撃してくる',todo:'HPとエネルギーの変化を見よう。',body:'こちらが攻撃すると、敵も反撃します。自分のHPが0になる前に、敵のHPを0にすれば勝ちです。',why:'バトルは「カードを選ぶ → 技を使う → 敵の反撃」のくり返しです。'},
+      {icon:'⚡',title:'4. エネルギーをためて大技を狙おう',todo:'足りない時は「エネルギー+3」を押します。',body:'エネルギーをためると、強い技を使いやすくなります。今使える技が少ない時は、無理に攻撃しなくてOKです。',why:'大技を出せると一気にボスのHPを減らせます。'},
+      {icon:'🏆',title:'5. あとは勝つまでくり返そう',todo:'カードを選び、技を使い、エネルギーをためます。',body:'敵のHPを0にすると勝利です。勝ったら「次の章へ」を押すと、ホームに戻らず物語を続けられます。',why:'基本の流れはこれだけです。迷ったら「おすすめ選択」も使えます。'}
+    ][step];
+    return `<section class="tutorialCoach" aria-label="バトルチュートリアル"><div class="tutorialIcon">${data.icon}</div><div><div class="tutorialStepText">TUTORIAL ${step+1}/5</div><h3>${data.title}</h3><p>${data.body}</p><div class="tutorialNow">今やること：${data.todo}</div><div class="tutorialWhy">${data.why}</div><div class="tutorialSteps">${[0,1,2,3,4].map(i=>`<i class="${i<=step?'on':''}"></i>`).join('')}</div><div class="row"><span class="tutorialStepText">説明は操作に合わせて自動で進みます</span><button class="btn secondary" data-action="tutorialSkip">チュートリアルを消す</button></div></div></section>`;
+  }
+
+  function finalBattleMovePanel(b){
+    const c=finalSelectedCard();
+    if(!c) return `<div class="battleMovePanel"><button class="moveBtn" disabled><b>カードを選択</b><small>下の扇状の手札から1枚選ぶと、ここに技が表示されます。</small></button></div>`;
+    const moves=(c.moves&&c.moves.length?c.moves:baseMovesFor(c)).slice(0,4);
+    const boss=bossById(b.bossId);
+    return `<div class="battleMovePanel">
+      <div><div class="pickedName">${esc(c.name)}</div><div class="pickedDesc">技を選んで攻撃。クールダウンなしで、エネルギーがあればすぐ発動できます。</div></div>
+      ${moves.map((m,i)=>{ const disabled=finalMoveDisabled(b,m); const mult=typeMultiplier(m.type||c.element,boss.element); return `<button class="moveBtn ${finalMoveClass(b,m)}" data-action="battleMove" data-move="${i}" ${disabled?'disabled':''}><b>${esc(m.name)} / ⚡${m.cost||0}</b><small><span class="typeBadge">${elementLabel(m.type||c.element)}</span> ${m.dmg?`DMG ${m.dmg}`:'支援'} ${mult!==1?` / 相性 ${mult}x`:''}<br>${esc(m.desc||'')}</small></button>`; }).join('')}
+    </div>`;
+  }
+
+  viewStory = function(){
+    return `<main class="screen"><button class="back" data-action="goto" data-view="home">← 戻る</button>
+      <section class="storyIntro"><h2>プロローグ：クロノカードの目覚め</h2><p>放課後、古いカード研究所で見つけた端末から、君はネオン世界へ引き込まれる。各章のボスを倒すたびに物語が進み、最後はクロノ・ゼロ EXとの最終決戦へ向かう。</p><div class="btnFixNote">初めて第1章をプレイする時だけ、実戦中にチュートリアルが出ます。</div></section>
+      <div class="sectionTitle"><div><h1>ストーリーPVE</h1><div class="muted strong small">各章をクリアすると次の章が解放。勝利後はそのまま次章へ進めます。</div></div><div class="row"><button class="btn secondary" data-action="startTutorialBattle">チュートリアル練習</button><button class="btn danger" data-action="quickBattle">今すぐ挑戦</button></div></div>
+      <div class="grid">${BOSSES.map((b,i)=>{const open=saveData.storyProgress>=i; const clear=saveData.storyProgress>i; return `<button class="panel storyCard ${open?'':'lock'}" data-action="startBattle" data-boss="${b.id}" ${open?'':'disabled'}><div class="homeIcon">${open?b.icon:'🔒'}</div><div style="text-align:left"><div class="storyTag">${esc(b.tag)} ${clear?' / CLEAR':''}</div><h2>${esc(b.name)} ${clear?'🏆':''}</h2><p>${open?esc(b.story):'前の章をクリアすると解放されます。'}</p></div><div style="display:grid;gap:8px;justify-items:end"><span class="pill">HP ${b.hp}</span><span class="pill gem">★ ${b.reward}</span></div></button>`}).join('')}</div>
+    </main>`;
+  };
+  window.viewStory = viewStory;
+
+  viewBattle = function(){
+    const b=ui.battle; if(!b) return viewHome();
+    b.energy=Math.max(0,Math.min(12,Number(b.energy||0))); b.log=Array.isArray(b.log)?b.log:[]; b.cooldowns={};
+    const boss=bossById(b.bossId); const deck=finalDeck();
+    const hpw=Math.max(0,Math.min(100,(b.playerHp/b.playerMax)*100));
+    const ehpw=Math.max(0,Math.min(100,(b.enemyHp/b.enemyMax)*100));
+    const picked=finalSelectedCard();
+    const story=boss&&boss.story?`<div class="battleStoryBox"><span class="bossTag">${esc(boss.tag||'STORY')}</span>${esc(boss.story)}</div>`:'';
+    const nextExists = b.result==='win' && BOSSES[saveData.storyProgress];
+    const tStep = tutorialStepFromBattle(b);
+    return `<main class="screen battleWrap finalBattle">
+      <div class="battleHeader"><button class="back" data-action="endBattle">← 降参</button><div class="pill">${esc(boss.name)}</div><div class="turnState">${b.result?'RESULT':'クールダウンなしで技を発動'}</div></div>
+      ${tutorialHTML(b)}
+      ${story}
+      <section class="arena panel ${tStep===2?'tutorialFocus':''}">
+        <div class="hpBox enemyHp"><div class="hpName">ENEMY</div><div class="hpNum">${Math.ceil(b.enemyHp)}</div><div class="bar"><i style="width:${ehpw}%"></i></div></div>
+        <div class="hpBox playerHp ${tStep===3?'tutorialFocus':''}"><div class="hpName">${esc(saveData.nickname)}</div><div class="hpNum">${Math.ceil(b.playerHp)}</div><div class="bar"><i style="width:${hpw}%"></i></div><div class="energyBar">${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<i class="energyDot ${b.energy>=n?'on':''}"></i>`).join('')}</div></div>
+        <div class="enemyAvatar">${boss.icon}</div><div class="vs">VS</div><div class="playerField">${picked?cardHTML(picked,'',true):'<div class="emptySlot">PICK</div>'}</div>
+      </section>
+      <section class="battleControlPanel panel"><div class="panel logBox">${esc((b.log||[])[0]||'カードを選んで技を押そう。')}</div>
+        <div class="pickedArea ${tStep===1?'tutorialFocus':''}"><div class="pickedCard">${picked?cardHTML(picked,'',true):'<div class="pickedEmpty">下の手札から<br>カードを1枚選択</div>'}</div>${finalBattleMovePanel(b)}</div>
+        <div class="safeActionRow"><button class="btn secondary" data-action="autoSelect">おすすめ選択</button><button class="btn secondary ${tStep===3?'tutorialFocus':''}" data-action="chargeEnergy">⚡ エネルギー+3</button></div>
+        <div class="fanWrap ${tStep===0?'tutorialFocus':''}">${deck.map((c,i)=>`<button class="fanCardBtn ${b.selected===i?'selected':''}" style="${finalFanStyle(i,deck.length)}" data-action="selectBattleCard" data-index="${i}" aria-label="${esc(c.name)}を選択">${cardHTML(c,'',b.selected===i)}</button>`).join('')}</div><div class="fanHint">扇状の手札から1枚選ぶ → 上で技を選ぶ</div>
+      </section>
+      ${b.result?`<div class="resultOverlay"><div class="panel resultCard"><h1 style="color:${b.result==='win'?'var(--gold)':'#8790aa'}">${b.result==='win'?'VICTORY':'DEFEAT'}</h1><p class="muted strong">${b.result==='win'?`報酬 ★${boss.reward} とカード経験値を獲得！`:'デッキを強化してもう一度挑戦しよう。'}</p><div class="continueHint">${nextExists?'ホームに戻らず、そのまま次の章へ進めます。':'ここまでの物語を確認できます。'}</div><div class="storyNextBox">${nextExists?`<button class="btn gold" data-action="nextStoryBattle">次の章へ</button>`:''}<button class="btn secondary" data-action="finishBattle">ストーリー一覧へ</button><button class="btn secondary" data-action="retryBattle" data-boss="${boss.id}">もう一度</button></div></div></div>`:''}
+    </main>`;
+  };
+  window.viewBattle = viewBattle;
+
+  startBattle = function(id){
+    finalNormalize(); removeAllCooldowns();
+    const boss=bossById(id); if(!boss){ toast('ボスが見つかりません'); return; }
+    while((saveData.deck||[]).length<5) saveData.deck.push(START_DECK[(saveData.deck||[]).length]||START_DECK[0]);
+    const deck=finalDeck(); const idx=BOSSES.findIndex(x=>x.id===boss.id);
+    const max=160+(saveData.boosts?.hp||0)+deck.reduce((a,c)=>a+(c.hp||0),0);
+    ui.battle={bossId:id,playerHp:max,playerMax:max,enemyHp:boss.hp,enemyMax:boss.hp,energy:6,guard:0,selected:null,activeCard:null,result:null,log:[boss.story||`${boss.name} が現れた！`],cooldowns:{},turn:1,tutorial:(idx===0 && !saveData.tutorialDone),tutorialStage:0};
+    ui.view='battle'; save(); render();
+  };
+  window.startBattle = startBattle;
+
+  function colorForFx(fxType, element){
+    const byType={fire:'#ff5a3d',flame:'#ff5a3d',explode:'#ff8a2b',meteor:'#ffd45f',water:'#41e8ff',aqua:'#41e8ff',ice:'#b9f2ff',leaf:'#4cf58e',vine:'#4cf58e',storm:'#58ff9d',light:'#ffd45f',spark:'#ffe76a',beam:'#ffffff',flash:'#fff6c7',nova:'#ffd45f',dark:'#b86bff',shadow:'#7c3aed',curse:'#a855f7',void:'#8b5cf6',abyss:'#ff4fd8',rush:'#ffffff',impact:'#ffd45f',heal:'#4cf58e',aura:'#41e8ff',pulse:'#8e68ff',guard:'#41e8ff'};
+    return byType[fxType] || byType[element] || '#ffffff';
+  }
+  function spawnIcon(icon,color,count,fromLeft=false){
+    const limit = document.body.classList.contains('lowFx') ? Math.min(4,count) : count;
+    for(let i=0;i<limit;i++){
+      const e=document.createElement('i'); e.className='fxStar'; e.textContent=icon; e.style.setProperty('--pc',color);
+      const sx=(fromLeft?20:70)+(Math.random()*16-8), sy=62+(Math.random()*14-7), ex=58+(Math.random()*20-10), ey=30+(Math.random()*24-12);
+      e.style.setProperty('--sx',sx+'vw'); e.style.setProperty('--sy',sy+'vh'); e.style.setProperty('--ex',ex+'vw'); e.style.setProperty('--ey',ey+'vh'); fx.appendChild(e); setTimeout(()=>e.remove(),950);
+    }
+  }
+  function rune(color){ const r=document.createElement('i'); r.className='fxRune'; r.style.setProperty('--pc',color); fx.appendChild(r); setTimeout(()=>r.remove(),900); }
+  function pillar(color){ const p=document.createElement('i'); p.className='fxPillar'; p.style.setProperty('--pc',color); fx.appendChild(p); setTimeout(()=>p.remove(),700); }
+  function finalEffectByMove(mv, card, amount){
+    const fxType=mv.fx || card.element || 'slash'; const color=colorForFx(fxType, mv.type||card.element); const cost=Number(mv.cost||0); const dmg=Number(amount||0); const power = Math.max(cost, dmg>=360?5:dmg>=260?4:dmg>=170?3:dmg>=80?2:1, RARITIES[card.rarity]?.order>=5?4:1);
+    if(mv.heal || mv.charge || fxType==='heal' || fxType==='aura' || fxType==='pulse' || fxType==='guard'){
+      screenFlash(color+'44'); rune(color); burstEffect(color,50,62,18+power*7); spawnIcon(mv.heal?'💚':'⚡',color,4+power,true); return;
+    }
+    if(['slash','spark'].includes(fxType)){ screenFlash(color+'44'); addSlash(color,-24); setTimeout(()=>addSlash(color,22),80); burstEffect(color,65,38,18+power*8); spawnIcon('✦',color,2+power,true); }
+    else if(['flame','explode'].includes(fxType)){ screenFlash('#ff5a3d66'); addImpact(color); setTimeout(()=>addImpact('#ffd45f'),90); burstEffect(color,67,36,28+power*10); spawnIcon('🔥',color,3+power,true); }
+    else if(fxType==='meteor'){ screenFlash('#ffd45f88'); pillar('#ffd45f'); addImpact('#ffd45f'); burstEffect('#ffd45f',68,32,38+power*10); spawnIcon('☄️','#ffd45f',4+power,true); }
+    else if(['aqua','ice'].includes(fxType)){ screenFlash('#41e8ff55'); addBeam(color,-10); addImpact(color); burstEffect(color,64,38,24+power*8); spawnIcon(fxType==='ice'?'❄️':'💧',color,3+power,true); }
+    else if(['vine','storm'].includes(fxType)){ screenFlash('#4cf58e44'); addSlash('#4cf58e',-38); addSlash('#4cf58e',30); addImpact('#4cf58e'); burstEffect('#4cf58e',60,42,28+power*9); spawnIcon('🍃','#4cf58e',4+power,true); }
+    else if(['beam','flash','nova'].includes(fxType)){ screenFlash('#ffffff88'); addBeam(color,0); setTimeout(()=>addBeam('#ffd45f',8),90); addImpact(color); rune(color); if(power>=4) pillar(color); burstEffect(color,66,34,34+power*10); spawnIcon('✨',color,3+power,true); }
+    else if(['shadow','curse','void','abyss'].includes(fxType)){ screenFlash('#6d28d977'); addBeam('#b86bff',-7); addSlash('#2e1065',24); rune('#b86bff'); if(power>=4) pillar('#ff4fd8'); burstEffect('#b86bff',69,35,36+power*10); spawnIcon(fxType==='abyss'?'🌌':'🔮','#b86bff',4+power,true); }
+    else if(['rush','impact'].includes(fxType)){ screenFlash(color+'66'); addSlash(color,-16); addSlash(color,10); addImpact(color); burstEffect(color,63,40,30+power*10); spawnIcon('💥',color,3+power,true); }
+    else { screenFlash(color+'55'); addSlash(color,-18); addBeam(color,-8); addImpact(color); burstEffect(color,67,36,30+power*8); spawnIcon('✦',color,3+power,true); }
+    if(dmg>0) addDamage(dmg);
+    if(power>=5 && !document.body.classList.contains('lowFx')) rareEffect(card.rarity||'UR');
+  }
+
+  battleAction = function(moveIndex=0){
+    finalNormalize(); removeAllCooldowns();
+    const b=ui.battle; if(!b || b.result || b.locked) return;
+    if(b.selected===null || b.selected===undefined){ toast('使うカードを選んでください'); return; }
+    const card=cardById(saveData.deck[b.selected]); const moves=(card.moves&&card.moves.length?card.moves:baseMovesFor(card)).slice(0,4); const mv=moves[Number(moveIndex)||0]||moves[0];
+    if(!mv){ toast('このカードには技がありません'); return; }
+    if((b.energy||0)<(mv.cost||0)){ toast('エネルギーが足りません'); return; }
+    if(b.tutorial) b.tutorialStage=Math.max(Number(b.tutorialStage||0),2); b.locked=true; b.activeCard=card.id; b.cooldowns={}; b.energy=Math.max(0,(b.energy||0)-(mv.cost||0));
+    if(mv.charge) b.energy=Math.min(12,b.energy+mv.charge+1);
+    if(mv.heal) b.playerHp=Math.min(b.playerMax,b.playerHp+mv.heal);
+    if(mv.guard) b.guard=(b.guard||0)+mv.guard;
+    const boss=bossById(b.bossId); const mult=typeMultiplier(mv.type||card.element,boss.element); let dmg=0;
+    if(mv.dmg){
+      dmg=Math.floor((mv.dmg + RARITIES[card.rarity].order*8 + cardLevel(card.id)*3 + Math.random()*16)*mult);
+      b.enemyHp=Math.max(0,b.enemyHp-dmg); saveData.stats.bestDamage=Math.max(saveData.stats.bestDamage||0,dmg); saveData.stats.totalDamage=(saveData.stats.totalDamage||0)+dmg;
+      if(mv.selfDamage||card.selfDamage) b.playerHp=Math.max(1,b.playerHp-(mv.selfDamage||card.selfDamage||0));
+    }
+    b.log.unshift(`${card.name} の ${mv.name}！ ${dmg?`${dmg}ダメージ！`:''} ${typeText(mult)}`.trim());
+    finalEffectByMove(mv,card,dmg||mv.heal||((mv.charge||0)*35)||40); vib(25);
+    if(b.enemyHp<=0){ winBattle(); save(); render(); return; }
+    save(); render();
+    setTimeout(()=>{ try{ enemyTurn(); }catch(e){ console.error(e); const bb=ui.battle; if(bb&&!bb.result){ bb.locked=false; bb.activeCard=null; bb.selected=null; bb.energy=Math.min(12,(bb.energy||0)+3); bb.log.unshift('動作を自動復帰しました / エネルギー+3'); save(); render(); } } },360);
+  };
+  window.battleAction = battleAction;
+
+  enemyTurn = function(){
+    const b=ui.battle; if(!b||b.result) return; b.cooldowns={}; b.energy=Math.max(0,Math.min(12,Number(b.energy||0)));
+    const boss=bossById(b.bossId); let dmg=Math.floor(boss.power*(.82+Math.random()*.42));
+    if(b.guard){ const reduce=Math.min(dmg,b.guard); dmg-=reduce; b.guard=Math.max(0,b.guard-reduce); }
+    b.playerHp=Math.max(0,b.playerHp-dmg); b.energy=Math.min(12,(b.energy||0)+4); b.activeCard=null; b.selected=null; b.locked=false; b.turn=(b.turn||1)+1;
+    if(b.tutorial&&!b.result) b.tutorialStage=Math.max(Number(b.tutorialStage||0),3);
+    b.log.unshift(`${boss.name} の反撃！ ${dmg}ダメージ！ / エネルギー+4`); screenFlash('#ff546844'); addSlash('#ff5468',195); addImpact('#ff5468'); burstEffect('#ff5468',28,62,18); addDamage(dmg);
+    if(b.playerHp<=0){ b.result='lose'; b.locked=false; if(b.tutorial){ saveData.tutorialDone=true; b.tutorial=false; } }
+    save(); render();
+  };
+  window.enemyTurn = enemyTurn;
+
+  winBattle = function(){
+    const b=ui.battle; const boss=bossById(b.bossId); const idx=BOSSES.findIndex(x=>x.id===boss.id);
+    b.result='win'; b.locked=false; b.cooldowns={}; saveData.gems+=boss.reward; saveData.storyProgress=Math.max(saveData.storyProgress,idx+1); saveData.stats.wins=(saveData.stats.wins||0)+1; saveData.stats.maxStory=Math.max(saveData.stats.maxStory||0, saveData.storyProgress||0);
+    if(b.tutorial){ saveData.tutorialDone=true; b.tutorial=false; }
+    try{ saveData.deck.forEach(id=>addCardXp(id,80+idx*25)); }catch(e){}
+    save(); rareEffect('UR'); toast('勝利！ 次の章へ進めます');
+  };
+  window.winBattle = winBattle;
+
+  autoSelect = function(){
+    const b=ui.battle; if(!b||b.result) return; removeAllCooldowns();
+    let best=0, score=-999; const boss=bossById(b.bossId);
+    saveData.deck.map(cardById).forEach((c,i)=>{
+      const bestMove=Math.max(...(c.moves||[]).map(m=>{
+        if((m.cost||0)>b.energy) return -50;
+        const mult=typeMultiplier(m.type||c.element,boss.element);
+        return (m.dmg||0)*mult + (m.heal||0)*0.8 + (m.charge||0)*25 - (m.cost||0)*8;
+      }));
+      const s=bestMove+RARITIES[c.rarity].order*12+cardLevel(c.id)*3;
+      if(s>score){score=s;best=i;}
+    });
+    b.selected=best; if(b.tutorial) b.tutorialStage=Math.max(Number(b.tutorialStage||0),1); render();
+  };
+  window.autoSelect = autoSelect;
+
+  const oldRevealCardFinal = revealCard;
+  revealCard = function(i){
+    oldRevealCardFinal(i);
+    try{
+      const c=cardById(ui.openingCards[Math.max(0,Number(i)||0)]);
+      if(c && RARITIES[c.rarity] && RARITIES[c.rarity].order>=5){ setTimeout(()=>{ rune(RARITIES[c.rarity].rb||'#ffffff'); spawnIcon('✨',RARITIES[c.rarity].rb||'#ffffff',8,true); },80); }
+    }catch(e){}
+  };
+  window.revealCard = revealCard;
+
+  document.addEventListener('click',function(e){
+    const el=e.target.closest('[data-action]'); if(!el) return; const a=el.dataset.action;
+    if(a==='startTutorialBattle'){
+      e.preventDefault(); e.stopImmediatePropagation();
+      saveData.tutorialDone=false; save(); startBattle('b1'); if(ui.battle){ ui.battle.tutorial=true; ui.battle.tutorialStage=0; } save(); render(); return;
+    }
+    if(a==='tutorialSkip'){
+      e.preventDefault(); e.stopImmediatePropagation();
+      saveData.tutorialDone=true; if(ui.battle){ ui.battle.tutorial=false; ui.battle.tutorialStage=0; } save(); render(); return;
+    }
+    if(a==='nextStoryBattle'){
+      e.preventDefault(); e.stopImmediatePropagation();
+      const next=BOSSES[Math.min(saveData.storyProgress, BOSSES.length-1)]; ui.battle=null; startBattle(next.id); return;
+    }
+  }, true);
+
+  finalNormalize(); removeAllCooldowns(); save();
+})();
+
 })();
 
 render();
