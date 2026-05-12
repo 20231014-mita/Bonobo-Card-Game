@@ -1533,6 +1533,544 @@ button:disabled{pointer-events:none;opacity:.45;filter:grayscale(.6)}
 
 })();
 
+
+// ===== FINAL USER PATCH V2: no vertical scroll card select + ultra varied attack FX =====
+(function(){
+  'use strict';
+  const PATCH_ID = 'final-no-scroll-hand-ultra-fx-v2';
+  window.__chronoFinalUXPatch = PATCH_ID;
+
+  const uxStyle = document.createElement('style');
+  uxStyle.textContent = `
+    /* Battle UX: card select is now visible near the top, so no vertical scroll is needed just to pick cards. */
+    .battleWrap.finalBattle{display:flex!important;flex-direction:column!important;gap:8px!important;min-height:calc(100dvh - 58px)!important;padding-bottom:calc(12px + var(--safeBottom))!important}
+    .battleHeader{position:sticky!important;top:54px!important;z-index:44!important;background:rgba(4,5,15,.82)!important;backdrop-filter:blur(12px)!important;border:1px solid var(--line)!important;border-radius:18px!important;padding:8px!important}
+    .battleControlPanel{position:sticky!important;top:112px!important;z-index:42!important;padding:10px!important;background:linear-gradient(135deg,rgba(8,11,30,.96),rgba(21,12,46,.96))!important;box-shadow:0 16px 42px rgba(0,0,0,.42),0 0 24px rgba(65,232,255,.13)!important}
+    .battleControlPanel .logBox{min-height:34px!important;padding:8px 10px!important;margin-bottom:8px!important;font-size:12px!important}
+    .quickHandTitle{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 2px 7px;color:var(--muted);font-size:12px;font-weight:1000;letter-spacing:.03em}.quickHandTitle b{color:#fff}.quickHandGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:8px}.quickHandBtn{background:transparent;border:0;padding:0;min-width:0;display:grid;place-items:center;filter:drop-shadow(0 8px 14px rgba(0,0,0,.30));transition:transform .14s ease,filter .14s ease}.quickHandBtn:active{transform:scale(.96)}.quickHandBtn.selected{transform:translateY(-6px) scale(1.04);filter:drop-shadow(0 0 18px rgba(255,212,95,.55))}.quickHandBtn .card{width:100%!important;min-width:0!important;max-width:118px!important;height:160px!important;min-height:160px!important;max-height:160px!important;flex:0 1 auto!important}.quickHandBtn .cardTop{padding:5px!important}.quickHandBtn .cardName{font-size:10px!important}.quickHandBtn .cardMeta{font-size:9px!important}.quickHandBtn .cardArt,.quickHandBtn .card.specialCard .cardArt{height:62px!important;margin:5px 0!important;padding:2px!important}.quickHandBtn .cardIcon{height:56px!important;font-size:36px!important}.quickHandBtn .cardMove{font-size:9px!important}.quickHandBtn .stat{font-size:9px!important;padding:3px 2px!important}.quickHandBtn .ownedBadge{display:none!important}.quickHandBtn.selected .card{outline:3px solid var(--gold)!important;box-shadow:0 0 26px rgba(255,212,95,.42)!important}.compactPickedArea{display:grid!important;grid-template-columns:112px 1fr!important;gap:10px!important;align-items:stretch!important;min-height:148px!important}.compactPickedArea .pickedCard .card{width:108px!important;min-width:108px!important;max-width:108px!important;height:148px!important;min-height:148px!important;max-height:148px!important}.compactPickedArea .pickedCard .cardArt,.compactPickedArea .pickedCard .card.specialCard .cardArt{height:54px!important}.compactPickedArea .pickedCard .cardIcon{height:48px!important;font-size:34px!important}.compactPickedArea .pickedCard .cardName{font-size:10px!important}.compactPickedArea .pickedEmpty{height:148px!important;font-size:12px!important}.compactPickedArea .movePanel,.compactPickedArea .battleMovePanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;margin:0!important}.compactPickedArea .moveBtn{min-height:58px!important;padding:8px!important;border-radius:14px!important}.compactPickedArea .moveBtn b{font-size:12px!important}.compactPickedArea .moveBtn small{font-size:10px!important;line-height:1.25!important}.safeActionRow{grid-template-columns:1fr 1fr!important;margin-top:8px!important}.safeActionRow .btn{min-height:40px!important;padding:8px 10px!important}.arena.compactArena{min-height:245px!important;max-height:36dvh!important;flex:1 1 auto!important}.arena.compactArena .enemyAvatar{top:70px!important;font-size:76px!important}.arena.compactArena .playerField{bottom:42px!important}.arena.compactArena .hpBox{padding:9px!important}.arena.compactArena .hpNum{font-size:22px!important}.arena.compactArena .vs{font-size:28px!important}.battleStoryBox{font-size:12px!important;padding:9px 11px!important;margin-bottom:4px!important}.tutorialCoach{position:relative!important;top:auto!important;z-index:41!important;margin-bottom:4px!important}.noScrollHint{color:var(--cyan);font-weight:1000;font-size:11px}.fanWrap,.fanHint{display:none!important}
+
+    /* Ultra attack effects */
+    .fxBlade,.fxRay,.fxOrb,.fxGlyph,.fxMeteor,.fxWave,.fxShock,.fxCutin,.fxSparkTrail{position:fixed;pointer-events:none;z-index:88}.fxBlade{left:50%;top:45%;width:260px;height:18px;border-radius:999px;background:linear-gradient(90deg,transparent,var(--pc),#fff,var(--pc),transparent);box-shadow:0 0 22px var(--pc),0 0 58px var(--pc);transform:translate(-50%,-50%) rotate(var(--rot));animation:uxBlade .48s ease-out forwards}.fxRay{left:8%;top:var(--y);width:86%;height:12px;border-radius:999px;background:linear-gradient(90deg,transparent,var(--pc),#fff,var(--pc),transparent);box-shadow:0 0 18px var(--pc),0 0 52px var(--pc);transform:rotate(var(--rot)) scaleX(.2);animation:uxRay .55s ease-out forwards}.fxOrb{left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;background:radial-gradient(circle,#fff 0 8%,var(--pc) 20%,transparent 67%);box-shadow:0 0 24px var(--pc),0 0 60px var(--pc);animation:uxOrb .78s ease-out forwards}.fxGlyph{left:62%;top:38%;width:var(--s);height:var(--s);border-radius:50%;border:3px double var(--pc);box-shadow:0 0 25px var(--pc),inset 0 0 24px var(--pc);transform:translate(-50%,-50%) rotate(0deg);animation:uxGlyph .86s ease-out forwards}.fxGlyph::before,.fxGlyph::after{content:'';position:absolute;inset:18%;border:2px solid var(--pc);border-radius:18%;transform:rotate(45deg)}.fxMeteor{left:var(--x);top:-12vh;font-size:var(--s);filter:drop-shadow(0 0 14px var(--pc));animation:uxMeteor .9s cubic-bezier(.2,.7,.25,1) forwards}.fxWave{left:64%;top:40%;width:54px;height:54px;border:4px solid var(--pc);border-radius:50%;box-shadow:0 0 26px var(--pc),inset 0 0 26px var(--pc);transform:translate(-50%,-50%) scale(.15);animation:uxWave .9s ease-out forwards}.fxShock{left:50%;top:50%;width:120px;height:120px;border-radius:50%;background:conic-gradient(from 0deg,transparent,var(--pc),transparent,var(--pc),transparent);filter:blur(.2px) drop-shadow(0 0 18px var(--pc));transform:translate(-50%,-50%) scale(.25) rotate(0deg);animation:uxShock .72s ease-out forwards}.fxCutin{left:50%;top:20%;transform:translate(-50%,-50%) scale(.6);padding:10px 18px;border-radius:999px;background:rgba(0,0,0,.70);border:2px solid var(--pc);box-shadow:0 0 30px var(--pc);color:#fff;font-weight:1000;font-size:clamp(18px,5vw,34px);text-shadow:0 0 12px var(--pc);animation:uxCutin .8s ease-out forwards;white-space:nowrap}.fxSparkTrail{left:var(--x);top:var(--y);font-size:var(--s);filter:drop-shadow(0 0 10px var(--pc));animation:uxTrail .8s ease-out forwards}
+    @keyframes uxBlade{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--rot)) scaleX(.08)}40%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--rot)) scaleX(1.6)}}
+    @keyframes uxRay{0%{opacity:0;transform:rotate(var(--rot)) scaleX(.1)}35%{opacity:1}100%{opacity:0;transform:rotate(var(--rot)) scaleX(1.12)}}
+    @keyframes uxOrb{0%{opacity:0;transform:translate(-50%,-50%) scale(.1)}45%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(2.25)}}
+    @keyframes uxGlyph{0%{opacity:0;transform:translate(-50%,-50%) scale(.25) rotate(0deg)}45%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(2.4) rotate(220deg)}}
+    @keyframes uxMeteor{0%{opacity:0;transform:translate(0,0) rotate(-25deg) scale(.65)}20%{opacity:1}100%{opacity:0;transform:translate(var(--dx),78vh) rotate(100deg) scale(1.18)}}
+    @keyframes uxWave{0%{opacity:0;transform:translate(-50%,-50%) scale(.15)}35%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(4.2)}}
+    @keyframes uxShock{0%{opacity:0;transform:translate(-50%,-50%) scale(.25) rotate(0deg)}50%{opacity:.95}100%{opacity:0;transform:translate(-50%,-50%) scale(3) rotate(180deg)}}
+    @keyframes uxCutin{0%{opacity:0;transform:translate(-50%,-50%) scale(.55)}22%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) scale(1.18)}}
+    @keyframes uxTrail{0%{opacity:0;transform:translate(0,0) scale(.5) rotate(0deg)}20%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.2) rotate(420deg)}}
+    body.lowFx .fxMeteor:nth-of-type(n+5),body.lowFx .fxSparkTrail:nth-of-type(n+8),body.lowFx .fxRay:nth-of-type(n+3){display:none!important}
+    @media(max-width:760px){.battleHeader{top:50px!important}.battleControlPanel{top:98px!important}.quickHandGrid{gap:4px}.quickHandBtn .card{height:136px!important;max-height:136px!important}.quickHandBtn .cardArt,.quickHandBtn .card.specialCard .cardArt{height:46px!important}.quickHandBtn .cardIcon{height:44px!important;font-size:30px!important}.quickHandBtn .cardStats{display:none!important}.quickHandBtn .cardMove{display:none!important}.compactPickedArea{grid-template-columns:92px 1fr!important;min-height:128px!important}.compactPickedArea .pickedCard .card{width:88px!important;min-width:88px!important;max-width:88px!important;height:126px!important;min-height:126px!important;max-height:126px!important}.compactPickedArea .pickedCard .cardArt,.compactPickedArea .pickedCard .card.specialCard .cardArt{height:42px!important}.compactPickedArea .movePanel,.compactPickedArea .battleMovePanel{grid-template-columns:1fr 1fr!important}.compactPickedArea .moveBtn{min-height:50px!important}.compactPickedArea .moveBtn small{display:none!important}.arena.compactArena{min-height:205px!important;max-height:30dvh!important}.arena.compactArena .playerField{display:none!important}.arena.compactArena .enemyAvatar{top:62px!important;right:12%!important;font-size:60px!important}.arena.compactArena .hpBox{width:min(210px,46vw)!important}.noScrollHint{display:none!important}}
+  `;
+  document.head.appendChild(uxStyle);
+
+  function uxDeck(){
+    try{ return (typeof finalDeck==='function'?finalDeck():currentDeck()).filter(Boolean); }
+    catch(e){ return (saveData.deck||[]).map(cardById).filter(Boolean); }
+  }
+  function uxSelectedCard(){
+    const b=ui.battle; if(!b) return null;
+    try{ return typeof finalSelectedCard==='function'?finalSelectedCard():cardById(saveData.deck[b.selected]); }
+    catch(e){ return null; }
+  }
+  function uxMovePanel(b){
+    const c=uxSelectedCard();
+    if(!c) return `<div class="movePanel battleMovePanel"><button class="moveBtn" disabled><b>カードを選んでください</b><small>上の5枚から1枚タップすると技が出ます。</small></button></div>`;
+    const moves=(c.moves&&c.moves.length?c.moves:baseMovesFor(c)).slice(0,4);
+    return `<div class="movePanel battleMovePanel">${moves.map((m,i)=>{
+      const disabled=b.locked || (b.energy||0)<(m.cost||0);
+      const cls=disabled?((b.energy||0)<(m.cost||0)?'energyLow':'cooling'):'ready';
+      const power=(m.dmg||0)>=300?'超派手':(m.dmg||0)>=180?'派手':'通常';
+      return `<button class="moveBtn ${cls}" data-action="battleMove" data-move="${i}" ${disabled?'disabled':''}><b>${esc(m.name)} / ⚡${m.cost||0}</b><small>${m.dmg?`DMG ${m.dmg}・${power}`:'支援技'} ${esc(m.desc||'')}${(b.energy||0)<(m.cost||0)?' / エネルギー不足':''}</small></button>`;
+    }).join('')}</div>`;
+  }
+  function uxTutorialStep(b){
+    try{ return typeof tutorialStepFromBattle==='function'?tutorialStepFromBattle(b):-1; }catch(e){ return -1; }
+  }
+  function uxTutorialHTML(b){
+    try{ return typeof tutorialHTML==='function'?tutorialHTML(b):''; }catch(e){ return ''; }
+  }
+  function uxCardButton(c,i,b,total){
+    return `<button class="quickHandBtn ${b.selected===i?'selected':''}" data-action="selectBattleCard" data-index="${i}" aria-label="${esc(c.name)}を選択">${cardHTML(c,'',b.selected===i)}</button>`;
+  }
+
+  viewBattle = function(){
+    const b=ui.battle; if(!b) return viewHome();
+    b.energy=Math.max(0,Math.min(12,Number(b.energy||0))); b.log=Array.isArray(b.log)?b.log:[]; b.cooldowns={};
+    const boss=bossById(b.bossId); const deck=uxDeck();
+    const hpw=Math.max(0,Math.min(100,(b.playerHp/b.playerMax)*100));
+    const ehpw=Math.max(0,Math.min(100,(b.enemyHp/b.enemyMax)*100));
+    const picked=uxSelectedCard();
+    const story=boss&&boss.story?`<div class="battleStoryBox"><span class="bossTag">${esc(boss.tag||'STORY')}</span>${esc(boss.story)}</div>`:'';
+    const nextExists = b.result==='win' && BOSSES[saveData.storyProgress];
+    const tStep = uxTutorialStep(b);
+    return `<main class="screen battleWrap finalBattle">
+      <div class="battleHeader"><button class="back" data-action="endBattle">← 降参</button><div class="pill">${esc(boss.name)}</div><div class="turnState">${b.result?'RESULT':'カード選択を上に固定'}</div></div>
+      ${uxTutorialHTML(b)}
+      ${story}
+      <section class="battleControlPanel panel ${tStep===0?'tutorialFocus':''}">
+        <div class="panel logBox">${esc((b.log||[])[0]||'カードを選んで技を押そう。')}</div>
+        <div class="quickHandTitle"><b>手札を選択</b><span class="noScrollHint">スクロールせずにここで選べます</span></div>
+        <div class="quickHandGrid" style="--deckCount:${deck.length}">${deck.map((c,i)=>uxCardButton(c,i,b,deck.length)).join('')}</div>
+        <div class="compactPickedArea pickedArea ${tStep===1?'tutorialFocus':''}"><div class="pickedCard">${picked?cardHTML(picked,'',true):'<div class="pickedEmpty">上の手札から<br>1枚選択</div>'}</div>${uxMovePanel(b)}</div>
+        <div class="safeActionRow"><button class="btn secondary" data-action="autoSelect">おすすめ選択</button><button class="btn secondary ${tStep===3?'tutorialFocus':''}" data-action="chargeEnergy">⚡ エネルギー+3</button></div>
+      </section>
+      <section class="arena panel compactArena ${tStep===2?'tutorialFocus':''}">
+        <div class="hpBox enemyHp"><div class="hpName">ENEMY</div><div class="hpNum">${Math.ceil(b.enemyHp)}</div><div class="bar"><i style="width:${ehpw}%"></i></div></div>
+        <div class="hpBox playerHp ${tStep===3?'tutorialFocus':''}"><div class="hpName">${esc(saveData.nickname)}</div><div class="hpNum">${Math.ceil(b.playerHp)}</div><div class="bar"><i style="width:${hpw}%"></i></div><div class="energyBar">${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<i class="energyDot ${b.energy>=n?'on':''}"></i>`).join('')}</div></div>
+        <div class="enemyAvatar">${boss.icon}</div><div class="vs">VS</div><div class="playerField">${picked?cardHTML(picked,'',true):'<div class="emptySlot">PICK</div>'}</div>
+      </section>
+      ${b.result?`<div class="resultOverlay"><div class="panel resultCard"><h1 style="color:${b.result==='win'?'var(--gold)':'#8790aa'}">${b.result==='win'?'VICTORY':'DEFEAT'}</h1><p class="muted strong">${b.result==='win'?`報酬 ★${boss.reward} とカード経験値を獲得！`:'デッキを強化してもう一度挑戦しよう。'}</p><div class="continueHint">${nextExists?'ホームに戻らず、そのまま次の章へ進めます。':'ここまでの物語を確認できます。'}</div><div class="storyNextBox">${nextExists?`<button class="btn gold" data-action="nextStoryBattle">次の章へ</button>`:''}<button class="btn secondary" data-action="finishBattle">ストーリー一覧へ</button><button class="btn secondary" data-action="retryBattle" data-boss="${boss.id}">もう一度</button></div></div></div>`:''}
+    </main>`;
+  };
+  window.viewBattle = viewBattle;
+
+  function uxColor(fxType, element){
+    const map={fire:'#ff553d',flame:'#ff553d',explode:'#ff8a2b',meteor:'#ffd45f',water:'#41e8ff',aqua:'#41e8ff',ice:'#b9f2ff',leaf:'#4cf58e',vine:'#4cf58e',storm:'#48ff86',light:'#fff26a',spark:'#fff26a',beam:'#ffffff',flash:'#fff6c7',nova:'#ffd45f',dark:'#b86bff',shadow:'#8b5cf6',curse:'#a855f7',void:'#7c3aed',abyss:'#ff4fd8',rush:'#ffffff',impact:'#ffd45f',heal:'#4cf58e',aura:'#41e8ff',pulse:'#8e68ff',guard:'#41e8ff',normal:'#ffffff'};
+    return map[fxType] || map[element] || '#ffffff';
+  }
+  function fxNode(cls,props={},text='',life=900){
+    const e=document.createElement('i'); e.className=cls; if(text) e.textContent=text;
+    Object.entries(props).forEach(([k,v])=>e.style.setProperty(k,v));
+    fx.appendChild(e); setTimeout(()=>e.remove(),life); return e;
+  }
+  function cutin(text,color){ fxNode('fxCutin',{'--pc':color},text,850); }
+  function blades(color,count=3){ for(let i=0;i<count;i++) setTimeout(()=>fxNode('fxBlade',{'--pc':color,'--rot':((-34+i*24)+(Math.random()*12-6))+'deg'},'',620),i*55); }
+  function rays(color,count=2){ for(let i=0;i<count;i++) setTimeout(()=>fxNode('fxRay',{'--pc':color,'--rot':((-8+i*9)+(Math.random()*7-3))+'deg','--y':(30+i*8+Math.random()*8)+'vh'},'',650),i*70); }
+  function orbs(color,count=4){ const limit=document.body.classList.contains('lowFx')?Math.min(3,count):count; for(let i=0;i<limit;i++){ fxNode('fxOrb',{'--pc':color,'--x':(58+Math.random()*18)+'vw','--y':(28+Math.random()*22)+'vh','--s':(44+Math.random()*52)+'px'},'',850); } }
+  function glyph(color,size=130){ fxNode('fxGlyph',{'--pc':color,'--s':size+'px'},'',950); }
+  function meteors(color,icon='☄️',count=4){ const limit=document.body.classList.contains('lowFx')?Math.min(2,count):count; for(let i=0;i<limit;i++){ fxNode('fxMeteor',{'--pc':color,'--x':(48+Math.random()*38)+'vw','--dx':(-180+Math.random()*100)+'px','--s':(30+Math.random()*22)+'px'},icon,1000); } }
+  function waves(color,count=3){ for(let i=0;i<count;i++) setTimeout(()=>fxNode('fxWave',{'--pc':color},'',950),i*95); }
+  function shock(color){ fxNode('fxShock',{'--pc':color},'',780); }
+  function trails(icon,color,count=8){ const limit=document.body.classList.contains('lowFx')?Math.min(5,count):count; for(let i=0;i<limit;i++){ fxNode('fxSparkTrail',{'--pc':color,'--x':(20+Math.random()*28)+'vw','--y':(58+Math.random()*18)+'vh','--dx':(260+Math.random()*160)+'px','--dy':(-230+Math.random()*160)+'px','--s':(20+Math.random()*18)+'px'},icon,850); } }
+  function ultraEffectByMove(mv,card,amount){
+    const fxType=mv.fx || card.element || 'impact'; const color=uxColor(fxType,mv.type||card.element); const dmg=Number(amount||0); const cost=Number(mv.cost||0); const rarityPower=(RARITIES[card.rarity]?.order||1); const power=Math.max(cost, rarityPower>=5?4:1, dmg>=420?6:dmg>=320?5:dmg>=220?4:dmg>=120?3:2);
+    const title = power>=5 ? 'ULTIMATE!' : power>=4 ? 'SPECIAL!' : 'ATTACK!';
+    if(power>=4) cutin(`${title} ${mv.name}`,color);
+    if(mv.heal || mv.charge || ['heal','aura','pulse','guard'].includes(fxType)){
+      screenFlash(color+'55'); waves(color,2+Math.min(power,3)); glyph(color,110+power*18); orbs(color,2+power); trails(mv.heal?'💚':'⚡',color,4+power); burstEffect(color,48,60,18+power*8); return;
+    }
+    if(['slash','spark'].includes(fxType)){
+      screenFlash(color+'55'); blades(color,2+Math.min(power,4)); rays(color,power>=4?2:1); shock(color); trails('✦',color,3+power); burstEffect(color,64,38,22+power*8);
+    }else if(['flame','explode'].includes(fxType)){
+      screenFlash('#ff553d77'); meteors('#ff8a2b','🔥',3+power); orbs('#ff553d',2+power); shock('#ff8a2b'); addImpact('#ff8a2b'); burstEffect('#ff553d',66,38,32+power*10);
+    }else if(fxType==='meteor'){
+      screenFlash('#ffd45f99'); cutin('METEOR STRIKE',color); meteors(color,'☄️',5+power); glyph(color,150+power*18); rays(color,2); addImpact(color); burstEffect(color,68,34,40+power*11);
+    }else if(['aqua','ice'].includes(fxType)){
+      screenFlash('#41e8ff66'); waves(color,3+Math.min(power,3)); rays(color,2); trails(fxType==='ice'?'❄️':'💧',color,4+power); glyph(color,115+power*16); burstEffect(color,63,38,28+power*8);
+    }else if(['vine','storm'].includes(fxType)){
+      screenFlash('#4cf58e55'); blades('#4cf58e',3); waves('#4cf58e',2+Math.min(power,4)); trails('🍃','#4cf58e',5+power); shock('#4cf58e'); burstEffect('#4cf58e',61,42,32+power*9);
+    }else if(['beam','flash','nova'].includes(fxType)){
+      screenFlash('#ffffffaa'); rays(color,2+Math.min(power,3)); glyph(color,130+power*24); orbs(color,3+power); if(power>=4) meteors('#fff6c7','✨',3+power); shock(color); addImpact(color); burstEffect(color,67,35,36+power*10);
+    }else if(['shadow','curse','void','abyss'].includes(fxType)){
+      screenFlash('#5b21b688'); cutin(power>=5?'ABYSS BREAK':'DARK ARTS',color); glyph(color,140+power*24); blades('#2e1065',2+Math.min(power,3)); rays(color,2); trails(fxType==='abyss'?'🌌':'🔮',color,4+power); orbs(color,2+power); burstEffect(color,69,36,38+power*10);
+    }else if(['rush','impact'].includes(fxType)){
+      screenFlash(color+'77'); blades(color,3+Math.min(power,3)); shock(color); waves(color,2); trails('💥',color,4+power); addImpact(color); burstEffect(color,63,40,36+power*10);
+    }else{
+      screenFlash(color+'66'); blades(color,2); rays(color,1); shock(color); trails('✦',color,4+power); burstEffect(color,66,38,28+power*8);
+    }
+    if(dmg>0) addDamage(dmg);
+    if(power>=5 && !document.body.classList.contains('lowFx')) rareEffect(card.rarity||'UR');
+  }
+
+  battleAction = function(moveIndex=0){
+    try{ if(typeof finalNormalize==='function') finalNormalize(); }catch(e){}
+    try{ if(typeof removeAllCooldowns==='function') removeAllCooldowns(); }catch(e){}
+    const b=ui.battle; if(!b || b.result || b.locked) return;
+    if(b.selected===null || b.selected===undefined){ toast('使うカードを選んでください'); return; }
+    const card=cardById(saveData.deck[b.selected]); const moves=(card.moves&&card.moves.length?card.moves:baseMovesFor(card)).slice(0,4); const mv=moves[Number(moveIndex)||0]||moves[0];
+    if(!mv){ toast('このカードには技がありません'); return; }
+    if((b.energy||0)<(mv.cost||0)){ toast('エネルギーが足りません'); return; }
+    if(b.tutorial) b.tutorialStage=Math.max(Number(b.tutorialStage||0),2);
+    b.locked=true; b.activeCard=card.id; b.cooldowns={}; b.energy=Math.max(0,(b.energy||0)-(mv.cost||0));
+    if(mv.charge) b.energy=Math.min(12,b.energy+mv.charge+1);
+    if(mv.chargeSelf) b.energy=Math.min(12,b.energy+mv.chargeSelf);
+    if(mv.heal) b.playerHp=Math.min(b.playerMax,b.playerHp+mv.heal);
+    if(mv.guard) b.guard=(b.guard||0)+mv.guard;
+    const boss=bossById(b.bossId); const mult=typeMultiplier(mv.type||card.element,boss.element); let dmg=0;
+    if(mv.dmg){
+      dmg=Math.floor((mv.dmg + (RARITIES[card.rarity]?.order||1)*8 + cardLevel(card.id)*3 + Math.random()*16)*mult);
+      b.enemyHp=Math.max(0,b.enemyHp-dmg); saveData.stats.bestDamage=Math.max(saveData.stats.bestDamage||0,dmg); saveData.stats.totalDamage=(saveData.stats.totalDamage||0)+dmg;
+      if(mv.selfDamage||card.selfDamage) b.playerHp=Math.max(1,b.playerHp-(mv.selfDamage||card.selfDamage||0));
+    }
+    b.log.unshift(`${card.name} の ${mv.name}！ ${dmg?`${dmg}ダメージ！`:''} ${typeText(mult)}`.trim());
+    ultraEffectByMove(mv,card,dmg||mv.heal||((mv.charge||0)*45)||70); vib(35);
+    if(b.enemyHp<=0){ winBattle(); save(); render(); return; }
+    save(); render();
+    setTimeout(()=>{ try{ enemyTurn(); }catch(e){ console.error(e); const bb=ui.battle; if(bb&&!bb.result){ bb.locked=false; bb.activeCard=null; bb.selected=null; bb.energy=Math.min(12,(bb.energy||0)+3); bb.log.unshift('動作を自動復帰しました / エネルギー+3'); save(); render(); } } },420);
+  };
+  window.battleAction = battleAction;
+
+  enemyTurn = function(){
+    const b=ui.battle; if(!b||b.result) return; b.cooldowns={}; b.energy=Math.max(0,Math.min(12,Number(b.energy||0)));
+    const boss=bossById(b.bossId); let dmg=Math.floor(boss.power*(.82+Math.random()*.42));
+    if(b.guard){ const reduce=Math.min(dmg,b.guard); dmg-=reduce; b.guard=Math.max(0,b.guard-reduce); }
+    b.playerHp=Math.max(0,b.playerHp-dmg); b.energy=Math.min(12,(b.energy||0)+4); b.activeCard=null; b.selected=null; b.locked=false; b.turn=(b.turn||1)+1;
+    if(b.tutorial&&!b.result) b.tutorialStage=Math.max(Number(b.tutorialStage||0),3);
+    b.log.unshift(`${boss.name} の反撃！ ${dmg}ダメージ！ / エネルギー+4`);
+    screenFlash('#ff546866'); blades('#ff5468',2); shock('#ff5468'); trails('◆','#ff5468',5); addDamage(dmg);
+    if(b.playerHp<=0){ b.result='lose'; b.locked=false; if(b.tutorial){ saveData.tutorialDone=true; b.tutorial=false; } }
+    save(); render();
+  };
+  window.enemyTurn = enemyTurn;
+
+  try{ render(); }catch(e){ console.error(e); }
+})();
+
+// ===== FINAL USER PATCH V3: hand under arena + playable battle UI + mega FX =====
+(function(){
+  'use strict';
+  const PATCH_ID = 'hand-under-arena-playable-mega-fx-v3';
+  window.__chronoFinalUXPatch = PATCH_ID;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    /* V3: 手札はアリーナの下。画面は小さくても押しやすい配置にする。 */
+    .battleWrap.finalBattle{display:flex!important;flex-direction:column!important;gap:8px!important;min-height:calc(100dvh - 58px)!important;padding:8px 8px calc(10px + var(--safeBottom))!important;max-width:1180px!important;overflow-x:hidden!important}
+    .battleHeader.comfortHeader{position:sticky!important;top:54px!important;z-index:46!important;background:rgba(4,5,15,.78)!important;backdrop-filter:blur(14px)!important;border:1px solid var(--line)!important;border-radius:18px!important;padding:7px 9px!important;box-shadow:0 10px 24px rgba(0,0,0,.28)!important}.battleHeader.comfortHeader .back{padding:6px 2px!important}.battleHeader.comfortHeader .pill{padding:6px 9px!important}.battleHeader.comfortHeader .turnState{font-size:12px!important;color:var(--gold)!important}
+    .comfortArena{order:3!important;min-height:245px!important;height:clamp(245px,36dvh,390px)!important;flex:0 0 auto!important;border-radius:24px!important}.comfortArena .enemyAvatar{top:78px!important;right:13%!important;font-size:clamp(64px,9vw,100px)!important}.comfortArena .hpBox{padding:10px!important;border-radius:16px!important}.comfortArena .hpNum{font-size:clamp(20px,4vw,28px)!important}.comfortArena .playerField{bottom:58px!important;width:108px!important}.comfortArena .playerField .card{height:150px!important;width:108px!important}.comfortArena .playerField .cardTop{padding:4px!important}.comfortArena .playerField .cardName{font-size:10px!important}.comfortArena .playerField .cardArt{height:48px!important}.comfortArena .playerField .cardStats{display:none!important}.comfortArena .vs{font-size:30px!important;top:47%!important}
+    .handBelowPanel{order:4!important;position:sticky!important;bottom:calc(7px + var(--safeBottom))!important;z-index:50!important;padding:10px!important;border-radius:22px!important;background:linear-gradient(135deg,rgba(7,9,28,.97),rgba(26,13,53,.96))!important;border:1px solid rgba(255,255,255,.18)!important;box-shadow:0 -10px 38px rgba(0,0,0,.48),0 0 28px rgba(65,232,255,.12)!important}.handBelowPanel::before{content:'';position:absolute;inset:0;border-radius:22px;pointer-events:none;background:linear-gradient(90deg,rgba(65,232,255,.12),transparent,rgba(255,79,216,.12));opacity:.8}.handBelowPanel>*{position:relative;z-index:1}.handBelowHeader{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 2px 7px}.handBelowHeader b{font-size:15px}.handBelowHeader span{font-size:12px;color:var(--muted);font-weight:1000}.handBelowGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:8px}.handBelowCardBtn{background:transparent!important;border:0!important;padding:0!important;min-width:0!important;display:grid!important;place-items:center!important;transition:transform .14s ease,filter .14s ease!important}.handBelowCardBtn:active{transform:scale(.96)!important}.handBelowCardBtn.selected{transform:translateY(-7px) scale(1.04)!important;filter:drop-shadow(0 0 18px rgba(255,212,95,.6))!important}.handBelowCardBtn.selected .card{outline:2px solid var(--gold)!important}.handBelowCardBtn .card{width:100%!important;max-width:118px!important;min-width:0!important;height:138px!important;min-height:138px!important;max-height:138px!important;border-radius:14px!important;padding:5px!important}.handBelowCardBtn .cardTop{padding:4px!important;border-radius:9px!important}.handBelowCardBtn .cardName{font-size:10px!important}.handBelowCardBtn .cardMeta{font-size:9px!important}.handBelowCardBtn .cardIcon{height:48px!important;font-size:34px!important}.handBelowCardBtn .cardArt{height:50px!important;margin:4px 0!important;border-radius:9px!important}.handBelowCardBtn .card.specialCard .cardArt{height:50px!important}.handBelowCardBtn .cardStats{display:none!important}.handBelowCardBtn .cardMove{display:none!important}.handBelowCardBtn .ownedBadge,.handBelowCardBtn .moveCount{display:none!important}
+    .selectedMoveDock{display:grid;grid-template-columns:minmax(92px,124px) 1fr;gap:9px;align-items:stretch}.selectedPreview{display:grid;place-items:center}.selectedPreview .card{width:112px!important;height:158px!important;min-height:158px!important;max-height:158px!important}.selectedPreview .cardStats{display:flex!important}.selectedPreview .cardArt{height:58px!important}.selectedInfo{display:flex;flex-direction:column;gap:7px;min-width:0}.selectedTitle{font-weight:1000;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.selectedSub{font-size:12px;color:var(--muted);font-weight:850;line-height:1.35}.underArenaMovePanel{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}.underArenaMovePanel .moveBtn{min-height:58px!important;padding:8px 9px!important;border-radius:14px!important}.underArenaMovePanel .moveBtn b{font-size:13px!important}.underArenaMovePanel .moveBtn small{font-size:11px!important;line-height:1.25!important}.underArenaMovePanel .moveBtn.ready{border-color:rgba(76,245,142,.52)!important;background:rgba(76,245,142,.11)!important}.underArenaMovePanel .moveBtn.energyLow{border-color:rgba(255,212,95,.48)!important;background:rgba(255,212,95,.08)!important}.underArenaActions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}.underArenaActions .btn{min-height:42px!important;padding:8px!important;border-radius:14px!important;font-size:13px!important}.handBelowPanel .logBox{min-height:34px!important;margin-top:7px!important;padding:8px 10px!important;font-size:12px!important}.battleStoryBox{order:2!important;margin-bottom:0!important;padding:10px 12px!important;font-size:13px!important}.tutorialBox{order:1!important}.tutorialFocus{outline:3px solid var(--gold)!important;box-shadow:0 0 0 6px rgba(255,212,95,.18),0 0 24px rgba(255,212,95,.35)!important}
+    @media(max-width:760px){.battleWrap.finalBattle{gap:6px!important;padding-left:6px!important;padding-right:6px!important}.comfortArena{height:clamp(220px,32dvh,290px)!important;min-height:220px!important}.comfortArena .enemyAvatar{font-size:60px!important;top:66px!important}.comfortArena .hpBox{width:min(205px,47vw)!important;padding:8px!important}.comfortArena .playerField{display:none!important}.handBelowPanel{padding:8px!important}.handBelowGrid{gap:5px}.handBelowCardBtn .card{height:118px!important;min-height:118px!important;max-height:118px!important;padding:4px!important}.handBelowCardBtn .cardName{font-size:9px!important}.handBelowCardBtn .cardMeta{font-size:8px!important}.handBelowCardBtn .cardIcon{height:38px!important;font-size:28px!important}.handBelowCardBtn .cardArt,.handBelowCardBtn .card.specialCard .cardArt{height:39px!important}.selectedMoveDock{grid-template-columns:1fr}.selectedPreview{display:none}.underArenaMovePanel .moveBtn{min-height:50px!important}.underArenaMovePanel .moveBtn small{display:none!important}.handBelowHeader span{display:none}.battleStoryBox{font-size:12px!important;line-height:1.45!important}}
+    @media(max-height:700px){.battleHeader.comfortHeader{top:48px!important;padding:5px 7px!important}.comfortArena{height:29dvh!important;min-height:200px!important}.comfortArena .enemyAvatar{font-size:54px!important;top:58px!important}.comfortArena .hpBox{padding:7px!important}.comfortArena .hpName{font-size:10px!important}.comfortArena .hpNum{font-size:19px!important}.bar{height:8px!important}.energyDot{width:13px!important;height:13px!important}.handBelowCardBtn .card{height:104px!important;min-height:104px!important;max-height:104px!important}.handBelowCardBtn .cardArt,.handBelowCardBtn .card.specialCard .cardArt{height:32px!important}.handBelowCardBtn .cardIcon{height:32px!important;font-size:24px!important}.underArenaMovePanel .moveBtn{min-height:46px!important}.handBelowPanel .logBox{display:none!important}.battleStoryBox{display:none!important}}
+
+    /* V3 Mega FX */
+    body.fxMegaShake{animation:fxMegaShake .32s linear both}.fxMegaCutin,.fxMegaBeam,.fxMegaRing,.fxMegaOrb,.fxMegaBlade,.fxMegaMeteor,.fxMegaRune,.fxMegaSpark,.fxMegaWave,.fxMegaExplosion,.fxMegaLine{position:fixed;pointer-events:none;z-index:92}.fxMegaCutin{left:50%;top:22%;transform:translate(-50%,-50%) scale(.5);padding:12px 22px;border-radius:999px;background:linear-gradient(90deg,rgba(0,0,0,.75),rgba(255,255,255,.10),rgba(0,0,0,.75));border:2px solid var(--pc);box-shadow:0 0 32px var(--pc),0 0 90px var(--pc);font-weight:1000;font-size:clamp(20px,6vw,42px);letter-spacing:.04em;text-shadow:0 0 14px var(--pc),0 2px 0 #000;animation:fxMegaCutin .95s ease-out forwards;white-space:nowrap}.fxMegaBeam{left:-8%;top:var(--y);width:116%;height:var(--h);border-radius:999px;background:linear-gradient(90deg,transparent,var(--pc),#fff,var(--pc),transparent);box-shadow:0 0 26px var(--pc),0 0 70px var(--pc),0 0 120px var(--pc);transform:rotate(var(--rot)) scaleX(.08);animation:fxMegaBeam .72s ease-out forwards}.fxMegaBlade{left:50%;top:45%;width:var(--w);height:18px;border-radius:999px;background:linear-gradient(90deg,transparent,var(--pc),#fff,var(--pc),transparent);box-shadow:0 0 20px var(--pc),0 0 72px var(--pc);transform:translate(-50%,-50%) rotate(var(--rot)) scaleX(.08);animation:fxMegaBlade .52s ease-out forwards}.fxMegaRing{left:66%;top:39%;width:var(--s);height:var(--s);border-radius:50%;border:4px solid var(--pc);box-shadow:0 0 30px var(--pc),inset 0 0 34px var(--pc);transform:translate(-50%,-50%) scale(.12);animation:fxMegaRing .88s ease-out forwards}.fxMegaOrb{left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;background:radial-gradient(circle,#fff 0 8%,var(--pc) 18%,rgba(255,255,255,.18) 37%,transparent 70%);box-shadow:0 0 24px var(--pc),0 0 72px var(--pc);animation:fxMegaOrb .95s ease-out forwards}.fxMegaMeteor{left:var(--x);top:-12vh;font-size:var(--s);filter:drop-shadow(0 0 16px var(--pc)) drop-shadow(0 0 40px var(--pc));animation:fxMegaMeteor .95s cubic-bezier(.18,.78,.22,1) forwards}.fxMegaRune{left:65%;top:39%;width:var(--s);height:var(--s);border-radius:50%;border:3px double var(--pc);box-shadow:0 0 30px var(--pc),inset 0 0 30px var(--pc);transform:translate(-50%,-50%) rotate(0deg) scale(.2);animation:fxMegaRune 1.05s ease-out forwards}.fxMegaRune::before,.fxMegaRune::after{content:'';position:absolute;inset:18%;border:2px solid var(--pc);border-radius:19%;transform:rotate(45deg)}.fxMegaSpark{left:var(--x);top:var(--y);font-size:var(--s);filter:drop-shadow(0 0 12px var(--pc));animation:fxMegaSpark .85s ease-out forwards}.fxMegaWave{left:64%;top:40%;width:60px;height:60px;border-radius:50%;border:3px solid var(--pc);box-shadow:0 0 28px var(--pc),inset 0 0 28px var(--pc);transform:translate(-50%,-50%) scale(.15);animation:fxMegaWave .85s ease-out forwards}.fxMegaExplosion{left:65%;top:40%;width:var(--s);height:var(--s);border-radius:50%;background:radial-gradient(circle,#fff 0 5%,var(--pc) 14%,rgba(255,255,255,.2) 34%,transparent 68%);box-shadow:0 0 45px var(--pc),0 0 110px var(--pc);transform:translate(-50%,-50%) scale(.1);animation:fxMegaExplosion .72s ease-out forwards}.fxMegaLine{inset:0;background:linear-gradient(var(--rot),transparent 46%,var(--pc) 49%,#fff 50%,var(--pc) 51%,transparent 54%);opacity:0;mix-blend-mode:screen;animation:fxMegaLine .45s ease-out forwards}@keyframes fxMegaShake{0%,100%{transform:translate(0)}20%{transform:translate(4px,-3px)}40%{transform:translate(-4px,3px)}60%{transform:translate(3px,2px)}80%{transform:translate(-2px,-3px)}}@keyframes fxMegaCutin{0%{opacity:0;transform:translate(-50%,-50%) scale(.45)}22%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.16)}}@keyframes fxMegaBeam{0%{opacity:0;transform:rotate(var(--rot)) scaleX(.04)}25%{opacity:1}100%{opacity:0;transform:rotate(var(--rot)) scaleX(1.05)}}@keyframes fxMegaBlade{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--rot)) scaleX(.06)}35%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--rot)) scaleX(1.45)}}@keyframes fxMegaRing{to{opacity:0;transform:translate(-50%,-50%) scale(3.2)}}@keyframes fxMegaOrb{to{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.25)}}@keyframes fxMegaMeteor{to{transform:translate(var(--dx),108vh) rotate(560deg);opacity:0}}@keyframes fxMegaRune{0%{opacity:0;transform:translate(-50%,-50%) rotate(0deg) scale(.2)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(210deg) scale(2.2)}}@keyframes fxMegaSpark{to{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(360deg) scale(.25)}}@keyframes fxMegaWave{to{opacity:0;transform:translate(-50%,-50%) scale(4.2)}}@keyframes fxMegaExplosion{0%{opacity:0;transform:translate(-50%,-50%) scale(.1)}35%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(4.6)}}@keyframes fxMegaLine{20%{opacity:.9}100%{opacity:0}}
+    body.lowFx .fxMegaMeteor:nth-child(n+4),body.lowFx .fxMegaSpark:nth-child(n+8),body.lowFx .fxMegaOrb:nth-child(n+5){display:none!important}
+  `;
+  document.head.appendChild(style);
+
+  function deckForBattle(){
+    try{ if(typeof finalDeck==='function') return finalDeck().filter(Boolean); }catch(e){}
+    try{ return currentDeck().filter(Boolean); }catch(e){ return (saveData.deck||[]).map(cardById).filter(Boolean); }
+  }
+  function selectedCardForBattle(){
+    const b=ui.battle; if(!b) return null;
+    try{ if(typeof finalSelectedCard==='function') return finalSelectedCard(); }catch(e){}
+    return cardById((saveData.deck||[])[b.selected]);
+  }
+  function movesFor(card){ return ((card&&card.moves&&card.moves.length)?card.moves:baseMovesFor(card)).slice(0,4); }
+  function tutorialStepSafe(b){ try{ return typeof tutorialStepFromBattle==='function'?tutorialStepFromBattle(b):-1; }catch(e){ return -1; } }
+  function tutorialHTMLSafe(b){ try{ return typeof tutorialHTML==='function'?tutorialHTML(b):''; }catch(e){ return ''; } }
+  function cardBtn(c,i,b){ return `<button class="handBelowCardBtn ${b.selected===i?'selected':''}" data-action="selectBattleCard" data-index="${i}" aria-label="${esc(c.name)}を選択">${cardHTML(c,'',b.selected===i)}</button>`; }
+  function movePanelUnderArena(b){
+    const c=selectedCardForBattle();
+    if(!c) return `<div class="underArenaMovePanel"><button class="moveBtn" disabled><b>カードを選んでください</b><small>上の5枚から1枚タップすると技が出ます。</small></button></div>`;
+    return `<div class="underArenaMovePanel">${movesFor(c).map((m,i)=>{
+      const lack=(b.energy||0)<(m.cost||0); const disabled=b.locked || lack;
+      const power=(m.dmg||0)>=320?'超派手':(m.dmg||0)>=180?'派手':'通常';
+      return `<button class="moveBtn ${lack?'energyLow':'ready'}" data-action="battleMove" data-move="${i}" ${disabled?'disabled':''}><b>${esc(m.name)} / ⚡${m.cost||0}</b><small>${m.dmg?`DMG ${m.dmg}・${power}`:'支援技'} ${esc(m.desc||'')}</small></button>`;
+    }).join('')}</div>`;
+  }
+
+  viewBattle = function(){
+    const b=ui.battle; if(!b) return viewHome();
+    b.energy=Math.max(0,Math.min(12,Number(b.energy||0))); b.log=Array.isArray(b.log)?b.log:[]; b.cooldowns={};
+    const boss=bossById(b.bossId); const deck=deckForBattle(); const picked=selectedCardForBattle();
+    const hpw=Math.max(0,Math.min(100,(b.playerHp/b.playerMax)*100));
+    const ehpw=Math.max(0,Math.min(100,(b.enemyHp/b.enemyMax)*100));
+    const story=boss&&boss.story?`<div class="battleStoryBox"><span class="bossTag">${esc(boss.tag||'STORY')}</span>${esc(boss.story)}</div>`:'';
+    const nextExists = b.result==='win' && BOSSES[saveData.storyProgress];
+    const tStep = tutorialStepSafe(b);
+    return `<main class="screen battleWrap finalBattle">
+      <div class="battleHeader comfortHeader"><button class="back" data-action="endBattle">← 降参</button><div class="pill">${esc(boss.name)}</div><div class="turnState">${b.result?'RESULT':'アリーナ下で操作'}</div></div>
+      ${tutorialHTMLSafe(b)}
+      ${story}
+      <section class="arena panel comfortArena ${tStep===2?'tutorialFocus':''}">
+        <div class="hpBox enemyHp"><div class="hpName">ENEMY</div><div class="hpNum">${Math.ceil(b.enemyHp)}</div><div class="bar"><i style="width:${ehpw}%"></i></div></div>
+        <div class="hpBox playerHp ${tStep===3?'tutorialFocus':''}"><div class="hpName">${esc(saveData.nickname)}</div><div class="hpNum">${Math.ceil(b.playerHp)}</div><div class="bar"><i style="width:${hpw}%"></i></div><div class="energyBar">${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<i class="energyDot ${b.energy>=n?'on':''}"></i>`).join('')}</div></div>
+        <div class="enemyAvatar">${boss.icon}</div><div class="vs">VS</div><div class="playerField">${picked?cardHTML(picked,'',true):'<div class="emptySlot">PICK</div>'}</div>
+      </section>
+      <section class="handBelowPanel ${tStep===0?'tutorialFocus':''}">
+        <div class="handBelowHeader"><b>手札</b><span>カードを選ぶ → 技を押す。ここだけで操作できます。</span></div>
+        <div class="handBelowGrid">${deck.map((c,i)=>cardBtn(c,i,b)).join('')}</div>
+        <div class="selectedMoveDock ${tStep===1?'tutorialFocus':''}"><div class="selectedPreview">${picked?cardHTML(picked,'',true):'<div class="pickedEmpty">カードを選択</div>'}</div><div class="selectedInfo"><div class="selectedTitle">${picked?esc(picked.name):'使うカードを選んでください'}</div><div class="selectedSub">⚡現在 ${b.energy}/12　${picked?'技を押すとすぐ発動します。':'下の手札から1枚タップ。'}</div>${movePanelUnderArena(b)}</div></div>
+        <div class="underArenaActions"><button class="btn secondary" data-action="autoSelect">おすすめ選択</button><button class="btn secondary ${tStep===3?'tutorialFocus':''}" data-action="chargeEnergy">⚡ エネルギー集中</button></div>
+        <div class="panel logBox">${esc((b.log||[])[0]||'カードを選んで技を押そう。')}</div>
+      </section>
+      ${b.result?`<div class="resultOverlay"><div class="panel resultCard"><h1 style="color:${b.result==='win'?'var(--gold)':'#8790aa'}">${b.result==='win'?'VICTORY':'DEFEAT'}</h1><p class="muted strong">${b.result==='win'?`報酬 ★${boss.reward} とカード経験値を獲得！`:'デッキを強化してもう一度挑戦しよう。'}</p><div class="continueHint">${nextExists?'ホームに戻らず、そのまま次の章へ進めます。':'ここまでの物語を確認できます。'}</div><div class="storyNextBox">${nextExists?`<button class="btn gold" data-action="nextStoryBattle">次の章へ</button>`:''}<button class="btn secondary" data-action="finishBattle">ストーリー一覧へ</button><button class="btn secondary" data-action="retryBattle" data-boss="${boss.id}">もう一度</button></div></div></div>`:''}
+    </main>`;
+  };
+  window.viewBattle = viewBattle;
+
+  function fxColor(type,element){
+    const map={fire:'#ff4a2f',flame:'#ff4a2f',explode:'#ff8a2b',meteor:'#ffd45f',water:'#41e8ff',aqua:'#41e8ff',ice:'#b9f2ff',leaf:'#4cf58e',vine:'#4cf58e',storm:'#37ff8b',light:'#fff26a',spark:'#fff26a',beam:'#ffffff',flash:'#fff6c7',nova:'#ffd45f',dark:'#b86bff',shadow:'#8b5cf6',curse:'#a855f7',void:'#7c3aed',abyss:'#ff4fd8',rush:'#ffffff',impact:'#ffd45f',heal:'#4cf58e',aura:'#41e8ff',pulse:'#8e68ff',guard:'#41e8ff',normal:'#ffffff'};
+    return map[type] || map[element] || '#ffffff';
+  }
+  function fxNode(cls,props={},text='',life=1000){ const e=document.createElement('i'); e.className=cls; if(text) e.textContent=text; Object.entries(props).forEach(([k,v])=>e.style.setProperty(k,v)); fx.appendChild(e); setTimeout(()=>e.remove(),life); return e; }
+  function shake(){ document.body.classList.remove('fxMegaShake'); void document.body.offsetWidth; document.body.classList.add('fxMegaShake'); setTimeout(()=>document.body.classList.remove('fxMegaShake'),360); }
+  function cutin(text,color){ fxNode('fxMegaCutin',{'--pc':color},text,1000); }
+  function beams(color,count=2){ for(let i=0;i<count;i++) setTimeout(()=>fxNode('fxMegaBeam',{'--pc':color,'--rot':((-7+i*7)+(Math.random()*6-3))+'deg','--y':(30+i*9+Math.random()*7)+'vh','--h':(10+Math.random()*12)+'px'},'',820),i*65); }
+  function blades(color,count=3){ for(let i=0;i<count;i++) setTimeout(()=>fxNode('fxMegaBlade',{'--pc':color,'--rot':((-42+i*24)+(Math.random()*12-6))+'deg','--w':(230+Math.random()*170)+'px'},'',720),i*48); }
+  function rings(color,count=2){ for(let i=0;i<count;i++) setTimeout(()=>fxNode('fxMegaRing',{'--pc':color,'--s':(54+i*18)+'px'},'',950),i*85); }
+  function rune(color,size=145){ fxNode('fxMegaRune',{'--pc':color,'--s':size+'px'},'',1150); }
+  function explosion(color,size=80){ fxNode('fxMegaExplosion',{'--pc':color,'--s':size+'px'},'',850); }
+  function meteors(color,icon='☄️',count=5){ const limit=document.body.classList.contains('lowFx')?Math.min(3,count):count; for(let i=0;i<limit;i++) fxNode('fxMegaMeteor',{'--pc':color,'--x':(42+Math.random()*46)+'vw','--dx':(-250+Math.random()*180)+'px','--s':(30+Math.random()*30)+'px'},icon,1050); }
+  function sparks(icon,color,count=10){ const limit=document.body.classList.contains('lowFx')?Math.min(6,count):count; for(let i=0;i<limit;i++) fxNode('fxMegaSpark',{'--pc':color,'--x':(18+Math.random()*30)+'vw','--y':(58+Math.random()*22)+'vh','--dx':(250+Math.random()*240)+'px','--dy':(-250+Math.random()*190)+'px','--s':(18+Math.random()*22)+'px'},icon,900); }
+  function orbs(color,count=5){ const limit=document.body.classList.contains('lowFx')?Math.min(4,count):count; for(let i=0;i<limit;i++) fxNode('fxMegaOrb',{'--pc':color,'--x':(55+Math.random()*22)+'vw','--y':(28+Math.random()*20)+'vh','--dx':(-60+Math.random()*120)+'px','--dy':(-60+Math.random()*120)+'px','--s':(38+Math.random()*54)+'px'},'',1000); }
+  function waves(color,count=3){ for(let i=0;i<count;i++) setTimeout(()=>fxNode('fxMegaWave',{'--pc':color},'',950),i*75); }
+  function line(color,deg='90deg'){ fxNode('fxMegaLine',{'--pc':color,'--rot':deg},'',520); }
+  function megaEffectByMove(mv,card,amount){
+    const type=mv.fx || card.element || 'impact'; const color=fxColor(type,mv.type||card.element); const dmg=Number(amount||0); const cost=Number(mv.cost||0); const rarityPower=(RARITIES[card.rarity]?.order||1);
+    const power=Math.max(cost, rarityPower>=6?6:rarityPower>=5?5:2, dmg>=520?7:dmg>=380?6:dmg>=260?5:dmg>=160?4:dmg>=80?3:2);
+    if(power>=4) cutin(`${power>=6?'GOD ATTACK':power>=5?'ULTIMATE':'SPECIAL'}  ${mv.name}`, color);
+    if(power>=5){ shake(); screenFlash(color+'99'); line(color,'120deg'); }
+    else screenFlash(color+'55');
+    if(mv.heal || mv.charge || ['heal','aura','pulse','guard'].includes(type)){
+      rune(color,120+power*18); waves(color,2+Math.min(power,4)); orbs(color,3+power); sparks(mv.heal?'💚':'⚡',color,5+power); explosion(color,55+power*12);
+    }else if(['flame','explode'].includes(type)){
+      meteors('#ff8a2b','🔥',4+power); explosion('#ff4a2f',75+power*14); orbs('#ff553d',2+power); rings('#ff8a2b',2+Math.min(power,3)); sparks('🔥','#ff8a2b',5+power);
+    }else if(type==='meteor'){
+      cutin('METEOR BREAK',color); meteors(color,'☄️',7+power); rune(color,160+power*22); beams(color,2); explosion(color,95+power*18); rings(color,3);
+    }else if(['aqua','ice'].includes(type)){
+      beams(color,2+Math.min(power,3)); waves(color,3+Math.min(power,4)); rune(color,130+power*18); sparks(type==='ice'?'❄️':'💧',color,6+power); rings(color,2);
+    }else if(['vine','storm'].includes(type)){
+      blades('#4cf58e',3+Math.min(power,3)); waves('#4cf58e',2+Math.min(power,4)); sparks(type==='storm'?'⚡':'🍃','#4cf58e',7+power); rune('#4cf58e',125+power*18); explosion('#4cf58e',65+power*12);
+    }else if(['beam','flash','nova','spark'].includes(type)){
+      beams(color,3+Math.min(power,4)); rune(color,150+power*22); orbs(color,4+power); sparks('✨',color,8+power); if(power>=5) meteors('#fff6c7','✦',3+power); rings(color,3);
+    }else if(['shadow','curse','void','abyss'].includes(type)){
+      cutin(power>=5?'ABYSS DRIVE':'DARK FORCE',color); rune(color,160+power*22); beams(color,2+Math.min(power,3)); blades('#2e1065',2+Math.min(power,4)); sparks(type==='abyss'?'🌌':'🔮',color,7+power); orbs(color,4+power); explosion(color,80+power*14);
+    }else if(['rush','impact','slash'].includes(type)){
+      blades(color,4+Math.min(power,4)); beams(color,1+Math.min(power,2)); sparks('💥',color,6+power); rings(color,2+Math.min(power,3)); explosion(color,70+power*12);
+    }else{
+      blades(color,3); beams(color,2); sparks('✦',color,6+power); rings(color,2); explosion(color,65+power*10);
+    }
+    if(typeof burstEffect==='function') burstEffect(color,66,38,34+power*11);
+    if(dmg>0) addDamage(dmg);
+    if(power>=6 && !document.body.classList.contains('lowFx')) rareEffect(card.rarity||'UR');
+  }
+
+  battleAction = function(moveIndex=0){
+    try{ if(typeof finalNormalize==='function') finalNormalize(); }catch(e){}
+    try{ if(typeof removeAllCooldowns==='function') removeAllCooldowns(); }catch(e){}
+    const b=ui.battle; if(!b || b.result || b.locked) return;
+    if(b.selected===null || b.selected===undefined){ toast('使うカードを選んでください'); return; }
+    const card=cardById(saveData.deck[b.selected]); const mv=movesFor(card)[Number(moveIndex)||0]||movesFor(card)[0];
+    if(!mv){ toast('このカードには技がありません'); return; }
+    if((b.energy||0)<(mv.cost||0)){ toast('エネルギーが足りません'); return; }
+    if(b.tutorial) b.tutorialStage=Math.max(Number(b.tutorialStage||0),2);
+    b.locked=true; b.activeCard=card.id; b.cooldowns={}; b.energy=Math.max(0,(b.energy||0)-(mv.cost||0));
+    if(mv.charge) b.energy=Math.min(12,b.energy+mv.charge+1);
+    if(mv.chargeSelf) b.energy=Math.min(12,b.energy+mv.chargeSelf);
+    if(mv.heal) b.playerHp=Math.min(b.playerMax,b.playerHp+mv.heal);
+    if(mv.guard) b.guard=(b.guard||0)+mv.guard;
+    const boss=bossById(b.bossId); const mult=typeMultiplier(mv.type||card.element,boss.element); let dmg=0;
+    if(mv.dmg){
+      dmg=Math.floor((mv.dmg + (RARITIES[card.rarity]?.order||1)*8 + cardLevel(card.id)*3 + Math.random()*16)*mult);
+      b.enemyHp=Math.max(0,b.enemyHp-dmg); saveData.stats.bestDamage=Math.max(saveData.stats.bestDamage||0,dmg); saveData.stats.totalDamage=(saveData.stats.totalDamage||0)+dmg;
+      if(mv.selfDamage||card.selfDamage) b.playerHp=Math.max(1,b.playerHp-(mv.selfDamage||card.selfDamage||0));
+    }
+    b.log.unshift(`${card.name} の ${mv.name}！ ${dmg?`${dmg}ダメージ！`:''} ${typeText(mult)}`.trim());
+    megaEffectByMove(mv,card,dmg||mv.heal||((mv.charge||0)*60)||90); vib(40);
+    if(b.enemyHp<=0){ winBattle(); save(); render(); return; }
+    save(); render();
+    setTimeout(()=>{ try{ enemyTurn(); }catch(e){ console.error(e); const bb=ui.battle; if(bb&&!bb.result){ bb.locked=false; bb.activeCard=null; bb.selected=null; bb.energy=Math.min(12,(bb.energy||0)+3); bb.log.unshift('動作を自動復帰しました / エネルギー+3'); save(); render(); } } },440);
+  };
+  window.battleAction = battleAction;
+
+  enemyTurn = function(){
+    const b=ui.battle; if(!b||b.result) return; b.cooldowns={}; b.energy=Math.max(0,Math.min(12,Number(b.energy||0)));
+    const boss=bossById(b.bossId); let dmg=Math.floor(boss.power*(.82+Math.random()*.42));
+    if(b.guard){ const reduce=Math.min(dmg,b.guard); dmg-=reduce; b.guard=Math.max(0,b.guard-reduce); }
+    b.playerHp=Math.max(0,b.playerHp-dmg); b.energy=Math.min(12,(b.energy||0)+4); b.activeCard=null; b.selected=null; b.locked=false; b.turn=(b.turn||1)+1;
+    if(b.tutorial&&!b.result) b.tutorialStage=Math.max(Number(b.tutorialStage||0),3);
+    b.log.unshift(`${boss.name} の反撃！ ${dmg}ダメージ！ / エネルギー+4`);
+    screenFlash('#ff546877'); blades('#ff5468',3); rings('#ff5468',2); sparks('◆','#ff5468',6); addDamage(dmg);
+    if(b.playerHp<=0){ b.result='lose'; b.locked=false; if(b.tutorial){ saveData.tutorialDone=true; b.tutorial=false; } }
+    save(); render();
+  };
+  window.enemyTurn = enemyTurn;
+
+
+  /* === GOJO COMPLETE PATCH === */
+  (function(){
+    const GOJO_ID='sp_gojo_satoru';
+    const gojoArt='data:image/webp;base64,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';
+    if(!CARDS.find(c=>c.id===GOJO_ID)){
+      const gojoCard={
+        id:GOJO_ID,
+        name:'五条悟',
+        hp:888,
+        atk:333,
+        rarity:'GOD',
+        icon:'🟣',
+        type:'monster',
+        element:'light',
+        art:gojoArt,
+        specialSet:true,
+        move:'領域展開 無量空所',
+        effectText:'超激レア。フォトパック限定1%。領域展開で1ターン70%ダメージカット、虚式茈で999ダメージ。',
+        gojoSpecial:true,
+        isUltraSpecial:true
+      };
+      SPECIAL_CARDS.push(gojoCard);
+      CARDS.push(gojoCard);
+    }
+    const gojo=CARDS.find(c=>c.id===GOJO_ID);
+    if(gojo){
+      gojo.moves=[
+        move('領域展開 無量空所',7,0,'gojoDomain','1ターンの間、受けるダメージを70%カットする。',{damageCutPct:0.7,damageCutTurns:1,type:'light'}),
+        move('虚式茈',10,999,'gojoPurple','すべての相手に999ダメージ。ベンチの相手にも300ダメージ。',{splashBench:300,type:'void'})
+      ];
+      gojo.move=gojo.moves[0].name;
+    }
+    const photoPack=PACKS.find(p=>p.id==='hyperPhoto');
+    if(photoPack){
+      photoPack.tag='画像カード限定 / 五条悟 1%';
+      photoPack.desc='画像カード限定パック。超激レア「五条悟」はこのパックからのみ出現し、出現率は1%。1回で2枚だけ手に入る。';
+    }
+
+    const gojoStyleId='gojo-effect-style';
+    if(!document.getElementById(gojoStyleId)){
+      const st=document.createElement('style'); st.id=gojoStyleId; st.textContent=`
+        .gojoBarrierFx{position:fixed;z-index:120;pointer-events:none;border-radius:50%;
+          background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.08), rgba(255,255,255,.03) 35%, rgba(80,0,160,.18) 60%, rgba(255,255,255,0) 74%),
+          conic-gradient(from 0deg, rgba(255,60,120,.9), rgba(70,200,255,.92), rgba(170,90,255,.96), rgba(255,220,120,.88), rgba(255,60,120,.9));
+          box-shadow:0 0 24px rgba(180,120,255,.85), 0 0 60px rgba(100,220,255,.5), inset 0 0 22px rgba(255,255,255,.25);
+          animation:gojoSpin 1.2s linear infinite, gojoPulse 1.3s ease-in-out infinite;filter:saturate(1.2);}
+        .gojoBarrierFx::after{content:'';position:absolute;inset:11%;border-radius:50%;border:2px solid rgba(255,255,255,.65);box-shadow:0 0 22px rgba(255,255,255,.75), inset 0 0 16px rgba(90,180,255,.55);}
+        .gojoBarrierFx::before{content:'';position:absolute;inset:-8%;border-radius:50%;border:2px solid rgba(255,255,255,.28);box-shadow:0 0 18px rgba(255,80,180,.6),0 0 36px rgba(70,200,255,.5);}
+        @keyframes gojoSpin{to{transform:translate(-50%,-50%) rotate(360deg);}}
+        @keyframes gojoPulse{50%{filter:saturate(1.5) brightness(1.18);}}
+        .purpleVoidScene{position:fixed;inset:0;pointer-events:none;z-index:125;overflow:hidden;}
+        .purpleVoidScene .orb{position:absolute;top:50%;width:86px;height:86px;border-radius:50%;transform:translate(-50%,-50%);}
+        .purpleVoidScene .orb.red{left:12%;background:radial-gradient(circle,#ffcfde 0%,#ff4967 32%,#a80020 72%,rgba(255,0,60,0) 74%);box-shadow:0 0 28px #ff4466,0 0 70px rgba(255,72,112,.8);animation:gojoRedOrb .62s ease-in forwards;}
+        .purpleVoidScene .orb.blue{left:88%;background:radial-gradient(circle,#d6f6ff 0%,#53c9ff 34%,#0047ff 72%,rgba(0,80,255,0) 74%);box-shadow:0 0 28px #4dcaff,0 0 70px rgba(77,202,255,.85);animation:gojoBlueOrb .62s ease-in forwards;}
+        .purpleVoidScene .mix{position:absolute;left:50%;top:50%;width:120px;height:120px;border-radius:50%;transform:translate(-50%,-50%) scale(.15);opacity:0;
+          background:radial-gradient(circle,#f6e5ff 0%,#cc85ff 28%,#882aff 56%,#300053 82%,rgba(30,0,60,0) 84%);
+          box-shadow:0 0 28px #d8a0ff,0 0 90px rgba(160,60,255,.95);animation:gojoMixOrb 1s ease-out .52s forwards;}
+        .purpleVoidScene .beam{position:absolute;left:50%;top:50%;height:44px;width:70px;transform:translate(-10%,-50%) rotate(-11deg) scaleX(.08);transform-origin:left center;opacity:0;
+          background:linear-gradient(90deg, rgba(255,255,255,.15), rgba(238,185,255,.98), rgba(155,60,255,1), rgba(74,0,180,.95), rgba(255,255,255,0));
+          border-radius:999px;box-shadow:0 0 26px rgba(199,114,255,.95),0 0 80px rgba(122,51,255,.78);animation:gojoPurpleBeam .72s cubic-bezier(.2,.9,.2,1) .82s forwards;}
+        .purpleVoidScene .impact{position:absolute;left:74%;top:35%;width:110px;height:110px;border-radius:50%;transform:translate(-50%,-50%) scale(.2);opacity:0;border:5px solid rgba(221,163,255,.95);box-shadow:0 0 32px rgba(171,74,255,.95), inset 0 0 28px rgba(255,255,255,.7);animation:gojoImpact .82s ease-out 1.06s forwards;}
+        .purpleVoidScene .trail{position:absolute;left:48%;top:49%;width:12px;height:12px;border-radius:50%;opacity:0;background:#d58fff;box-shadow:0 0 18px #d58fff;animation:gojoTrail 1.12s ease-out .76s forwards;}
+        @keyframes gojoRedOrb{to{left:50%;transform:translate(-50%,-50%) scale(.6);opacity:.92;}}
+        @keyframes gojoBlueOrb{to{left:50%;transform:translate(-50%,-50%) scale(.6);opacity:.92;}}
+        @keyframes gojoMixOrb{0%{opacity:0;transform:translate(-50%,-50%) scale(.15);}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05);}55%{opacity:1;transform:translate(-50%,-50%) scale(.95);}100%{opacity:0;transform:translate(28%,-88%) scale(.82);}}
+        @keyframes gojoPurpleBeam{0%{opacity:0;transform:translate(-10%,-50%) rotate(-11deg) scaleX(.08);width:70px;}25%{opacity:1;}100%{opacity:1;transform:translate(-10%,-50%) rotate(-11deg) scaleX(1);width:44vw;}}
+        @keyframes gojoImpact{0%{opacity:0;transform:translate(-50%,-50%) scale(.2);}20%{opacity:1;}100%{opacity:0;transform:translate(-50%,-50%) scale(2.8);}}
+        @keyframes gojoTrail{0%{opacity:0;transform:translate(0,0) scale(.2);}15%{opacity:1;}100%{opacity:0;transform:translate(24vw,-12vh) scale(16);}}
+      `; document.head.appendChild(st);
+    }
+
+    function gojoBarrierFx(){
+      const target=document.querySelector('.playerField .card') || document.querySelector('.playerField') || document.querySelector('.selectedPreview .card');
+      if(!target) return;
+      const r=target.getBoundingClientRect();
+      const d=Math.max(r.width,r.height)*1.45;
+      const node=document.createElement('div'); node.className='gojoBarrierFx';
+      node.style.left=(r.left+r.width/2)+'px'; node.style.top=(r.top+r.height/2)+'px'; node.style.width=d+'px'; node.style.height=d+'px';
+      fx.appendChild(node); setTimeout(()=>node.remove(),1350);
+      rune('#a855f7', 170); rings('#7dd3fc',3); waves('#c084fc',4); sparks('✦','#c084fc',12);
+    }
+    function gojoPurpleFx(){
+      const scene=document.createElement('div'); scene.className='purpleVoidScene';
+      scene.innerHTML='<div class="orb red"></div><div class="orb blue"></div><div class="mix"></div><div class="beam"></div><div class="impact"></div><div class="trail"></div>';
+      fx.appendChild(scene);
+      setTimeout(()=>scene.remove(),2200);
+      setTimeout(()=>{ explosion('#c026d3',110); rings('#e9d5ff',3); orbs('#9333ea',7); shake(); },1060);
+    }
+
+    const _oldPickCard = pickCard;
+    pickCard = function(pack, minRarity){
+      if(pack && pack.id==='hyperPhoto'){
+        if(Math.random()<0.01) return GOJO_ID;
+        let pool = CARDS.filter(c=>c.specialSet && c.id!==GOJO_ID);
+        if(!pool.length) pool = CARDS.filter(c=>c.specialSet);
+        return pool[Math.floor(Math.random()*pool.length)].id;
+      }
+      return _oldPickCard(pack, minRarity);
+    };
+
+    const _oldRevealCard = revealCard;
+    revealCard = function(i){
+      const cid = ui.openingCards[Math.max(0,Number(i)||0)];
+      _oldRevealCard(i);
+      if(cid===GOJO_ID){
+        setTimeout(()=>{ cutin('超激レア 五条悟', '#c084fc'); screenFlash('#a855f777'); rareEffect('GOD'); gojoPurpleFx(); }, 40);
+      }
+    };
+
+    const _oldMega = megaEffectByMove;
+    megaEffectByMove = function(mv, card, amount){
+      if(card && card.id===GOJO_ID && mv && mv.fx==='gojoDomain'){
+        cutin('領域展開 無量空所', '#c084fc'); screenFlash('#8b5cf677'); gojoBarrierFx(); beams('#c084fc',3); line('#7dd3fc','90deg');
+        return;
+      }
+      if(card && card.id===GOJO_ID && mv && mv.fx==='gojoPurple'){
+        cutin('虚式茈', '#d8b4fe'); screenFlash('#7e22ce88'); gojoPurpleFx(); addDamage(amount||999); rareEffect('GOD');
+        return;
+      }
+      return _oldMega(mv, card, amount);
+    };
+
+    const _oldEnemyTurn = enemyTurn;
+    enemyTurn = function(){
+      const b=ui.battle; if(!b||b.result) return; b.cooldowns={}; b.energy=Math.max(0,Math.min(12,Number(b.energy||0)));
+      const boss=bossById(b.bossId); let dmg=Math.floor(boss.power*(.82+Math.random()*.42));
+      let cutMsg='';
+      if(b.damageCutTurns>0 && b.damageCutPct){
+        const reduced=Math.floor(dmg*Number(b.damageCutPct||0));
+        dmg=Math.max(0,dmg-reduced);
+        cutMsg=` / 無量空所で${reduced}軽減`;
+        b.damageCutTurns=Math.max(0,Number(b.damageCutTurns||0)-1);
+        if(b.damageCutTurns<=0) b.damageCutPct=0;
+      }
+      if(b.guard){ const reduce=Math.min(dmg,b.guard); dmg-=reduce; b.guard=Math.max(0,b.guard-reduce); }
+      b.playerHp=Math.max(0,b.playerHp-dmg); b.energy=Math.min(12,(b.energy||0)+4); b.activeCard=null; b.selected=null; b.locked=false; b.turn=(b.turn||1)+1;
+      if(b.tutorial&&!b.result) b.tutorialStage=Math.max(Number(b.tutorialStage||0),3);
+      b.log.unshift(`${boss.name} の反撃！ ${dmg}ダメージ！ / エネルギー+4${cutMsg}`);
+      screenFlash('#ff546877'); blades('#ff5468',3); rings('#ff5468',2); sparks('◆','#ff5468',6); addDamage(dmg);
+      if(b.playerHp<=0){ b.result='lose'; b.locked=false; if(b.tutorial){ saveData.tutorialDone=true; b.tutorial=false; } }
+      save(); render();
+    };
+    window.enemyTurn = enemyTurn;
+
+    const _oldBattleAction = battleAction;
+    battleAction = function(moveIndex=0){
+      try{ if(typeof finalNormalize==='function') finalNormalize(); }catch(e){}
+      try{ if(typeof removeAllCooldowns==='function') removeAllCooldowns(); }catch(e){}
+      const b=ui.battle; if(!b || b.result || b.locked) return;
+      if(b.selected===null || b.selected===undefined){ toast('使うカードを選んでください'); return; }
+      const card=cardById(saveData.deck[b.selected]);
+      if(!card || card.id!==GOJO_ID) return _oldBattleAction(moveIndex);
+      const mv=movesFor(card)[Number(moveIndex)||0]||movesFor(card)[0];
+      if(!mv){ toast('このカードには技がありません'); return; }
+      if((b.energy||0)<(mv.cost||0)){ toast('エネルギーが足りません'); return; }
+      if(b.tutorial) b.tutorialStage=Math.max(Number(b.tutorialStage||0),2);
+      b.locked=true; b.activeCard=card.id; b.cooldowns={}; b.energy=Math.max(0,(b.energy||0)-(mv.cost||0));
+      if(mv.charge) b.energy=Math.min(12,b.energy+mv.charge+1);
+      if(mv.chargeSelf) b.energy=Math.min(12,b.energy+mv.chargeSelf);
+      if(mv.heal) b.playerHp=Math.min(b.playerMax,b.playerHp+mv.heal);
+      if(mv.guard) b.guard=(b.guard||0)+mv.guard;
+      if(mv.damageCutPct){ b.damageCutPct=Math.max(Number(b.damageCutPct||0), Number(mv.damageCutPct||0)); b.damageCutTurns=Math.max(Number(b.damageCutTurns||0), Number(mv.damageCutTurns||1)); }
+      const boss=bossById(b.bossId); const mult=typeMultiplier(mv.type||card.element,boss.element); let dmg=0;
+      if(mv.dmg){
+        dmg=Math.floor((mv.dmg + (RARITIES[card.rarity]?.order||1)*8 + cardLevel(card.id)*3 + Math.random()*8)*mult);
+        b.enemyHp=Math.max(0,b.enemyHp-dmg); saveData.stats.bestDamage=Math.max(saveData.stats.bestDamage||0,dmg); saveData.stats.totalDamage=(saveData.stats.totalDamage||0)+dmg;
+      }
+      let extra='';
+      if(mv.splashBench){
+        const splash=Number(mv.splashBench||0);
+        if(Array.isArray(b.enemyBench)) b.enemyBench=b.enemyBench.map(v=>Math.max(0,Number(v||0)-splash));
+        extra=` / ベンチにも${splash}ダメージ`;
+      }
+      if(mv.damageCutPct) extra=` / 1ターン受けるダメージ70%カット`;
+      b.log.unshift(`${card.name} の ${mv.name}！ ${dmg?`${dmg}ダメージ！`:''}${extra} ${typeText(mult)}`.trim());
+      megaEffectByMove(mv,card,dmg||mv.heal||90); vib(40);
+      if(b.enemyHp<=0){ winBattle(); save(); render(); return; }
+      save(); render();
+      setTimeout(()=>{ try{ enemyTurn(); }catch(e){ console.error(e); const bb=ui.battle; if(bb&&!bb.result){ bb.locked=false; bb.activeCard=null; bb.selected=null; bb.energy=Math.min(12,(bb.energy||0)+3); bb.log.unshift('動作を自動復帰しました / エネルギー+3'); save(); render(); } } },520);
+    };
+    window.battleAction = battleAction;
+  })();
+
+
+  try{ render(); }catch(e){ console.error(e); }
+})();
+
+
 render();
   </script>
 </body>
