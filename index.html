@@ -1,1944 +1,524 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>トイパズ！ - Cute Toy Link Puzzle</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
-    <style>
-        :root { --app-bg: #0f172a; }
-        body {
-            font-family: 'M PLUS Rounded 1c', sans-serif;
-            user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-            touch-action: manipulation;
-            background-color: var(--app-bg);
-            margin: 0; padding: 0; color: #f1f5f9;
-            overflow: hidden; /* 全体スクロール防止 */
-        }
-        #app-container {
-            width: 100%; height: 100dvh; max-width: 450px;
-            margin: 0 auto; position: relative;
-            background: radial-gradient(circle, #2563eb 0%, #1d4ed8 40%, #0f172a 100%);
-            display: flex; flex-direction: column;
-            box-shadow: 0 0 35px rgba(0,0,0,0.9);
-            overflow: hidden;
-        }
-        @media (min-width: 450px) {
-            body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-            #app-container { height: 850px; max-height: 95vh; border-radius: 40px; border: 8px solid #1e293b; }
-        }
-        
-        #canvas-wrapper {
-            flex-grow: 1; position: relative; width: 100%;
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; background: radial-gradient(circle, #1e1b4b 0%, #090514 100%);
-        }
-        canvas {
-            touch-action: none; display: block;
-            max-width: 100%; max-height: 100%;
-            aspect-ratio: 4 / 5;
-            object-fit: contain;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>トイパズ！ V8 UI STABLE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<style>
+:root{
+  --bg:#0f172a;--panel:#1e293b;--panel2:#0f172a;--line:#334155;--txt:#f8fafc;
+  --pink:#fb7185;--cyan:#22d3ee;--yellow:#facc15;--green:#34d399;--purple:#a78bfa;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020617;color:var(--txt);font-family:system-ui,-apple-system,"Hiragino Sans","Yu Gothic",sans-serif;user-select:none}
+button,input,textarea{font:inherit}
+button{border:0;color:inherit;cursor:pointer;touch-action:manipulation}
+#app{width:100%;height:100dvh;max-width:450px;margin:0 auto;background:radial-gradient(circle at 50% 0,#2563eb,#0f172a 50%,#020617);display:flex;flex-direction:column;position:relative;overflow:hidden;box-shadow:0 0 40px #000}
+@media(min-width:460px){body{display:flex;align-items:center;justify-content:center}#app{height:850px;max-height:96vh;border:8px solid #1e293b;border-radius:38px}}
+.top{height:56px;background:#111827;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #334155;z-index:50;flex-shrink:0}
+.pill{background:#1f2937;border:1px solid #475569;border-radius:999px;padding:5px 9px;display:flex;gap:5px;align-items:center;font-weight:900;font-size:13px}
+.logo{text-align:center;line-height:1}.logo small{display:block;color:#818cf8;font-size:9px;font-weight:900;letter-spacing:.13em}.logo b{font-size:20px;background:linear-gradient(90deg,#fde047,#fb7185,#22d3ee);-webkit-background-clip:text;color:transparent}
+.view{flex:1;min-height:0;position:relative;background:#0f172a;display:flex;flex-direction:column}
+.hidden{display:none!important}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.card{background:rgba(30,41,59,.92);border:1px solid rgba(100,116,139,.55);border-radius:22px;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+.btn{border-radius:18px;font-weight:900;padding:12px 14px;background:#334155;box-shadow:0 4px 0 #111827;transition:.08s transform,.08s filter}
+.btn:active{transform:translateY(4px);box-shadow:0 0 0 #000;filter:brightness(.92)}
+.btn-main{background:linear-gradient(#fb7185,#be123c);box-shadow:0 6px 0 #881337;color:white;border:2px solid #fda4af}
+.btn-blue{background:linear-gradient(#38bdf8,#2563eb);box-shadow:0 4px 0 #1d4ed8}
+.btn-gold{background:linear-gradient(#facc15,#d97706);box-shadow:0 4px 0 #92400e;color:#111827}
+.btn-green{background:linear-gradient(#34d399,#0f766e);box-shadow:0 4px 0 #115e59}
+.home-head{padding:16px;background:linear-gradient(#1e293b,#0f172a);border-bottom:1px solid #1e293b}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mini{font-size:10px;color:#94a3b8;font-weight:800}
+.big-score{font-size:34px;color:#fde047;font-weight:1000;line-height:1}
+.my-wrap{text-align:center;padding:18px 16px 10px}
+.my-tsum{width:142px;height:142px;margin:0 auto;background:#1e293b;border:5px solid #64748b;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 26px #0008;overflow:hidden}
+.my-tsum canvas{width:124px;height:124px;position:relative;z-index:1}
+.badge{position:absolute;z-index:3;border-radius:8px;padding:2px 7px;font-size:11px;font-weight:1000;box-shadow:0 2px 5px #0007}
+.badge-rank{top:9px;left:9px}.badge-lv{right:8px;bottom:8px;background:#4f46e5}
+.change{display:inline-block;margin-top:-8px;background:linear-gradient(90deg,#facc15,#f59e0b);color:#111827;border:2px solid #020617;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:1000;position:relative;z-index:5}
+.play-btn{width:260px;font-size:30px;margin:18px auto 0;display:block;letter-spacing:.08em}
+.section{margin:12px 14px;padding:14px}
+.section-title{font-size:13px;font-weight:1000;letter-spacing:.08em;margin-bottom:8px}
+.small-btn{padding:8px 10px;border-radius:12px;font-size:12px;font-weight:900;background:#334155}
+.canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle,#1e1b4b,#05020d)}
+#gameCanvas{width:100%;height:100%;max-width:400px;max-height:500px;aspect-ratio:4/5;touch-action:none;display:block}
+.game-ui{position:absolute;inset:0;pointer-events:none}
+.hud-left{position:absolute;top:12px;left:12px;background:#0f172acc;border:1px solid #475569;border-radius:18px;padding:9px 12px;backdrop-filter:blur(4px)}
+.score{font-size:28px;color:#fde047;font-weight:1000;line-height:1}
+.hud-right{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:auto}
+.pause{width:42px;height:42px;border-radius:50%;background:#1e293bee;border:1px solid #64748b;font-size:20px}
+.timer{background:#1e293bee;border:2px solid #64748b;border-radius:999px;padding:3px 18px;font-size:32px;font-weight:1000}
+.fever-box{position:absolute;top:94px;left:12px;width:140px;background:#0f172acc;border:1px solid #475569;border-radius:14px;padding:8px}
+.bar-bg{height:11px;background:#020617;border:1px solid #334155;border-radius:999px;overflow:hidden}
+.bar{height:100%;width:0;background:linear-gradient(90deg,#fb7185,#a78bfa,#22d3ee)}
+.combo{position:absolute;top:150px;left:12px;width:135px;text-align:center;background:#0f172acc;border:1px solid #334155;border-radius:18px;padding:5px}
+.combo b{font-size:36px}
+.combo-warn{position:absolute;top:216px;left:12px;background:#f97316;color:#111827;border-radius:14px;padding:5px 9px;font-size:11px;font-weight:1000;animation:pulse .55s infinite alternate}
+.rating{position:absolute;top:260px;left:50%;transform:translateX(-50%);background:#facc15;color:#111827;border-radius:999px;padding:8px 18px;font-weight:1000;box-shadow:0 8px 24px #0008}
+.footer{height:96px;background:#0f172a;border-top:2px solid #334155;display:flex;gap:12px;align-items:center;padding:10px 14px;flex-shrink:0;z-index:20}
+.skill-area{flex:1}.skillbar{height:28px;background:#020617;border:2px solid #334155;border-radius:999px;padding:2px;overflow:hidden}
+.skill-ready{border-color:#22d3ee!important;animation:pulse .75s infinite alternate;box-shadow:0 0 18px #22d3ee66}
+#btnSkill{width:82px;height:66px;border:2px solid #334155;border-radius:18px;background:#1e293b;font-weight:1000}
+#btnShuffle{width:66px;height:66px;border-radius:18px;font-size:26px;background:#1e293b;border:2px solid #475569}
+.modal{position:absolute;inset:0;background:#020617dc;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(5px)}
+.modal-box{width:100%;max-width:380px;max-height:88vh;overflow:auto;background:#1e293b;border:1px solid #64748b;border-radius:28px;padding:20px;box-shadow:0 20px 50px #000;animation:pop .2s ease-out}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(1.25)}}
+.tsum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.tsum-cell{height:76px;border-radius:18px;background:#0f172a;border:3px solid #334155;position:relative;display:flex;align-items:center;justify-content:center}
+.tsum-cell canvas{width:58px;height:58px}
+.locked{opacity:.28;filter:grayscale(1)}
+.tabbar{display:flex;gap:6px;margin-bottom:10px}.tabbar button{flex:1;padding:9px;border-radius:12px;background:#334155;font-size:12px;font-weight:900}.tabbar .active{background:#4f46e5}
+.list{display:flex;flex-direction:column;gap:8px}
+.list-item{background:#0f172a;border:1px solid #334155;border-radius:16px;padding:10px}
+.cut{position:absolute;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;pointer-events:none;background:#0006}
+.cut-inner{width:115%;height:170px;display:flex;align-items:center;justify-content:center;gap:12px;transform:skewX(-12deg);font-size:42px;font-weight:1000;color:white;text-shadow:0 5px 8px #000;animation:cutin 1.15s ease-in-out forwards}
+.cut-ss .cut-inner{height:230px;font-size:54px;background:linear-gradient(90deg,transparent,#ef4444,#facc15,#8b5cf6,transparent);box-shadow:0 0 50px #facc15}
+.cut-normal .cut-inner{background:linear-gradient(90deg,transparent,#06b6d4,transparent)}
+@keyframes cutin{0%{transform:translateX(-110%) skewX(-12deg);opacity:0}15%,82%{transform:translateX(0) skewX(-12deg);opacity:1}100%{transform:translateX(110%) skewX(-12deg);opacity:0}}
+.new-record{animation:record 1s infinite alternate}
+@keyframes record{from{text-shadow:0 0 10px #facc15;transform:scale(1)}to{text-shadow:0 0 30px #fb7185;transform:scale(1.04)}}
+.fever-flash{animation:bgflash .45s infinite alternate}
+@keyframes bgflash{from{box-shadow:inset 0 0 60px #fb718588;background:#1e1b4b}to{box-shadow:inset 0 0 130px #a78bfa;background:#581c87}}
+textarea{width:100%;min-height:70px;background:#020617;color:#f8fafc;border:1px solid #475569;border-radius:14px;padding:10px;font-size:12px}
+.input{width:100%;background:#020617;color:#f8fafc;border:1px solid #475569;border-radius:12px;padding:10px;font-size:12px}
+.notice{background:#0f172a;border:1px solid #334155;border-radius:16px;padding:10px;font-size:12px;line-height:1.55}
 
-        .fever-bg { animation: discoBg 0.5s infinite alternate; }
-        .fever-bg-light { background-color: #2e0854 !important; }
-        @keyframes discoBg {
-            0% { box-shadow: inset 0 0 60px rgba(244, 63, 94, 0.5); background-color: #1e1b4b; }
-            100% { box-shadow: inset 0 0 120px rgba(168, 85, 247, 0.85); background-color: #3b0764; }
-        }
-        .combo-pop { animation: popText 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes popText {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .btn-push { transition: transform 0.08s, box-shadow 0.08s, filter 0.08s; }
-        .btn-push:active { transform: translateY(4px); box-shadow: 0 0px 0 0; filter: brightness(0.9); }
-        ::-webkit-scrollbar { display: none; }
-        .modal-enter { animation: fadeIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        
-        .cutin-slide { animation: slideInFade 1.4s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
-        @keyframes slideInFade {
-            0% { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
-            15% { transform: translateX(0) skewX(-15deg); opacity: 1; }
-            85% { transform: translateX(0) skewX(-15deg); opacity: 1; }
-            100% { transform: translateX(120%) skewX(-15deg); opacity: 0; }
-        }
 
-        .rainbow-glow { animation: rainbowAnim 2.5s linear infinite; }
-        @keyframes rainbowAnim {
-            0% { border-color: #ff007f; box-shadow: 0 0 30px #ff007f; }
-            33% { border-color: #00ff66; box-shadow: 0 0 30px #00ff66; }
-            66% { border-color: #00ffff; box-shadow: 0 0 30px #00ffff; }
-            100% { border-color: #ff007f; box-shadow: 0 0 30px #ff007f; }
-        }
-        .sparkle-slow { animation: spinSlow 12s linear infinite; }
-        @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    </style>
+/* === V8 UI READABILITY PATCH: 見やすさ・押しやすさ改善 === */
+:root{
+  --readable-card: rgba(30,41,59,.96);
+  --readable-border: rgba(148,163,184,.42);
+  --readable-text: #f8fafc;
+  --readable-sub: #cbd5e1;
+}
+body{font-weight:600;letter-spacing:.01em}
+.top{height:62px;padding:0 12px;background:linear-gradient(180deg,#1f2937,#0f172a);gap:8px}
+.pill{min-height:34px;padding:6px 10px;font-size:14px;box-shadow:inset 0 1px 0 #ffffff18;white-space:nowrap}
+.pill small{font-size:11px;color:#cbd5e1;font-weight:900}
+.logo small{font-size:10px;color:#a5b4fc;letter-spacing:.08em}.logo b{font-size:22px;line-height:1.05}
+.home-head{padding:18px 16px}.home-head .row{align-items:flex-start}.big-score{font-size:38px;letter-spacing:.01em;text-shadow:0 2px 10px #0008}.mini{font-size:11.5px;line-height:1.45;color:var(--readable-sub);font-weight:900}.section{margin:14px 14px;padding:16px}.section-title{font-size:15px;line-height:1.35;margin-bottom:10px;color:#fff}.notice{font-size:13.5px;line-height:1.75;padding:12px 13px;background:#111827;border-color:#475569;color:#eef2ff}.card{background:var(--readable-card);border-color:var(--readable-border);box-shadow:0 12px 28px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04)}
+.btn,.small-btn,#btnShuffle,#btnSkill,.pause,.tsum-cell{min-height:46px;touch-action:manipulation}.btn{font-size:15px;padding:13px 15px;border-radius:20px;line-height:1.25}.small-btn{padding:10px 12px;border-radius:14px;font-size:13px;background:#334155;border:1px solid #64748b;box-shadow:0 3px 0 #111827}.play-btn{width:min(290px,86vw);font-size:32px;padding:15px 16px;margin-top:20px}.grid2{gap:12px}.grid2 .btn{min-height:64px}.my-wrap{padding-top:20px}.my-tsum{width:150px;height:150px;border-width:6px}.my-tsum canvas{width:132px;height:132px}.change{font-size:12px;padding:6px 16px}.badge{font-size:12px;padding:3px 8px}
+.canvas-wrap{background:radial-gradient(circle at 50% 18%,#312e81,#111827 58%,#020617)}.hud-left{top:12px;left:10px;min-width:132px;padding:10px 12px;border-radius:20px;background:rgba(15,23,42,.88)}.score{font-size:clamp(24px,7.2vw,34px);letter-spacing:.01em}.hud-right{top:12px;right:10px}.pause{width:46px;height:46px;font-size:21px}.timer{font-size:34px;min-width:78px;text-align:center;padding:4px 18px}.fever-box{top:100px;left:10px;width:152px;padding:9px;border-radius:16px;background:rgba(15,23,42,.88)}.bar-bg{height:13px}.combo{top:164px;left:10px;width:146px;padding:7px;border-radius:20px;background:rgba(15,23,42,.90)}.combo b{font-size:38px}.combo-warn{top:236px;left:10px;font-size:12.5px;padding:7px 10px;border-radius:16px}.rating{font-size:16px;padding:10px 22px;z-index:30}.footer{height:104px;padding:12px 14px;gap:12px;background:linear-gradient(180deg,#111827,#0f172a)}.skill-area .mini{font-size:12px;margin-bottom:4px}.skillbar{height:30px}.skillbar .bar,.bar-bg .bar{transition:width .16s ease-out}#btnSkill{width:88px;height:72px;font-size:14px;border-radius:20px}#btnSkill small{font-size:11px}#btnShuffle{width:70px;height:70px;font-size:28px;border-radius:20px}.modal{padding:14px}.modal-box{max-width:398px;max-height:90vh;padding:22px;border-radius:30px;background:linear-gradient(180deg,#1e293b,#111827);border-color:#94a3b8;line-height:1.65}.modal-box h1,.modal-box h2,.modal-box h3{margin-top:0;line-height:1.25}.modal-box h2{font-size:24px;text-align:center;margin-bottom:14px}.modal-box h3{font-size:16px;margin:16px 0 8px}.modal-box .notice{font-size:14px}.modal-box .btn{font-size:15px;min-height:50px}.list{gap:10px}.list-item{font-size:13.5px;line-height:1.6;padding:12px;border-radius:18px;background:#111827;border-color:#475569}.list-item b{font-size:14.5px}.list-item .mini{font-size:11.5px;color:#cbd5e1}.tsum-grid{gap:12px}.tsum-cell{height:84px;border-radius:20px;border-width:3px}.tsum-cell canvas{width:64px;height:64px}.tabbar button{font-size:13px;min-height:42px}.cut-inner{font-size:42px;text-align:center}.cut-ss .cut-inner{font-size:46px}textarea,.input{font-size:13px;line-height:1.6;min-height:82px;border-color:#64748b}.new-record{animation:record 0.8s infinite alternate}
+@media(max-width:380px){
+  .top{height:60px;padding:0 8px}.pill{font-size:12.5px;padding:5px 8px}.logo b{font-size:19px}.logo small{font-size:8.5px}.small-btn{font-size:12px;padding:9px 9px}.home-head{padding:15px 12px}.big-score{font-size:32px}.section{margin:12px 10px;padding:13px}.notice{font-size:12.5px}.play-btn{font-size:28px}.grid2{gap:9px}.footer{height:100px;padding:10px}.hud-left{min-width:118px}.score{font-size:24px}.timer{font-size:30px}.fever-box{width:136px}.combo{width:132px}.modal-box{padding:18px}.modal-box h2{font-size:22px}.tsum-grid{gap:9px}.tsum-cell{height:78px}
+}
+
+</style>
 </head>
 <body>
-    <div id="app-container">
-        <!-- トップグローバルヘッダー (ハートとコイン) -->
-        <div class="h-14 bg-slate-800 flex items-center justify-between px-4 z-50 shadow-md shrink-0 border-b border-slate-700">
-            <div class="flex items-center space-x-2 bg-slate-750 rounded-full px-3 py-1 border border-slate-600 shadow-inner">
-                <span class="text-rose-500 text-lg leading-none">❤️</span>
-                <span id="heart-count" class="font-bold text-base tabular-nums">5/5</span>
-                <span id="heart-timer" class="text-[10px] text-slate-400 font-mono w-10 text-right">0:00</span>
-            </div>
-            <!-- ゲームタイトルロゴ -->
-            <div class="text-center">
-                <span class="text-xs text-indigo-400 font-black block tracking-widest leading-none">CUTE TOY PUZZLE</span>
-                <span class="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-400 to-cyan-300 drop-shadow-md">トイパズ！</span>
-            </div>
-            <div class="flex items-center space-x-2 bg-slate-750 rounded-full px-3 py-1 border border-slate-600 shadow-inner">
-                <span class="text-yellow-400 text-lg leading-none">🪙</span>
-                <span id="coin-count" class="font-bold text-base tabular-nums tracking-wide">0</span>
-            </div>
+<div id="app">
+  <div class="top">
+    <div class="pill">❤️ <span id="heartCount">5/5</span> <small id="heartTimer">MAX</small></div>
+    <div class="logo"><small>V8 UI STABLE</small><b>トイパズ！</b></div>
+    <div class="pill">🪙 <span id="coinCount">0</span></div>
+  </div>
+
+  <div id="home" class="view scroll">
+    <div class="home-head">
+      <div class="row">
+        <div><div class="mini">ハイスコア</div><div id="homeHigh" class="big-score">0</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="small-btn" id="btnCodex">📘 図鑑</button>
+          <button class="small-btn" id="btnRanking">🏆 ランキング</button>
+          <button class="small-btn" id="btnSettings">⚙️ 設定</button>
         </div>
-
-        <!-- ========================================== -->
-        <!-- 画面1: ホーム画面 -->
-        <!-- ========================================== -->
-        <div id="view-home" class="flex-grow flex flex-col relative z-40 overflow-y-auto pb-6 bg-slate-900">
-            <!-- プレイヤーハイスコア -->
-            <div class="p-4 bg-gradient-to-b from-slate-800 to-slate-900 border-b border-slate-800 shadow-md shrink-0">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-[10px] text-slate-400 font-black tracking-widest uppercase">WEEKLY HIGH SCORE</p>
-                        <p id="home-highscore" class="text-3xl font-black text-yellow-300 drop-shadow-md tabular-nums">0</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="showTutorial(false)" class="bg-indigo-600 hover:bg-indigo-500 text-white w-9 h-9 rounded-full shadow-lg active:scale-90 flex items-center justify-center font-bold">❓</button>
-                        <button onclick="showSettings()" class="bg-slate-700 hover:bg-slate-600 text-white w-9 h-9 rounded-full shadow-lg active:scale-90 flex items-center justify-center">⚙️</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- マイツムとプレイボタン -->
-            <div class="flex flex-col items-center justify-center mt-6 space-y-6 shrink-0 relative px-4">
-                <!-- マイツム表示 -->
-                <div class="relative group cursor-pointer active:scale-95 transition-transform" onclick="showTsumSelect()">
-                    <div class="w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-500 shadow-[0_10px_20px_rgba(0,0,0,0.6)] overflow-hidden relative">
-                        <div id="home-mytsum-bg" class="absolute inset-0 opacity-40 transition-colors"></div>
-                        <span id="home-mytsum-emoji" class="text-7xl drop-shadow-md z-10">🐭</span>
-                        <div id="home-mytsum-rank" class="absolute top-2 left-2 bg-rose-500 text-white font-black px-1.5 py-0.5 rounded text-[10px] shadow z-20">SS</div>
-                        <div id="home-mytsum-level" class="absolute bottom-2 right-2 bg-indigo-600 text-white font-black px-2 py-0.5 rounded-full text-[10px] border border-indigo-400 shadow z-20">Lv.1</div>
-                    </div>
-                    <div class="absolute -bottom-2 right-0 left-0 mx-auto w-24 bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 text-[10px] font-black py-1.5 rounded-full border-2 border-slate-950 text-center shadow-lg tracking-widest">ツム変更</div>
-                </div>
-                
-                <!-- PLAYボタン -->
-                <button id="btn-goto-shop" class="w-64 bg-gradient-to-b from-rose-500 to-rose-700 hover:from-rose-400 hover:to-rose-600 text-white font-black text-3xl py-4 rounded-full shadow-[0_6px_0_#9f1239] btn-push flex justify-center items-center gap-2 border-2 border-rose-400 tracking-wider">
-                    PLAY <span class="text-xl">▶</span>
-                </button>
-            </div>
-
-            <!-- ミッション -->
-            <div class="mx-4 mt-6 bg-slate-800 rounded-3xl p-4 border border-slate-700 shrink-0 shadow-xl">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-xs font-black text-slate-300 flex items-center tracking-wider">
-                        <span class="mr-1.5 text-indigo-400">📋</span> 本日のミッション
-                    </h3>
-                    <span id="mission-status" class="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-700 text-slate-400 tracking-widest">挑戦中</span>
-                </div>
-                <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800">
-                    <p id="mission-desc" class="text-xs font-bold text-white mb-1 leading-relaxed">---</p>
-                    <div class="flex justify-between items-center mt-2">
-                        <span class="text-[9px] text-slate-400">※1プレイのスコアで判定されます</span>
-                        <div class="bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">
-                            <span class="text-[9px] text-slate-400 block font-bold text-center leading-none mb-0.5">報酬</span>
-                            <span id="mission-reward" class="text-xs font-black text-yellow-400 tabular-nums">🪙 200</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ガチャBOX -->
-            <div class="mx-4 mt-4 bg-gradient-to-r from-indigo-950 to-slate-800 rounded-3xl p-4 border border-indigo-800 flex justify-between items-center shrink-0 shadow-xl">
-                <div>
-                    <h3 class="text-sm font-black text-white flex items-center gap-1 tracking-wider">🎁 プレミアムBOX</h3>
-                    <p class="text-[10px] text-indigo-200 mt-1">新ツムや強ツムをゲット！</p>
-                </div>
-                <div class="flex gap-2">
-                    <button id="btn-gacha-1" class="bg-gradient-to-b from-yellow-400 to-amber-600 text-slate-950 font-black px-4 py-2.5 rounded-2xl shadow-[0_4px_0_#b45309] btn-push text-xs border border-yellow-300">
-                        1回 🪙1K
-                    </button>
-                    <button id="btn-gacha-10" class="bg-gradient-to-b from-cyan-400 to-blue-600 text-white font-black px-4 py-2.5 rounded-2xl shadow-[0_4px_0_#0284c7] btn-push text-xs border border-cyan-300">
-                        10連 🪙10K
-                    </button>
-                </div>
-            </div>
-            <div class="h-6 shrink-0"></div>
-        </div>
-
-        <!-- ========================================== -->
-        <!-- 画面1.5: プレイ前ショップ (アイテム選択) -->
-        <!-- ========================================== -->
-        <div id="view-shop" class="flex-grow flex flex-col relative z-40 bg-slate-900 hidden">
-            <div class="p-4 border-b border-slate-800 shrink-0">
-                <h2 class="text-lg font-black text-center text-white tracking-widest">アイテム選択</h2>
-                <p class="text-center text-[10px] text-slate-400 mt-1">コインを消費してプレイを有利に進めよう！</p>
-            </div>
-            <!-- アイテムリスト -->
-            <div class="flex-grow overflow-y-auto p-4 space-y-3">
-                <div class="grid grid-cols-1 gap-3" id="item-container">
-                    <!-- JSでブースターを動的生成 -->
-                </div>
-            </div>
-            <div class="p-4 bg-slate-950/80 border-t border-slate-800 flex gap-3 shrink-0">
-                <button onclick="backToHomeFromShop()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3.5 rounded-full active:scale-95 transition-transform text-sm shadow-md">
-                    キャンセル
-                </button>
-                <button onclick="startGameAfterShop()" class="flex-1 bg-gradient-to-b from-rose-500 to-rose-700 text-white font-black py-3.5 rounded-full shadow-[0_4px_0_#be123c] btn-push text-base border border-rose-400">
-                    スタート！
-                </button>
-            </div>
-        </div>
-
-        <!-- ========================================== -->
-        <!-- 画面2: ゲーム画面 (Canvas) -->
-        <!-- ========================================== -->
-        <div id="view-game" class="flex-grow flex flex-col relative z-30 hidden">
-            <!-- コマンドカットインレイヤー -->
-            <div id="layer-skill-cutin" class="absolute inset-0 z-40 pointer-events-none hidden flex items-center justify-center overflow-hidden">
-                <div class="absolute inset-0 bg-black/40"></div>
-                <div id="skill-cutin-box" class="w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent h-40 flex items-center justify-center transform -translate-x-full border-y border-cyan-300/50 shadow-[0_0_30px_rgba(6,182,212,0.5)]">
-                    <span id="skill-cutin-emoji" class="text-7xl drop-shadow-lg scale-110">🐭</span>
-                    <span class="text-white font-black text-5xl ml-4 italic tracking-widest drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">SKILL!</span>
-                </div>
-            </div>
-
-            <!-- ゲームヘッダー -->
-            <div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start z-20 pointer-events-none">
-                <div class="bg-slate-900/80 px-4 py-2 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-sm">
-                    <p class="text-[9px] text-slate-400 font-bold tracking-widest">SCORE</p>
-                    <p id="game-score" class="text-3xl font-black text-yellow-300 drop-shadow-md tabular-nums leading-none mt-1">0</p>
-                </div>
-                
-                <div class="flex flex-col items-end pointer-events-auto">
-                    <button id="btn-pause" class="bg-slate-800/90 hover:bg-slate-700 p-2 rounded-full border border-slate-600 mb-2 active:scale-95 shadow-lg text-lg flex items-center justify-center w-10 h-10 text-white transition-colors">
-                        ⏸
-                    </button>
-                    <div id="game-timer-box" class="bg-slate-800/95 px-4 py-1.5 rounded-full border-2 border-slate-500 shadow-xl text-center min-w-[70px]">
-                        <p id="game-timer" class="text-3xl font-black text-white tabular-nums leading-none">60</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- フィーバーゲージ & コンボ & チェーン評価ポップ -->
-            <div class="absolute top-24 left-3 z-10 w-36 pointer-events-none">
-                <div id="fever-ui" class="bg-slate-900/80 border border-slate-600 rounded-xl p-2 backdrop-blur-sm transition-all duration-300 shadow-lg">
-                    <p class="text-[9px] text-center font-black text-slate-300 tracking-widest">FEVER</p>
-                    <div class="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden mt-1 border border-slate-700/50">
-                        <div id="fever-bar" class="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 w-0 transition-all duration-200"></div>
-                    </div>
-                </div>
-                
-                <!-- コンボ表示 -->
-                <div id="combo-display" class="mt-4 hidden text-center combo-pop bg-slate-900/80 rounded-2xl py-1 px-2 backdrop-blur-sm border border-slate-700/50 shadow-lg">
-                    <span id="combo-count" class="text-4xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tabular-nums leading-none">12</span>
-                    <span class="text-[9px] font-black text-yellow-400 block mt-0.5 tracking-widest">COMBO</span>
-                </div>
-
-                <!-- チェーン評価 (GOOD, GREAT, EXCELLENT) -->
-                <div id="chain-rating-display" class="mt-3 hidden text-center combo-pop bg-yellow-400/90 rounded-xl py-1 px-2 border border-yellow-200 shadow-lg">
-                    <span id="chain-rating-text" class="text-slate-950 font-black text-xs tracking-wider">GREAT!</span>
-                </div>
-            </div>
-
-            <!-- キャンバスラッパー -->
-            <div id="canvas-wrapper">
-                <canvas id="game-canvas" width="400" height="500"></canvas>
-            </div>
-
-            <!-- ゲームフッター (スキル・シャッフル) -->
-            <div class="h-24 shrink-0 w-full px-4 py-2 bg-slate-900 border-t-2 border-slate-700 flex justify-between items-center gap-4 z-20 relative shadow-[0_-10px_20px_rgba(0,0,0,0.4)]">
-                <button id="btn-shuffle" class="bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 rounded-2xl active:scale-95 transition-transform text-2xl w-16 h-16 shadow-lg flex items-center justify-center shrink-0">
-                    🌪️
-                </button>
-                
-                <div class="flex-grow flex flex-col justify-center max-w-[200px]">
-                    <div class="flex justify-between items-end mb-1 px-1">
-                        <span class="text-[9px] font-black text-slate-400 tracking-widest">SKILL GAUGE</span>
-                    </div>
-                    <div class="h-7 w-full bg-slate-950 rounded-full border-2 border-slate-700 overflow-hidden relative shadow-inner p-0.5">
-                        <div id="skill-bar" class="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 w-0 transition-all duration-300"></div>
-                    </div>
-                </div>
-
-                <button id="btn-skill" disabled class="bg-slate-800 text-slate-500 border-2 border-slate-700 rounded-2xl font-black text-sm w-20 h-16 shadow-lg transition-all flex flex-col items-center justify-center pointer-events-auto shrink-0 relative overflow-hidden group">
-                    <span id="skill-mytsum-emoji" class="text-2xl opacity-50 z-10 transition-transform">🐭</span>
-                    <span class="text-[9px] z-10 mt-0.5 tracking-widest">発動</span>
-                    <div id="skill-ready-fx" class="absolute inset-0 bg-white opacity-0 transition-opacity"></div>
-                </button>
-            </div>
-        </div>
-
-        <!-- ========================================== -->
-        <!-- オーバーレイ・モーダル群 -->
-        <!-- ========================================== -->
-
-        <!-- 汎用アラートモーダル -->
-        <div id="modal-alert" class="absolute inset-0 bg-slate-950/80 z-[100] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-slate-800 w-full max-w-xs rounded-3xl p-6 border border-slate-600 shadow-2xl text-center modal-enter">
-                <p id="alert-msg" class="text-sm font-bold text-white mb-6 whitespace-pre-wrap leading-relaxed"></p>
-                <button onclick="closeAlert()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-colors active:scale-95 shadow-md">
-                    OK
-                </button>
-            </div>
-        </div>
-
-        <!-- マイツム選択 -->
-        <div id="modal-tsum-select" class="absolute inset-0 bg-slate-950/90 z-[60] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-5 border border-slate-600 shadow-2xl flex flex-col max-h-[85vh] modal-enter">
-                <h2 class="text-lg font-black text-center mb-4 text-white tracking-widest">マイツムを選択</h2>
-                <div class="bg-slate-900 p-3 rounded-xl mb-4 shrink-0 text-center border border-slate-700 shadow-inner">
-                    <p class="text-[10px] text-slate-400 mb-1 font-bold">選択中のスキル</p>
-                    <p id="tsum-select-skill-desc" class="text-xs font-bold text-cyan-300 leading-snug">---</p>
-                </div>
-                <div id="tsum-list" class="grid grid-cols-4 gap-3 mb-4 overflow-y-auto p-2 scroll-smooth">
-                    <!-- JSで動的生成 -->
-                </div>
-                <button onclick="hideTsumSelect()" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3.5 rounded-xl active:scale-95 shrink-0 mt-auto shadow-md">
-                    閉じる
-                </button>
-            </div>
-        </div>
-
-        <!-- ガチャ結果 -->
-        <div id="modal-gacha" class="absolute inset-0 bg-slate-950/95 z-[70] hidden flex-col items-center justify-center p-4">
-            <div class="text-center">
-                <h2 class="text-3xl font-black text-yellow-400 mb-4 animate-bounce tracking-widest drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]">PREMIUM BOX OPEN!</h2>
-                <p id="gacha-status" class="text-xs text-indigo-300 font-bold mb-6 animate-pulse tracking-widest">ドキドキ... 虹色の光が走る！</p>
-            </div>
-            
-            <div class="relative w-60 h-60 flex items-center justify-center">
-                <!-- 後光エフェクト -->
-                <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-yellow-400 via-pink-500 to-indigo-500 rounded-full animate-spin sparkle-slow filter blur-xl opacity-75"></div>
-                <!-- 豪華な枠線 -->
-                <div id="gacha-frame" class="w-48 h-48 bg-slate-900/90 rounded-full flex items-center justify-center border-8 rainbow-glow shadow-[0_0_50px_rgba(250,204,21,0.8)] relative overflow-hidden z-10 transition-all duration-700 scale-90">
-                    <div id="gacha-bg" class="absolute inset-0 opacity-40 transition-colors duration-500"></div>
-                    <span id="gacha-emoji" class="text-9xl z-10 scale-0 transition-transform duration-[800ms] ease-out drop-shadow-[0_5px_10px_rgba(0,0,0,0.7)]">❓</span>
-                    <!-- ランクバッジ -->
-                    <div id="gacha-rank-badge" class="absolute top-4 left-4 bg-yellow-400 text-slate-950 font-black px-2.5 py-1 rounded-md text-sm shadow-md z-20 hidden">S</div>
-                </div>
-            </div>
-
-            <p id="gacha-name" class="mt-8 text-3xl font-black text-white opacity-0 transition-opacity duration-500 drop-shadow">???</p>
-            <div id="gacha-desc-box" class="mt-3 text-center opacity-0 transition-opacity duration-500 max-w-xs px-4">
-                <p id="gacha-msg" class="text-xs text-cyan-300 font-bold bg-slate-900/80 px-4 py-2 rounded-full border border-cyan-800/50">新ツムを解放！</p>
-                <div id="gacha-skill" class="text-[10px] text-slate-300 mt-2 bg-slate-800 p-2 rounded-lg border border-slate-700 leading-relaxed max-h-24 overflow-y-auto"></div>
-            </div>
-
-            <button id="btn-gacha-close" class="mt-10 w-48 bg-white hover:bg-slate-100 text-slate-900 font-black py-4 rounded-full opacity-0 transition-opacity duration-500 active:scale-95 shadow-2xl tracking-widest">
-                OK
-            </button>
-        </div>
-
-        <!-- ポーズメニュー -->
-        <div id="modal-pause" class="absolute inset-0 bg-slate-950/80 z-[60] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-slate-800 w-full max-w-xs rounded-3xl p-6 border border-slate-600 shadow-2xl text-center modal-enter">
-                <h2 class="text-3xl font-black text-white mb-8 tracking-widest">PAUSE</h2>
-                <div class="space-y-4">
-                    <button id="btn-resume" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-xl py-4 rounded-xl shadow-lg active:scale-95 transition-transform">
-                        ▶ 再開する
-                    </button>
-                    <button id="btn-quit" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3.5 rounded-xl active:scale-95 transition-transform">
-                        ⏹ ホームへ戻る
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- マイツムマジカルタイム（プレイ延長）モーダル -->
-        <div id="modal-magical-time" class="absolute inset-0 bg-slate-950/90 z-[60] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-gradient-to-b from-indigo-900 to-slate-900 w-full max-w-sm rounded-3xl p-6 border-4 border-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.5)] text-center modal-enter">
-                <h2 class="text-3xl font-black text-yellow-400 mb-2 italic tracking-wider drop-shadow">MAGICAL TIME</h2>
-                <p class="text-sm font-bold text-indigo-200 mb-6 bg-indigo-950/50 py-2 rounded-lg border border-indigo-800">あと少しでハイスコア更新！</p>
-                
-                <div class="text-6xl mb-6 drop-shadow-md animate-pulse">⏱ +10s</div>
-                
-                <div class="space-y-4">
-                    <button id="btn-extend-coin" class="w-full bg-gradient-to-b from-yellow-400 to-amber-600 text-slate-900 font-black text-xl py-4 rounded-xl shadow-[0_4px_0_#b45309] active:translate-y-[4px] active:shadow-none flex items-center justify-center gap-2 transition-all">
-                        <span>🪙 300</span> <span class="text-sm">消費して延長</span>
-                    </button>
-                    <button id="btn-extend-giveup" class="w-full text-slate-400 font-bold py-3 underline active:text-white transition-colors">
-                        あきらめる
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- リザルト画面 -->
-        <div id="modal-result" class="absolute inset-0 bg-slate-950/90 z-[60] hidden flex-col items-center justify-center p-4 backdrop-blur-md">
-            <h2 class="text-4xl font-black text-white mb-4 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] modal-enter">RESULT</h2>
-            
-            <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-5 border-2 border-slate-600 shadow-2xl space-y-4 text-center modal-enter" style="animation-delay: 0.1s;">
-                <div class="bg-slate-900 rounded-2xl p-4 border border-slate-700 relative overflow-hidden shadow-inner">
-                    <p class="text-xs text-slate-400 font-bold tracking-widest">FINAL SCORE</p>
-                    <p id="result-score" class="text-5xl font-black text-yellow-400 drop-shadow-md tabular-nums mt-1 leading-none">0</p>
-                    <div id="result-highscore-label" class="absolute top-2 right-[-24px] bg-rose-500 text-white text-[10px] font-black py-1 px-8 transform rotate-45 shadow-md hidden tracking-widest">NEW HIGH!</div>
-                </div>
-
-                <!-- マイツム獲得EXP＆レベルアップ進捗 -->
-                <div class="bg-slate-900 rounded-2xl p-3 border border-slate-700">
-                    <div class="flex items-center justify-between mb-1 px-1">
-                        <span id="result-tsum-emoji" class="text-2xl">🐭</span>
-                        <div class="text-left flex-grow ml-3">
-                            <span class="text-xs font-black text-white" id="result-tsum-name">ミケネコ</span>
-                            <span class="text-[10px] text-indigo-300 font-bold ml-2" id="result-tsum-rank">Sランク</span>
-                        </div>
-                        <span class="text-xs font-black text-yellow-400" id="result-tsum-level">Lv.1</span>
-                    </div>
-                    <div class="h-3 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-700 relative">
-                        <div id="result-exp-bar" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 w-0 transition-all duration-1000"></div>
-                    </div>
-                    <div class="flex justify-between text-[8px] text-slate-400 mt-1 px-1">
-                        <span>EXP獲得+100!</span>
-                        <span id="result-level-up-alert" class="text-yellow-400 font-black hidden animate-pulse">LEVEL UP!! 🪙スコア倍率アップ！</span>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-700/50 rounded-xl p-3 border border-slate-600">
-                        <p class="text-[10px] text-slate-400 font-bold">獲得コイン</p>
-                        <p class="text-xl font-black text-white flex justify-center items-center gap-1 mt-0.5">
-                            <span class="text-yellow-400 text-sm">🪙</span> <span id="result-coins" class="tabular-nums">0</span>
-                        </p>
-                    </div>
-                    <div class="bg-slate-700/50 rounded-xl p-3 border border-slate-600">
-                        <p class="text-[10px] text-slate-400 font-bold">最大コンボ</p>
-                        <p class="text-xl font-black text-white mt-0.5 tabular-nums" id="result-max-combo">0</p>
-                    </div>
-                    <div class="bg-slate-700/50 rounded-xl p-3 border border-slate-600">
-                        <p class="text-[10px] text-slate-400 font-bold">フィーバー回数</p>
-                        <p class="text-xl font-black text-white mt-0.5 tabular-nums" id="result-fever-count">0</p>
-                    </div>
-                    <div class="bg-slate-700/50 rounded-xl p-3 border border-slate-600">
-                        <p class="text-[10px] text-slate-400 font-bold">消去ツム数</p>
-                        <p class="text-xl font-black text-white mt-0.5 tabular-nums" id="result-cleared-tsums">0</p>
-                    </div>
-                </div>
-
-                <!-- ミッション進捗報告 -->
-                <div id="result-mission-box" class="bg-indigo-900/40 rounded-xl p-3 border border-indigo-500/50 hidden">
-                    <p class="text-[10px] text-indigo-300 font-bold mb-1">ミッション判定</p>
-                    <p id="result-mission-text" class="text-xs text-white font-bold leading-relaxed">---</p>
-                    <p id="result-mission-reward" class="text-xs text-yellow-400 font-black mt-1.5 hidden bg-yellow-900/50 rounded p-1">CLEAR! 報酬獲得 🪙</p>
-                </div>
-            </div>
-
-            <div class="flex gap-3 mt-6 w-full max-w-sm px-4 modal-enter" style="animation-delay: 0.2s;">
-                <button onclick="returnToHome()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm py-4 rounded-full shadow-lg active:scale-95 transition-transform border border-slate-600">
-                    ホームへ
-                </button>
-                <button onclick="retryGame()" class="flex-1 bg-gradient-to-b from-rose-500 to-rose-700 text-white font-black text-lg py-4 rounded-full shadow-[0_4px_0_#be123c] active:translate-y-[4px] active:shadow-none transition-all">
-                    もう一度
-                </button>
-            </div>
-        </div>
-
-        <!-- チュートリアルモーダル -->
-        <div id="modal-tutorial" class="absolute inset-0 bg-slate-950/95 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-6 border border-slate-600 shadow-2xl modal-enter">
-                <h2 class="text-2xl font-black text-center text-white mb-5 tracking-widest">遊び方</h2>
-                <div class="space-y-4 text-xs text-slate-200 leading-relaxed">
-                    <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
-                        <p class="font-black text-yellow-400 mb-1 text-sm">1. ツムを繋げて消そう！</p>
-                        <p>同じツムをドラッグして<span class="font-bold text-white">3個以上</span>繋げます。指を離すと消えてスコアになります。</p>
-                    </div>
-                    <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
-                        <p class="font-black text-rose-400 mb-1 text-sm">2. ボムとフィーバー</p>
-                        <p><span class="font-bold text-white">7個以上</span>繋げるとタップで周りを消せる「ボム」が出現！たくさん消すと「フィーバー」に入りスコア3倍！</p>
-                    </div>
-                    <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
-                        <p class="font-black text-cyan-400 mb-1 text-sm">3. マイツムのスキル</p>
-                        <p>設定した「マイツム」を消すとゲージが貯まります。満タンになったらスキルボタンで一発逆転！</p>
-                    </div>
-                </div>
-                <button onclick="closeTutorial()" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl active:scale-95 transition-transform shadow-md">
-                    ゲームスタート！
-                </button>
-            </div>
-        </div>
-
-        <!-- 設定モーダル -->
-        <div id="modal-settings" class="absolute inset-0 bg-slate-950/90 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-6 border border-slate-600 shadow-2xl modal-enter">
-                <h2 class="text-xl font-black text-center text-white mb-6 tracking-widest">設定</h2>
-                
-                <div class="space-y-4 mb-6 text-sm">
-                    <label class="flex items-center justify-between bg-slate-700 p-3.5 rounded-xl cursor-pointer shadow-inner">
-                        <span class="font-bold">🔊 効果音</span>
-                        <input type="checkbox" id="setting-sfx" class="w-5 h-5 accent-indigo-500">
-                    </label>
-                    <label class="flex items-center justify-between bg-slate-700 p-3.5 rounded-xl cursor-pointer shadow-inner">
-                        <div>
-                            <span class="font-bold block">⚡ 軽量モード</span>
-                            <span class="text-[10px] text-slate-400">動作が重い場合にON (演出を減らします)</span>
-                        </div>
-                        <input type="checkbox" id="setting-light" class="w-5 h-5 accent-indigo-500">
-                    </label>
-                    <label class="flex items-center justify-between bg-slate-700 p-3.5 rounded-xl cursor-pointer shadow-inner">
-                        <span class="font-bold">📳 振動 (対応端末のみ)</span>
-                        <input type="checkbox" id="setting-vibrate" class="w-5 h-5 accent-indigo-500">
-                    </label>
-                </div>
-
-                <div class="space-y-3 border-t border-slate-600 pt-5">
-                    <button onclick="resetSaveData()" class="w-full border border-rose-500 text-rose-400 font-bold py-2.5 rounded-xl active:bg-rose-500/20 text-xs transition-colors">
-                        ⚠️ セーブデータをリセット
-                    </button>
-                    <button onclick="closeSettings()" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3.5 rounded-xl active:scale-95 transition-transform shadow-md">
-                        閉じる
-                    </button>
-                </div>
-            </div>
-        </div>
-
+      </div>
+    </div>
+    <div class="my-wrap">
+      <div class="my-tsum" id="btnTsumSelect" data-clickable="true">
+        <div id="myBg" style="position:absolute;inset:0;opacity:.38"></div>
+        <canvas id="myCanvas" width="140" height="140"></canvas>
+        <div id="myRank" class="badge badge-rank">C</div>
+        <div id="myLv" class="badge badge-lv">Lv.1</div>
+      </div>
+      <span class="change">ツム変更</span>
+      <button class="btn btn-main play-btn" id="btnPlay">プレイ ▶</button>
     </div>
 
-    <!-- === メインスクリプト === -->
-    <script>
-        // --- マスターデータ (全30種類) ---
-        const ALL_TSUMS = [
-            // C ランクツム (8種)
-            { id: 0, name: 'まるみみマウス', emoji: '🐭', color: '#ff4b4b', bg: 'bg-red-500', skillDesc: '【C】画面中央のツムを中範囲で消去するよ！', skillType: 'center', rank: 'C', baseScore: 100 },
-            { id: 1, name: 'アヒルおまる', emoji: '🦆', color: '#38bdf8', bg: 'bg-sky-400', skillDesc: '【C】画面中央のツムを消去するよ！', skillType: 'center', rank: 'C', baseScore: 100 },
-            { id: 2, name: 'どんぐりチップ', emoji: '🐿️', color: '#b45309', bg: 'bg-amber-800', skillDesc: '【C】どんぐりバースト！横ライン状にツムを消すよ！', skillType: 'horizontal_c', rank: 'C', baseScore: 105 },
-            { id: 3, name: 'ピンクポーク', emoji: '🐷', color: '#f472b6', bg: 'bg-pink-300', skillDesc: '【C】突進！ランダムにツムを8個消すよ！', skillType: 'random_c', rank: 'C', baseScore: 100 },
-            { id: 4, name: 'イエローパット', emoji: '🐥', color: '#fbbf24', bg: 'bg-yellow-300', skillDesc: '【C】ちいさな羽ばたき！縦ライン状にツムを消すよ！', skillType: 'vertical_c', rank: 'C', baseScore: 105 },
-            { id: 5, name: 'ハチミツベア', emoji: '🐻', color: '#f59e0b', bg: 'bg-amber-500', skillDesc: '【C】下部のツムをまとめてハチミツ消去！', skillType: 'bottom_c', rank: 'C', baseScore: 110 },
-            { id: 6, name: 'てんとう虫ドット', emoji: '🐞', color: '#ef4444', bg: 'bg-red-500', skillDesc: '【C】ランダムにツムを8個消すよ！', skillType: 'random_c', rank: 'C', baseScore: 100 },
-            { id: 7, name: 'ゴールドハニー', emoji: '🐝', color: '#facc15', bg: 'bg-yellow-400', skillDesc: '【C】画面中央をハチの巣状にハニー消去！', skillType: 'center', rank: 'C', baseScore: 115 },
-
-            // B ランクツム (6種)
-            { id: 8, name: 'うさみみロップ', emoji: '🐰', color: '#f472b6', bg: 'bg-pink-400', skillDesc: '【B】残り時間を少し(3秒)増やすよ！', skillType: 'time', rank: 'B', baseScore: 120 },
-            { id: 9, name: 'フォレストベア', emoji: '🐻‍❄️', color: '#94a3b8', bg: 'bg-slate-400', skillDesc: '【B】ランダムなツムを10個消去するよ！', skillType: 'random_b', rank: 'B', baseScore: 130 },
-            { id: 10, name: 'スマートフォックス', emoji: '🦊', color: '#ea580c', bg: 'bg-orange-600', skillDesc: '【B】キツネ火花！斜めライン状にツムを消すよ！', skillType: 'slash_b', rank: 'B', baseScore: 130 },
-            { id: 11, name: 'アイスペンギン', emoji: '🐧', color: '#0ea5e9', bg: 'bg-sky-500', skillDesc: '【B】吹雪！フィーバーゲージを30%アップするよ！', skillType: 'fever_charge', rank: 'B', baseScore: 125 },
-            { id: 12, name: 'もぐもぐコアラ', emoji: '🐨', color: '#64748b', bg: 'bg-slate-500', skillDesc: '【B】コアラボム！周囲のツムをまとめて消すよ！', skillType: 'center_b', rank: 'B', baseScore: 125 },
-            { id: 13, name: 'マウンテンモンキー', emoji: '🐒', color: '#854d0e', bg: 'bg-yellow-800', skillDesc: '【B】バナナスラッシュ！縦に2ラインツムを消すよ！', skillType: 'vertical_b', rank: 'B', baseScore: 130 },
-
-            // A ランクツム (6種)
-            { id: 14, name: 'モノクロパンダ', emoji: '🐼', color: '#1e293b', bg: 'bg-slate-700', skillDesc: '【A】マジカルボムを1個生成するよ！', skillType: 'bomb', rank: 'A', baseScore: 150 },
-            { id: 15, name: '招き大富豪', emoji: '🐱', color: '#fbbf24', bg: 'bg-yellow-400', skillDesc: '【A】招き猫！即座にコインを200〜500枚獲得するよ！', skillType: 'coin_grab', rank: 'A', baseScore: 160 },
-            { id: 16, name: 'しばっこワン', emoji: '🐕', color: '#fb923c', bg: 'bg-orange-400', skillDesc: '【A】穴掘り！ボムを強制的に2個生成するよ！', skillType: 'bomb2', rank: 'A', baseScore: 155 },
-            { id: 17, name: 'タイガークロー', emoji: '🐯', color: '#f97316', bg: 'bg-orange-500', skillDesc: '【A】クローアタック！斜め2本のクロスライン消去！', skillType: 'cross_a', rank: 'A', baseScore: 165 },
-            { id: 18, name: 'アイアンボット', emoji: '🤖', color: '#475569', bg: 'bg-slate-600', skillDesc: '【A】ロボビーム！縦ライン状にツムを極太消去！', skillType: 'vertical_a', rank: 'A', baseScore: 160 },
-            { id: 19, name: 'スペーストイ', emoji: '👽', color: '#a3e635', bg: 'bg-lime-400', skillDesc: '【A】UFO召喚！ランダムなツム14個を消し去るよ！', skillType: 'random_a', rank: 'A', baseScore: 170 },
-
-            // S ランクツム (5種)
-            { id: 20, name: 'サバンナレオ', emoji: '🦁', color: '#d97706', bg: 'bg-amber-600', skillDesc: '【S】王者咆哮！通常の2倍の強さの大ボムを2個生成！', skillType: 'big_bomb', rank: 'S', baseScore: 200 },
-            { id: 21, name: 'メルヘンコーン', emoji: '🦄', color: '#c084fc', bg: 'bg-purple-400', skillDesc: '【S】虹の奇跡！15秒間スコアが常時3倍になるよ！', skillType: 'rainbow_fever', rank: 'S', baseScore: 220 },
-            { id: 22, name: 'ゴールデンレオ', emoji: '🦁', color: '#f59e0b', bg: 'bg-amber-500', skillDesc: '【S】黄金の威光！消去されたツムからコインが多く出現！', skillType: 'coin_boost_s', rank: 'S', baseScore: 230 },
-            { id: 23, name: 'ウィングホース', emoji: '🐎', color: '#38bdf8', bg: 'bg-sky-400', skillDesc: '【S】天馬翔駆！ランダムなツム18個を消去するよ！', skillType: 'random_s', rank: 'S', baseScore: 210 },
-            { id: 24, name: 'ハロウィンナイト', emoji: '👻', color: '#cbd5e1', bg: 'bg-slate-300', skillDesc: '【S】ゴーストトリック！特定の1種類のツムを全て消去！', skillType: 'clear_one_type', rank: 'S', baseScore: 240 },
-
-            // SS ランクツム (5種)
-            { id: 25, name: 'インフェルノ', emoji: '🐦‍🔥', color: '#ef4444', bg: 'bg-red-500', skillDesc: '【SS】究極業火！画面の大部分(広範囲)を瞬時に焼き払う！', skillType: 'phoenix_megablast', rank: 'SS', baseScore: 350 },
-            { id: 26, name: 'カオスデビル', emoji: '👿', color: '#8b5cf6', bg: 'bg-violet-600', skillDesc: '【SS】魔界の重力！ランダムに28個のツムを消滅させる！', skillType: 'dark_obliterate', rank: 'SS', baseScore: 320 },
-            { id: 27, name: 'コスモロップ', emoji: '🐰', color: '#06b6d4', bg: 'bg-cyan-500', skillDesc: '【SS】星の祈り！時間を+5秒し、タイムボムを2個生成！', skillType: 'star_time_ss', rank: 'SS', baseScore: 300 },
-            { id: 28, name: 'アースドラゴン', emoji: '🐉', color: '#059669', bg: 'bg-emerald-600', skillDesc: '【SS】竜の逆鱗！斜めX字型に壊滅的なライン消去！', skillType: 'dragon_slash', rank: 'SS', baseScore: 340 },
-            { id: 29, name: '天帝ホウオウ', emoji: '🦚', color: '#0d9488', bg: 'bg-teal-600', skillDesc: '【SS】鳳翼天翔！画面上部と下部を同時に壊滅消去するよ！', skillType: 'phoenix_wings', rank: 'SS', baseScore: 330 }
-        ];
-
-        // 1プレイ判定ミッション群
-        const MISSIONS = [
-            { id: 0, type: 'fever', target: 2, desc: '1プレイでフィーバーを2回しよう', reward: 150 },
-            { id: 1, type: 'combo', target: 20, desc: '1プレイで最大20コンボを達成しよう', reward: 200 },
-            { id: 2, type: 'score', target: 50000, desc: '1プレイで50,000点以上を獲得しよう', reward: 250 },
-            { id: 3, type: 'bomb', target: 3, desc: '1プレイでマジカルボムを3回炸裂させよう', reward: 150 },
-            { id: 4, type: 'clear', target: 120, desc: '1プレイでツムを合計120個以上消そう', reward: 200 },
-            { id: 5, type: 'fever_hard', target: 4, desc: '1プレイでフィーバーを4回以上達成しよう', reward: 400 },
-            { id: 6, type: 'combo_hard', target: 40, desc: '1プレイで最大40コンボ以上の神技を決めよう', reward: 500 },
-            { id: 7, type: 'score_hard', target: 150000, desc: '1プレイで驚異の150,000点以上を獲得しよう', reward: 600 },
-            { id: 8, type: 'bomb_hard', target: 8, desc: '1プレイでボムを8回以上消し去ろう', reward: 300 },
-            { id: 9, type: 'clear_hard', target: 250, desc: '1プレイでツムを250個以上消滅させよう', reward: 500 },
-            { id: 10, type: 'coins', target: 100, desc: '1プレイでコインを100枚以上稼ぎ出そう', reward: 350 },
-            { id: 11, type: 'coins_hard', target: 300, desc: '1プレイでコインを300枚以上超獲得しよう', reward: 600 }
-        ];
-
-        // 5つのプレイ前ブースターアイテム
-        const BOOSTERS = [
-            { id: 'score', name: 'スコア+10%', desc: '最終スコアが10%アップします。', cost: 200, icon: '📈' },
-            { id: 'coin', name: 'コイン+10%', desc: '獲得したコインが10%アップします。', cost: 300, icon: '🪙' },
-            { id: 'time', name: 'タイム+5秒', desc: '制限時間が5秒追加された状態で始まります。', cost: 400, icon: '⏱️' },
-            { id: 'bomb', name: 'ボム出現率UP', desc: '通常より短い6チェーンでボムが出現します。', cost: 500, icon: '💣' },
-            { id: 'fever', name: 'フィーバーUP', desc: 'フィーバーゲージが20%貯まりやすくなります。', cost: 300, icon: '🔥' }
-        ];
-
-        // --- ユーティリティ (Audio, Vibrate, Alert) ---
-        class DeviceUtils {
-            constructor() { this.ctx = null; }
-            initAudio() {
-                if (!this.ctx && user.settings.sfx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if(AudioContext) {
-                        this.ctx = new AudioContext();
-                        if(this.ctx.state === 'suspended') this.ctx.resume();
-                    }
-                }
-            }
-            playTone(freq, type, duration, vol, rampDown = true) {
-                if (!user.settings.sfx || !this.ctx) return;
-                try {
-                    if(this.ctx.state === 'suspended') this.ctx.resume();
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    const now = this.ctx.currentTime;
-                    osc.type = type;
-                    osc.frequency.setValueAtTime(freq, now);
-                    if(rampDown) osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + duration);
-                    gain.gain.setValueAtTime(vol, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-                    osc.connect(gain); gain.connect(this.ctx.destination);
-                    osc.start(now); osc.stop(now + duration);
-                } catch(e){}
-            }
-            playPop(chainLen) { this.playTone(300 + (Math.min(chainLen, 15) * 40), 'sine', 0.06, 0.1, true); }
-            playBomb() { this.playTone(100, 'square', 0.2, 0.15, false); this.vibrate(50); }
-            playSkill() {
-                if (!user.settings.sfx || !this.ctx) return;
-                try {
-                    const now = this.ctx.currentTime;
-                    [400, 600, 800].forEach((freq, i) => {
-                        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
-                        osc.type = 'triangle';
-                        osc.frequency.setValueAtTime(freq, now + i * 0.1);
-                        gain.gain.setValueAtTime(0.1, now + i * 0.1);
-                        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
-                        osc.connect(gain); gain.connect(this.ctx.destination);
-                        osc.start(now + i * 0.1); osc.stop(now + i * 0.1 + 0.3);
-                    });
-                }catch(e){}
-                this.vibrate([30, 50, 30]);
-            }
-            playError() { this.playTone(150, 'sawtooth', 0.2, 0.1, false); }
-            vibrate(pattern) {
-                if (user.settings.vibrate && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e){} }
-            }
-        }
-        const devUtils = new DeviceUtils();
-
-        function showAlert(msg) {
-            document.getElementById('alert-msg').innerText = msg;
-            const el = document.getElementById('modal-alert');
-            el.classList.remove('hidden'); el.classList.add('flex');
-        }
-        function closeAlert() {
-            const el = document.getElementById('modal-alert');
-            el.classList.add('hidden'); el.classList.remove('flex');
-        }
-
-        // --- セーブデータ管理 ---
-        const HEART_MAX = 5;
-        const RECOVER_MS = 60 * 1000; 
-        const SAVE_KEY = 'tsum_save_v5'; 
-
-        const defaultUser = {
-            coins: 1500,
-            hearts: 5,
-            lastHeartTime: Date.now(),
-            myTsumId: 0,
-            highScore: 0,
-            unlockedTsums: [0, 1], // 初期ツム (まるみみ、アヒル)
-            tsumLevels: { 0: 1, 1: 1 }, 
-            tsumExps: { 0: 0, 1: 0 },   
-            settings: { sfx: true, lightMode: false, vibrate: true },
-            mission: { id: 0, cleared: false, date: getTodayStr() },
-            tutorialDone: false,
-            version: 1.0
-        };
-        let user = JSON.parse(JSON.stringify(defaultUser));
-
-        function getTodayStr() {
-            const d = new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-        }
-
-        function loadUser() {
-            try {
-                const saved = localStorage.getItem(SAVE_KEY);
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    user = { ...defaultUser, ...parsed };
-                    user.settings = { ...defaultUser.settings, ...(parsed.settings || {}) };
-                    user.mission = { ...defaultUser.mission, ...(parsed.mission || {}) };
-                    user.tsumLevels = { ...defaultUser.tsumLevels, ...(parsed.tsumLevels || {}) };
-                    user.tsumExps = { ...defaultUser.tsumExps, ...(parsed.tsumExps || {}) };
-                }
-            } catch(e) {
-                console.error("Save corrupted");
-                user = JSON.parse(JSON.stringify(defaultUser));
-            }
-            
-            // ミッション日替わりランダムチェック (12種類からランダム)
-            if (user.mission.date !== getTodayStr()) {
-                user.mission = { id: Math.floor(Math.random() * MISSIONS.length), cleared: false, date: getTodayStr() };
-            }
-            
-            processHeartRecovery();
-            applySettingsToUI();
-            updateHomeUI();
-        }
-        
-        function saveUser() {
-            try { localStorage.setItem(SAVE_KEY, JSON.stringify(user)); } catch(e){}
-            updateHomeUI();
-        }
-
-        function resetSaveData() {
-            if(confirm("セーブデータを初期化します。よろしいですか？")) {
-                localStorage.removeItem(SAVE_KEY); location.reload();
-            }
-        }
-
-        function processHeartRecovery() {
-            if (user.hearts < HEART_MAX) {
-                const now = Date.now();
-                const passed = now - user.lastHeartTime;
-                if (passed >= RECOVER_MS) {
-                    const recoverCount = Math.floor(passed / RECOVER_MS);
-                    user.hearts = Math.min(HEART_MAX, user.hearts + recoverCount);
-                    if (user.hearts === HEART_MAX) user.lastHeartTime = now;
-                    else user.lastHeartTime += recoverCount * RECOVER_MS;
-                }
-            } else {
-                user.lastHeartTime = Date.now();
-            }
-        }
-
-        setInterval(() => {
-            processHeartRecovery();
-            saveUser(); 
-            updateHeartTimerUI();
-        }, 1000);
-
-        function updateHeartTimerUI() {
-            document.getElementById('heart-count').innerText = `${user.hearts}/${HEART_MAX}`;
-            const timerEl = document.getElementById('heart-timer');
-            if (user.hearts >= HEART_MAX) {
-                timerEl.innerText = 'MAX';
-            } else {
-                const remaining = RECOVER_MS - (Date.now() - user.lastHeartTime);
-                const secs = Math.max(0, Math.ceil(remaining / 1000));
-                timerEl.innerText = `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, '0')}`;
-            }
-        }
-
-        function updateHomeUI() {
-            document.getElementById('coin-count').innerText = user.coins.toLocaleString();
-            document.getElementById('home-highscore').innerText = user.highScore.toLocaleString();
-            
-            const myTsum = ALL_TSUMS.find(t => t.id === user.myTsumId) || ALL_TSUMS[0];
-            const myLevel = user.tsumLevels[user.myTsumId] || 1;
-            
-            document.getElementById('home-mytsum-emoji').innerText = myTsum.emoji;
-            document.getElementById('home-mytsum-bg').className = `absolute inset-0 opacity-40 ${myTsum.bg} transition-colors`;
-            document.getElementById('home-mytsum-rank').innerText = myTsum.rank;
-            document.getElementById('home-mytsum-level').innerText = `Lv.${myLevel}`;
-            
-            // ランク別バッジの色分け
-            const rankBadges = {
-                'SS': 'bg-red-500 text-white animate-pulse',
-                'S': 'bg-yellow-400 text-slate-950',
-                'A': 'bg-purple-600 text-white',
-                'B': 'bg-blue-500 text-white',
-                'C': 'bg-slate-400 text-slate-900'
-            };
-            document.getElementById('home-mytsum-rank').className = `absolute top-2 left-2 font-black px-2 py-0.5 rounded-md text-xs shadow-md z-20 ${rankBadges[myTsum.rank]}`;
-
-            document.getElementById('skill-mytsum-emoji').innerText = myTsum.emoji;
-
-            // ミッションUI
-            const missionData = MISSIONS.find(m => m.id === user.mission.id) || MISSIONS[0];
-            document.getElementById('mission-desc').innerText = missionData.desc;
-            document.getElementById('mission-reward').innerText = `🪙 ${missionData.reward}`;
-            
-            const statusEl = document.getElementById('mission-status');
-            if (user.mission.cleared) {
-                statusEl.innerText = 'CLEAR!';
-                statusEl.className = 'text-[10px] font-black px-2 py-1 rounded-full tracking-widest bg-yellow-500 text-slate-900';
-            } else {
-                statusEl.innerText = '挑戦中';
-                statusEl.className = 'text-[10px] font-black px-2 py-1 rounded-full tracking-widest bg-slate-700 text-slate-400';
-            }
-            updateHeartTimerUI();
-        }
-
-        // --- 全てのオーバーレイモーダルを一度隠すお掃除用関数 ---
-        function clearAllModals() {
-            const modalIds = [
-                'modal-alert', 'modal-tsum-select', 'modal-gacha', 
-                'modal-pause', 'modal-magical-time', 'modal-result', 
-                'modal-tutorial', 'modal-settings'
-            ];
-            modalIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.classList.add('hidden');
-                    el.classList.remove('flex');
-                }
-            });
-        }
-
-        // --- モーダル・設定制御 ---
-        function showSettings() {
-            clearAllModals();
-            document.getElementById('modal-settings').classList.remove('hidden'); document.getElementById('modal-settings').classList.add('flex');
-        }
-        function closeSettings() {
-            user.settings.sfx = document.getElementById('setting-sfx').checked;
-            user.settings.lightMode = document.getElementById('setting-light').checked;
-            user.settings.vibrate = document.getElementById('setting-vibrate').checked;
-            saveUser();
-            document.getElementById('modal-settings').classList.add('hidden'); document.getElementById('modal-settings').classList.remove('flex');
-            devUtils.initAudio();
-        }
-        function applySettingsToUI() {
-            document.getElementById('setting-sfx').checked = user.settings.sfx;
-            document.getElementById('setting-light').checked = user.settings.lightMode;
-            document.getElementById('setting-vibrate').checked = user.settings.vibrate;
-        }
-
-        function showTutorial(isInitial) {
-            clearAllModals();
-            document.getElementById('modal-tutorial').classList.remove('hidden'); document.getElementById('modal-tutorial').classList.add('flex');
-            if(isInitial) user.tutorialDone = true; saveUser();
-        }
-        function closeTutorial() {
-            document.getElementById('modal-tutorial').classList.add('hidden'); document.getElementById('modal-tutorial').classList.remove('flex');
-            if(isPlayingRequested) {
-                isPlayingRequested = false;
-                showBoosterShop();
-            }
-        }
-
-        // --- マイツム選択 ---
-        function showTsumSelect() {
-            clearAllModals();
-            const list = document.getElementById('tsum-list');
-            list.innerHTML = '';
-            const skillDescEl = document.getElementById('tsum-select-skill-desc');
-            const updateSkillDesc = (id) => { const t = ALL_TSUMS.find(t=>t.id===id); if(t) skillDescEl.innerText = t.skillDesc; };
-            updateSkillDesc(user.myTsumId);
-
-            ALL_TSUMS.forEach(t => {
-                const isUnlocked = user.unlockedTsums.includes(t.id);
-                const div = document.createElement('div');
-                const lv = user.tsumLevels[t.id] || 1;
-                div.className = `w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-3xl mx-auto cursor-pointer border-4 transition-transform active:scale-90 relative ${user.myTsumId === t.id ? 'border-yellow-400 bg-slate-700 shadow-md' : 'border-slate-600 bg-slate-800'} ${!isUnlocked && 'opacity-30 grayscale pointer-events-none'}`;
-                div.innerText = t.emoji;
-                
-                if (isUnlocked) {
-                    const lvTag = document.createElement('div');
-                    lvTag.className = "absolute -bottom-1 -right-1 bg-slate-900 text-[8px] font-black px-1.5 py-0.2 rounded-full border border-slate-600 text-yellow-300";
-                    lvTag.innerText = `L.${lv}`;
-                    div.appendChild(lvTag);
-
-                    const rTag = document.createElement('div');
-                    const rColors = {'SS':'bg-red-500','S':'bg-yellow-500','A':'bg-purple-500','B':'bg-blue-500','C':'bg-slate-500'};
-                    rTag.className = `absolute -top-1 -left-1 text-[8px] font-black px-1 rounded-sm text-white ${rColors[t.rank] || 'bg-slate-500'}`;
-                    rTag.innerText = t.rank;
-                    div.appendChild(rTag);
-
-                    div.onclick = () => { user.myTsumId = t.id; saveUser(); showTsumSelect(); };
-                    div.onpointerenter = () => updateSkillDesc(t.id);
-                }
-                list.appendChild(div);
-            });
-            document.getElementById('modal-tsum-select').classList.remove('hidden'); document.getElementById('modal-tsum-select').classList.add('flex');
-        }
-        function hideTsumSelect() {
-            document.getElementById('modal-tsum-select').classList.add('hidden'); document.getElementById('modal-tsum-select').classList.remove('flex');
-        }
-
-        // --- ガチャBOX制御 (1回 or 10連) ---
-        let isGachaRunning = false;
-
-        function runGachaDraw(lockedPool) {
-            const weights = { 'SS': 8, 'S': 15, 'A': 25, 'B': 32, 'C': 20 };
-            let totalWeight = lockedPool.reduce((acc, t) => acc + (weights[t.rank] || 10), 0);
-            let roll = Math.random() * totalWeight;
-            
-            for(let t of lockedPool) {
-                let w = weights[t.rank] || 10;
-                if(roll < w) return t;
-                roll -= w;
-            }
-            return lockedPool[lockedPool.length - 1];
-        }
-
-        // 1回ガチャ
-        document.getElementById('btn-gacha-1').onclick = () => {
-            if (isGachaRunning) return;
-            if (user.coins < 1000) { showAlert('コインが足りません！\nパズルで🪙1,000枚集めてプレミアムBOXを引こう。'); devUtils.playError(); return; }
-            
-            const locked = ALL_TSUMS.filter(t => !user.unlockedTsums.includes(t.id));
-            if (locked.length === 0) { 
-                handleDuplicateTsum(ALL_TSUMS[Math.floor(Math.random() * ALL_TSUMS.length)], false);
-                return;
-            }
-
-            isGachaRunning = true;
-            user.coins -= 1000;
-            const target = runGachaDraw(locked);
-            user.unlockedTsums.push(target.id);
-            user.tsumLevels[target.id] = 1;
-            user.tsumExps[target.id] = 0;
-            saveUser(); devUtils.initAudio();
-
-            showGachaResultModal(target, false);
-        };
-
-        // 10連ガチャ (Bランク以上が1枠確定！)
-        document.getElementById('btn-gacha-10').onclick = () => {
-            if (isGachaRunning) return;
-            if (user.coins < 10000) { showAlert('コインが足りません！\n10連を引くには🪙10,000枚必要です。'); devUtils.playError(); return; }
-            
-            isGachaRunning = true;
-            user.coins -= 10000;
-            
-            let drawResults = [];
-            const allTsumsPool = [...ALL_TSUMS];
-            
-            for (let i = 0; i < 10; i++) {
-                let target = null;
-                if (i === 9) {
-                    const bOrAbovePool = allTsumsPool.filter(t => t.rank !== 'C');
-                    target = bOrAbovePool[Math.floor(Math.random() * bOrAbovePool.length)];
-                } else {
-                    target = allTsumsPool[Math.floor(Math.random() * allTsumsPool.length)];
-                }
-                drawResults.push(target);
-            }
-
-            let newUnlockedText = [];
-            drawResults.forEach(tsum => {
-                if (!user.unlockedTsums.includes(tsum.id)) {
-                    user.unlockedTsums.push(tsum.id);
-                    user.tsumLevels[tsum.id] = 1;
-                    user.tsumExps[tsum.id] = 0;
-                    newUnlockedText.push(`🎉新規! ${tsum.emoji} ${tsum.name}`);
-                } else {
-                    user.tsumExps[tsum.id] = (user.tsumExps[tsum.id] || 0) + 150;
-                    let lv = user.tsumLevels[tsum.id] || 1;
-                    if (user.tsumExps[tsum.id] >= lv * 150) {
-                        user.tsumExps[tsum.id] -= lv * 150;
-                        user.tsumLevels[tsum.id] = lv + 1;
-                    }
-                    newUnlockedText.push(`🔄重複! ${tsum.emoji} ${tsum.name} (EXP+150)`);
-                }
-            });
-            saveUser(); devUtils.initAudio();
-
-            const representative = drawResults.sort((a,b) => {
-                const rankOrder = {'SS':5,'S':4,'A':3,'B':2,'C':1};
-                return rankOrder[b.rank] - rankOrder[a.rank];
-            })[0];
-
-            showGachaResultModal(representative, true, newUnlockedText);
-        };
-
-        // 重複ツムが引かれた場合（EXPに変換してレベルアップチェック）
-        function handleDuplicateTsum(tsum, isTenDraw) {
-            user.coins -= 1000;
-            user.tsumExps[tsum.id] = (user.tsumExps[tsum.id] || 0) + 200; 
-            let lv = user.tsumLevels[tsum.id] || 1;
-            let leveledUp = false;
-            if (user.tsumExps[tsum.id] >= lv * 150) {
-                user.tsumExps[tsum.id] -= lv * 150;
-                user.tsumLevels[tsum.id] = lv + 1;
-                leveledUp = true;
-            }
-            saveUser(); devUtils.initAudio();
-            
-            showGachaResultModal(tsum, false, null, true, leveledUp);
-        }
-
-        // ガチャ結果モーダルの表示処理
-        function showGachaResultModal(target, is10連, tenResultsText = null, isDuplicate = false, isLeveledUp = false) {
-            clearAllModals();
-            const modal = document.getElementById('modal-gacha');
-            const emoji = document.getElementById('gacha-emoji');
-            const name = document.getElementById('gacha-name');
-            const msg = document.getElementById('gacha-msg');
-            const btn = document.getElementById('btn-gacha-close');
-            const bg = document.getElementById('gacha-bg');
-            const statusText = document.getElementById('gacha-status');
-            const frame = document.getElementById('gacha-frame');
-            const skillText = document.getElementById('gacha-skill');
-            const rBadge = document.getElementById('gacha-rank-badge');
-            
-            frame.style.transform = 'scale(0) rotate(0deg)';
-            rBadge.classList.add('hidden');
-            emoji.style.transform = 'scale(0)'; emoji.innerText = '❓';
-            bg.className = `absolute inset-0 opacity-40 bg-slate-900 transition-colors duration-500`;
-            name.style.opacity = '0'; msg.style.opacity = '0'; btn.style.opacity = '0';
-            document.getElementById('gacha-desc-box').style.opacity = '0';
-            
-            statusText.innerText = is10連 ? '虹色の光線が交差する！超大当たりの予感！' : 'BOXの奥深くから輝きが漏れ出す...！';
-
-            modal.classList.remove('hidden'); modal.classList.add('flex');
-
-            setTimeout(() => {
-                devUtils.playTone(400, 'sawtooth', 0.2, 0.1, false);
-                frame.style.transform = 'scale(1.1) rotate(180deg)';
-                statusText.innerText = 'BOXが震えだした！何が飛び出すか！？';
-            }, 600);
-
-            setTimeout(() => {
-                emoji.innerText = target.emoji;
-                bg.className = `absolute inset-0 opacity-50 ${target.bg}`;
-                frame.style.transform = 'scale(1) rotate(360deg)';
-                emoji.style.transform = 'scale(1.2) rotate(360deg)';
-                
-                rBadge.innerText = `${target.rank}`;
-                const rColors = {'SS':'bg-red-500 text-white animate-pulse','S':'bg-yellow-400 text-slate-950','A':'bg-purple-600 text-white','B':'bg-blue-500 text-white','C':'bg-slate-400 text-slate-900'};
-                rBadge.className = `absolute top-4 left-4 font-black px-2.5 py-1 rounded-md text-sm shadow-md z-20 ${rColors[target.rank]}`;
-                rBadge.classList.remove('hidden');
-
-                setTimeout(() => { emoji.style.transform = 'scale(1)'; }, 300);
-                
-                if (is10連) {
-                    name.innerText = `10連結果 (代表: ${target.name})`;
-                    msg.innerHTML = `<div class="text-left text-[11px] bg-slate-950/80 p-3 rounded-xl max-h-28 overflow-y-auto leading-relaxed border border-slate-800 text-slate-200">${tenResultsText.join('<br>')}</div>`;
-                    skillText.innerText = `最高レア度: ${target.name} (${target.rank})\n${target.skillDesc}`;
-                } else if (isDuplicate) {
-                    name.innerText = `${target.name} (${target.rank}ランク)`;
-                    msg.innerText = `所持済みのため、自動的にEXP+200！`;
-                    skillText.innerText = isLeveledUp ? `✨ レベルアップ！ Lv.${user.tsumLevels[target.id]} になりました！` : `現在レベル: Lv.${user.tsumLevels[target.id]} (EXP+200)`;
-                } else {
-                    name.innerText = `${target.name} (${target.rank}ランク)`;
-                    msg.innerText = `新ツム [ ${target.name} ] 解放！`;
-                    skillText.innerText = target.skillDesc;
-                }
-                
-                name.style.opacity = '1'; msg.style.opacity = '1'; btn.style.opacity = '1';
-                document.getElementById('gacha-desc-box').style.opacity = '1';
-                statusText.innerText = is10連 ? '超豪華10連プレミアム結果！' : `激レア ${target.rank}ランク 出現！`;
-                
-                devUtils.playSkill();
-                isGachaRunning = false;
-            }, 2000);
-        }
-
-        // ==========================================
-        // プレイ前ショップ & スタートフロー
-        // ==========================================
-        let selectedBoosters = []; 
-        let isPlayingRequested = false;
-
-        function showBoosterShop() {
-            clearAllModals();
-            selectedBoosters = []; 
-            const container = document.getElementById('item-container');
-            container.innerHTML = '';
-            
-            BOOSTERS.forEach(item => {
-                const card = document.createElement('div');
-                card.id = `booster-card-${item.id}`;
-                card.className = "bg-slate-800 hover:bg-slate-750 p-3.5 rounded-2xl border border-slate-700 flex items-center justify-between cursor-pointer transition-all shadow-md";
-                card.onclick = () => toggleBooster(item);
-                
-                card.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="text-2xl">${item.icon}</span>
-                        <div>
-                            <span class="font-bold text-white text-xs block">${item.name}</span>
-                            <span class="text-[9px] text-slate-400 mt-0.5 block leading-snug">${item.desc}</span>
-                        </div>
-                    </div>
-                    <div class="text-right shrink-0">
-                        <span class="text-xs font-black text-yellow-400 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">🪙 ${item.cost}</span>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-
-            document.getElementById('view-home').classList.add('hidden');
-            document.getElementById('view-shop').classList.remove('hidden');
-        }
-
-        function toggleBooster(item) {
-            const idx = selectedBoosters.indexOf(item.id);
-            const card = document.getElementById(`booster-card-${item.id}`);
-            if (idx === -1) {
-                const totalCost = selectedBoosters.reduce((sum, id) => sum + BOOSTERS.find(b => b.id === id).cost, 0) + item.cost;
-                if (user.coins < totalCost) {
-                    showAlert('コインが足りません！');
-                    devUtils.playError();
-                    return;
-                }
-                selectedBoosters.push(item.id);
-                card.className = "bg-indigo-900/60 p-3.5 rounded-2xl border-2 border-indigo-500 flex items-center justify-between cursor-pointer transition-all shadow-[0_0_15px_rgba(99,102,241,0.4)]";
-            } else {
-                selectedBoosters.splice(idx, 1);
-                card.className = "bg-slate-800 p-3.5 rounded-2xl border border-slate-700 flex items-center justify-between cursor-pointer transition-all shadow-md";
-            }
-            devUtils.playPop(3);
-        }
-
-        function backToHomeFromShop() {
-            document.getElementById('view-shop').classList.add('hidden');
-            document.getElementById('view-home').classList.remove('hidden');
-        }
-
-        document.getElementById('btn-goto-shop').onclick = () => {
-            if(!user.tutorialDone) {
-                isPlayingRequested = true;
-                showTutorial(true);
-            } else {
-                showBoosterShop();
-            }
-        };
-
-        function startGameAfterShop() {
-            const totalCost = selectedBoosters.reduce((sum, id) => sum + BOOSTERS.find(b => b.id === id).cost, 0);
-            if (user.coins < totalCost) {
-                showAlert('コインが足りません！');
-                devUtils.playError();
-                return;
-            }
-            if (user.hearts <= 0) {
-                showAlert('ハートが足りません！\n時間経過で回復します。');
-                return;
-            }
-            
-            user.coins -= totalCost;
-            user.hearts--;
-            if (user.hearts === HEART_MAX - 1) user.lastHeartTime = Date.now();
-            saveUser();
-
-            document.getElementById('view-shop').classList.add('hidden');
-            document.getElementById('view-game').classList.remove('hidden');
-
-            resetGameState(); initPhysics();
-            
-            const myTsum = ALL_TSUMS.find(t => t.id === user.myTsumId) || ALL_TSUMS[0];
-            document.getElementById('skill-mytsum-emoji').innerText = myTsum.emoji;
-
-            isPlaying = true; isPaused = false;
-            animReqId = requestAnimationFrame(drawLoop);
-        }
-
-        // ==========================================
-        // ゲームメイン物理ロジック (Matter.js & Canvas)
-        // ==========================================
-        const canvas = document.getElementById('game-canvas');
-        const CANVAS_W = 400; const CANVAS_H = 500; 
-        const TSUM_R = 24; 
-        const ctx = canvas.getContext('2d', { alpha: false });
-
-        const { Engine, World, Bodies, Body, Events } = Matter;
-        let engine = null, world = null;
-        
-        let isPlaying = false, isPaused = false;
-        let animReqId = null, lastTickTime = 0, timeAccumulator = 0;
-
-        let score = 0, coinsEarned = 0, timeLeft = 60, comboCount = 0, maxCombo = 0, lastClearTime = 0;
-        let playStats = { fever: 0, bombs: 0, cleared: 0 }; 
-        let feverGauge = 0, isFever = false, feverTimeLeft = 0;
-        let skillGauge = 0; const SKILL_MAX = 40;
-        let activeSkillBonusActive = false; 
-        
-        let currentChain = [], isDragging = false, particles = [], activeTsumTypes = [];
-        let chainRipples = []; 
-        
-        const scoreEl = document.getElementById('game-score');
-        const timerEl = document.getElementById('game-timer');
-        const feverBar = document.getElementById('fever-bar');
-        const feverUI = document.getElementById('fever-ui');
-        const comboDisplay = document.getElementById('combo-display');
-        const comboCountEl = document.getElementById('combo-count');
-        const skillBar = document.getElementById('skill-bar');
-        const btnSkill = document.getElementById('btn-skill');
-
-        function clearPhysics() {
-            if (animReqId) { cancelAnimationFrame(animReqId); animReqId = null; }
-            if (engine) {
-                Events.off(engine); World.clear(engine.world, false); Engine.clear(engine);
-                engine = null; world = null;
-            }
-            particles = []; currentChain = []; chainRipples = []; isDragging = false;
-            document.getElementById('view-game').classList.remove('fever-bg', 'fever-bg-light');
-            feverUI.classList.add('bg-slate-900/80'); feverUI.classList.remove('bg-rose-900/80', 'animate-pulse');
-        }
-
-        function initPhysics() {
-            clearPhysics();
-            engine = Engine.create({ gravity: { y: 1.5, x: 0 }, positionIterations: 6, velocityIterations: 6 });
-            world = engine.world;
-            
-            const wallOpt = { isStatic: true, friction: 0.1, render: { visible: false } };
-            World.add(world, [
-                Bodies.rectangle(CANVAS_W/2, CANVAS_H + 500, CANVAS_W * 3, 1000, wallOpt),
-                Bodies.rectangle(-500, CANVAS_H/2, 1000, CANVAS_H * 4, wallOpt),
-                Bodies.rectangle(CANVAS_W + 500, CANVAS_H/2, 1000, CANVAS_H * 4, wallOpt)
-            ]);
-
-            activeTsumTypes = [ALL_TSUMS.find(t=>t.id === user.myTsumId) || ALL_TSUMS[0]];
-            const others = ALL_TSUMS.filter(t => t.id !== activeTsumTypes[0].id).sort(() => Math.random() - 0.5);
-            activeTsumTypes.push(...others.slice(0, 4));
-        }
-
-        function spawnTsum(x, y) {
-            const type = activeTsumTypes[Math.floor(Math.random() * activeTsumTypes.length)];
-            const body = Bodies.circle(x, y, TSUM_R, { restitution: 0.15, friction: 0.05, density: 0.001, label: 'tsum' });
-            body.tsumType = type;
-            World.add(world, body);
-        }
-
-        // 各種特殊マジカルボムの物理生成
-        function spawnBomb(x, y, bombType = 'normal') {
-            const body = Bodies.circle(x, y, TSUM_R * 1.3, { restitution: 0.2, friction: 0.1, density: 0.003, label: 'bomb' });
-            body.bombType = bombType; 
-            World.add(world, body);
-        }
-
-        function refillTsums() {
-            const maxTsums = user.settings.lightMode ? 40 : 45; 
-            const count = world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb').length;
-            const needed = maxTsums - count;
-            if(needed > 0) {
-                for(let i=0; i<Math.min(needed, 4); i++) {
-                    spawnTsum(40 + Math.random()*(CANVAS_W-80), -60 - i*30);
-                }
-            }
-        }
-
-        function drawLoop(timestamp) {
-            if (!isPlaying) return;
-            animReqId = requestAnimationFrame(drawLoop);
-
-            if (!lastTickTime) lastTickTime = timestamp;
-            const delta = timestamp - lastTickTime;
-            lastTickTime = timestamp;
-
-            if (isPaused) return;
-
-            // Timer
-            timeAccumulator += delta;
-            if (timeAccumulator >= 1000) {
-                timeLeft--; timeAccumulator -= 1000;
-                timerEl.innerText = timeLeft;
-                if (timeLeft <= 0) { timeUp(); return; }
-            }
-
-            // Fever & Combo Timeout
-            if (isFever) {
-                feverTimeLeft -= delta;
-                feverBar.style.width = Math.max(0, (feverTimeLeft / 10000) * 100) + '%';
-                if (feverTimeLeft <= 0) endFever();
-            } else if (comboCount > 0 && Date.now() - lastClearTime > 3000) {
-                comboCount = 0; comboDisplay.classList.add('hidden');
-            }
-
-            // Physics Update
-            Engine.update(engine, Math.min(delta, 30));
-            if(Math.random() < 0.15) refillTsums();
-
-            // Draw Background (スキル発動中やユニコーン発動中の虹背景対応)
-            if (activeSkillBonusActive) {
-                ctx.fillStyle = '#2d1b4e';
-            } else {
-                ctx.fillStyle = isFever ? (user.settings.lightMode ? '#31133e' : '#1e1b4b') : '#0f172a';
-            }
-            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-            const isLight = user.settings.lightMode;
-            const bodies = world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb');
-            
-            // Draw Bodies
-            bodies.forEach(b => {
-                ctx.save();
-                ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
-                
-                const inChainIndex = currentChain.indexOf(b);
-                const isHead = inChainIndex !== -1 && inChainIndex === currentChain.length - 1;
-                
-                // チェーンに含まれるツムのエフェクト (ポンッと大きく)
-                if (inChainIndex !== -1 && !isLight) {
-                    ctx.scale(1.15, 1.15); 
-                    // 発光ハイライトリング
-                    ctx.beginPath(); ctx.arc(0, 0, TSUM_R + 3, 0, Math.PI*2);
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; ctx.fill();
-                    ctx.lineWidth = 3; ctx.strokeStyle = 'white'; ctx.stroke();
-                }
-
-                if (b.label === 'tsum') {
-                    if (!isLight) {
-                        ctx.beginPath(); ctx.arc(1, 2, TSUM_R, 0, Math.PI*2);
-                        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fill();
-                    }
-                    ctx.beginPath(); ctx.arc(0, 0, TSUM_R, 0, Math.PI*2);
-                    ctx.fillStyle = b.tsumType.color; ctx.fill();
-                    
-                    // キャラを絵文字で中央に大きくかわいらしく描画
-                    ctx.font = `28px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText(b.tsumType.emoji, 0, 1);
-                } else if (b.label === 'bomb') {
-                    ctx.beginPath(); ctx.arc(0, 0, TSUM_R*1.3, 0, Math.PI*2);
-                    
-                    // 特殊マジカルボムの色分け描画
-                    let bColor = '#cbd5e1'; 
-                    let bText = '⭐';
-                    if (b.bombType === 'score') { bColor = '#facc15'; bText = '✨'; }
-                    else if (b.bombType === 'coin') { bColor = '#f59e0b'; bText = '🪙'; }
-                    else if (b.bombType === 'time') { bColor = '#38bdf8'; bText = '⏱️'; }
-                    else if (b.bombType === 'fever') { bColor = '#ec4899'; bText = '🔥'; }
-
-                    ctx.fillStyle = bColor; ctx.fill();
-                    ctx.lineWidth = 2.5; ctx.strokeStyle = '#334155'; ctx.stroke();
-                    ctx.font = `24px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                    ctx.fillText(bText, 0, 1);
-                }
-                
-                // 指で持っている（現在の先頭）ツムからキラキラパーティクルを出す
-                if (isHead && isDragging && !isLight) {
-                    if (Math.random() < 0.6) {
-                        particles.push({
-                            x: b.position.x + (Math.random() - 0.5) * TSUM_R * 2,
-                            y: b.position.y + (Math.random() - 0.5) * TSUM_R * 2,
-                            vx: (Math.random() - 0.5) * 1.5,
-                            vy: (Math.random() - 0.5) * 1.5 - 1,
-                            r: Math.random() * 3 + 1.5,
-                            c: 'white',
-                            alpha: 1
-                        });
-                    }
-                }
-                ctx.restore();
-            });
-
-            // Draw Chain Line (エフェクト豪華版)
-            if (currentChain.length > 0) {
-                ctx.save();
-                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                const chainColor = currentChain[0].tsumType ? currentChain[0].tsumType.color : '#fff';
-                
-                if (!isLight) {
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = chainColor;
-                    ctx.lineWidth = 22;
-                    ctx.strokeStyle = chainColor;
-                    ctx.globalAlpha = 0.5;
-                    ctx.beginPath(); ctx.moveTo(currentChain[0].position.x, currentChain[0].position.y);
-                    for(let i=1; i<currentChain.length; i++) ctx.lineTo(currentChain[i].position.x, currentChain[i].position.y);
-                    ctx.stroke();
-                }
-
-                // 中間のカラー線
-                ctx.shadowBlur = 0;
-                ctx.lineWidth = 14; 
-                ctx.strokeStyle = chainColor;
-                ctx.globalAlpha = isLight ? 0.8 : 0.9;
-                ctx.beginPath(); ctx.moveTo(currentChain[0].position.x, currentChain[0].position.y);
-                for(let i=1; i<currentChain.length; i++) ctx.lineTo(currentChain[i].position.x, currentChain[i].position.y);
-                ctx.stroke();
-
-                // 内側の白い芯線
-                ctx.lineWidth = 6; ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = 1; 
-                ctx.beginPath(); ctx.moveTo(currentChain[0].position.x, currentChain[0].position.y);
-                for(let i=1; i<currentChain.length; i++) ctx.lineTo(currentChain[i].position.x, currentChain[i].position.y);
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            // Draw Ripples (繋がった瞬間の波紋)
-            for(let i=chainRipples.length-1; i>=0; i--) {
-                let r = chainRipples[i];
-                r.r += 3; 
-                r.alpha -= 0.08;
-                if(r.alpha <= 0) chainRipples.splice(i, 1);
-                else {
-                    ctx.save();
-                    ctx.globalAlpha = r.alpha;
-                    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI*2);
-                    ctx.lineWidth = 4;
-                    ctx.strokeStyle = 'white';
-                    ctx.stroke();
-                    ctx.restore();
-                }
-            }
-
-            // Draw Particles
-            for(let i=particles.length-1; i>=0; i--) {
-                let p = particles[i];
-                p.x += p.vx; p.y += p.vy; p.alpha -= 0.05;
-                if(p.alpha <= 0) particles.splice(i, 1);
-                else {
-                    ctx.save(); ctx.globalAlpha = p.alpha;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-                    ctx.fillStyle = p.c; ctx.fill(); ctx.restore();
-                }
-            }
-        }
-
-        // --- Interaction (吸着アシスト & なぞり戻り) ---
-        function getPointerPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
-        }
-
-        function getBodyAt(pos) {
-            const bodies = world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb');
-            let closest = null, minDist = Infinity;
-            for(let i=bodies.length-1; i>=0; i--) {
-                const b = bodies[i];
-                const r = b.label==='bomb' ? TSUM_R*1.3+5 : TSUM_R+5;
-                const dist = Math.hypot(b.position.x - pos.x, b.position.y - pos.y);
-                if(dist <= r && dist < minDist) { minDist = dist; closest = b; }
-            }
-            return closest;
-        }
-
-        function handlePointerDown(e) {
-            if(!isPlaying || isPaused) return;
-            if(e.pointerId) canvas.setPointerCapture(e.pointerId);
-            
-            const b = getBodyAt(getPointerPos(e));
-            if(b) {
-                if (b.label === 'bomb') explodeBomb(b);
-                else { 
-                    isDragging = true; currentChain = [b]; devUtils.playPop(1); 
-                    if (!user.settings.lightMode) {
-                        chainRipples.push({ x: b.position.x, y: b.position.y, r: TSUM_R, alpha: 1 });
-                    }
-                }
-            }
-        }
-
-        function handlePointerMove(e) {
-            if(!isPlaying || isPaused || !isDragging || currentChain.length===0) return;
-            const pos = getPointerPos(e);
-            
-            // 吸着判定（本家に近い適正ななぞり感度調整）
-            const searchRadius = TSUM_R * 2.5; 
-            const connectRadius = TSUM_R * 3.8;
-            
-            // 1. なぞり戻り処理（最優先）
-            if (currentChain.length >= 2) {
-                const prevTsum = currentChain[currentChain.length-2];
-                if (Math.hypot(prevTsum.position.x - pos.x, prevTsum.position.y - pos.y) <= searchRadius) {
-                    currentChain.pop(); devUtils.playPop(currentChain.length); return;
-                }
-            }
-
-            // 2. 新規接続
-            const lastTsum = currentChain[currentChain.length-1];
-            const candidates = world.bodies.filter(b => {
-                if (b.label !== 'tsum' || currentChain.includes(b) || b.tsumType.id !== currentChain[0].tsumType.id) return false;
-                return Math.hypot(b.position.x - pos.x, b.position.y - pos.y) <= searchRadius &&
-                       Math.hypot(b.position.x - lastTsum.position.x, b.position.y - lastTsum.position.y) <= connectRadius;
-            });
-
-            if (candidates.length > 0) {
-                candidates.sort((a, b) => Math.hypot(a.position.x - pos.x, a.position.y - pos.y) - Math.hypot(b.position.x - pos.x, b.position.y - pos.y));
-                const nextTsum = candidates[0];
-                currentChain.push(nextTsum);
-                devUtils.playPop(currentChain.length);
-                
-                // なぞり接続時の豪華エフェクト
-                if (!user.settings.lightMode) {
-                    chainRipples.push({ x: nextTsum.position.x, y: nextTsum.position.y, r: TSUM_R, alpha: 1 });
-                    for(let i=0; i<4; i++) {
-                        particles.push({
-                            x: nextTsum.position.x, y: nextTsum.position.y,
-                            vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
-                            r: Math.random() * 3 + 2, c: '#fff', alpha: 1
-                        });
-                    }
-                }
-            }
-        }
-
-        function handlePointerUp(e) {
-            if(e.pointerId && canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-            if(!isPlaying || isPaused || !isDragging) return;
-            isDragging = false;
-            
-            if(currentChain.length >= 3) {
-                const len = currentChain.length;
-                processClear(currentChain);
-                
-                // アイテム「ボム出現率UP」選択時は6チェーンで出現。通常は7チェーン。
-                const minChainForBomb = selectedBoosters.includes('bomb') ? 6 : 7;
-                if(len >= minChainForBomb) {
-                    // 長いチェーンほど特殊なレアボムが出現しやすい確率計算
-                    let bType = 'normal';
-                    const roll = Math.random();
-                    if (len >= 15) {
-                        if (roll < 0.3) bType = 'time';
-                        else if (roll < 0.6) bType = 'coin';
-                        else if (roll < 0.9) bType = 'score';
-                        else bType = 'fever';
-                    } else if (len >= 10) {
-                        if (roll < 0.25) bType = 'time';
-                        else if (roll < 0.5) bType = 'coin';
-                        else if (roll < 0.75) bType = 'score';
-                    } else if (len >= 7) {
-                        if (roll < 0.15) bType = 'score';
-                    }
-                    spawnBomb(currentChain[len-1].position.x, currentChain[len-1].position.y, bType);
-                }
-            }
-            currentChain = [];
-        }
-
-        canvas.addEventListener('pointerdown', handlePointerDown);
-        canvas.addEventListener('pointermove', handlePointerMove);
-        canvas.addEventListener('pointerup', handlePointerUp);
-        canvas.addEventListener('pointercancel', handlePointerUp);
-
-        // --- ゲームルール (スコアに「ツムレベル」「ツムランク」の影響を上乗せ) ---
-        function processClear(bodiesArray) {
-            const count = bodiesArray.length;
-            playStats.cleared += count;
-            
-            comboCount++; if(comboCount > maxCombo) maxCombo = comboCount;
-            lastClearTime = Date.now(); updateComboUI();
-
-            // スコラ・コイン等ブースターアイテムの効果補正
-            const myTsumInfo = ALL_TSUMS.find(t => t.id === user.myTsumId) || ALL_TSUMS[0];
-            const myTsumLevel = user.tsumLevels[user.myTsumId] || 1;
-            
-            const rankScores = { 'SS': 2.0, 'S': 1.6, 'A': 1.3, 'B': 1.1, 'C': 1.0 };
-            const rankMultiplier = rankScores[myTsumInfo.rank] || 1.0;
-            const levelMultiplier = 1 + (myTsumLevel * 0.05); 
-
-            // 基礎スコア計算
-            let base = count * 100;
-            let chainBonus = (count - 3) * 50;
-            let comboBonus = comboCount * 12;
-            
-            let addedScore = Math.floor((base + chainBonus + comboBonus) * rankMultiplier * levelMultiplier);
-            
-            // アイテム「スコア+10%」補正
-            if (selectedBoosters.includes('score')) {
-                addedScore = Math.floor(addedScore * 1.1);
-            }
-
-            if (isFever || activeSkillBonusActive) addedScore *= 3; 
-            score += addedScore;
-            
-            // コインの計算
-            let addCoins = 0;
-            if (count >= 4) addCoins += (count - 3) * 2;
-            
-            // アイテム「コイン+10%」補正
-            if (selectedBoosters.includes('coin')) {
-                addCoins = Math.floor(addCoins * 1.1);
-            }
-            coinsEarned += addCoins;
-
-            scoreEl.innerText = score.toLocaleString();
-
-            // フィーバーゲージ上昇補正 (アイテム「フィーバーUP」時は上昇率+20%)
-            let fVal = count * 3;
-            if (selectedBoosters.includes('fever')) {
-                fVal = Math.floor(fVal * 1.2);
-            }
-            increaseFever(fVal);
-            
-            const myCount = bodiesArray.filter(b => b.tsumType && b.tsumType.id === user.myTsumId).length;
-            increaseSkill(myCount);
-
-            // チェーン長に応じたGOOD/GREAT/EXCELLENTの豪華演出ポップ
-            if (count >= 15) {
-                showChainRatingPop('EXCELLENT!!');
-            } else if (count >= 10) {
-                showChainRatingPop('GREAT!');
-            } else if (count >= 7) {
-                showChainRatingPop('GOOD!');
-            }
-
-            const isLight = user.settings.lightMode;
-            bodiesArray.forEach(b => {
-                if(!isLight && particles.length < 40) {
-                    for(let i=0;i<3;i++) particles.push({ x: b.position.x, y: b.position.y, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, r:3+Math.random()*4, c:b.tsumType.color, alpha:1});
-                }
-                World.remove(world, b);
-            });
-        }
-
-        function showChainRatingPop(text) {
-            const popEl = document.getElementById('chain-rating-display');
-            document.getElementById('chain-rating-text').innerText = text;
-            popEl.classList.remove('hidden', 'combo-pop');
-            void popEl.offsetWidth; 
-            popEl.classList.add('combo-pop');
-            setTimeout(() => { popEl.classList.add('hidden'); }, 1200);
-        }
-
-        function explodeBomb(bombBody) {
-            devUtils.playBomb(); playStats.bombs++;
-            let radius = TSUM_R * 4.5;
-            
-            if (bombBody.bombType === 'score') {
-                score += 3000;
-                scoreEl.innerText = score.toLocaleString();
-            } else if (bombBody.bombType === 'coin') {
-                coinsEarned += 10;
-            } else if (bombBody.bombType === 'time') {
-                timeLeft += 2;
-                timerEl.innerText = timeLeft;
-            } else if (bombBody.bombType === 'fever') {
-                increaseFever(50);
-            }
-
-            const toClear = world.bodies.filter(b => b.label === 'tsum' && Math.hypot(b.position.x - bombBody.position.x, b.position.y - bombBody.position.y) < radius);
-            World.remove(world, bombBody);
-            if(toClear.length > 0) processClear(toClear); 
-        }
-
-        function increaseFever(val) {
-            if(isFever) return;
-            feverGauge = Math.min(100, feverGauge + val);
-            feverBar.style.width = feverGauge + '%';
-            if(feverGauge >= 100) {
-                isFever = true; feverTimeLeft = 10000; timeLeft += 5; playStats.fever++;
-                document.getElementById('view-game').classList.add(user.settings.lightMode ? 'fever-bg-light' : 'fever-bg');
-                feverUI.classList.replace('bg-slate-900/80', 'bg-rose-900/80');
-                feverUI.classList.add('animate-pulse');
-                showChainRatingPop('FEVER TIME!!');
-            }
-        }
-
-        function endFever() {
-            isFever = false; feverGauge = 0; feverTimeLeft = 0; feverBar.style.width = '0%';
-            document.getElementById('view-game').classList.remove('fever-bg', 'fever-bg-light');
-            feverUI.classList.replace('bg-rose-900/80', 'bg-slate-900/80');
-            feverUI.classList.remove('animate-pulse');
-        }
-
-        function updateComboUI() {
-            if (comboCount > 1) {
-                comboCountEl.innerText = comboCount;
-                comboDisplay.classList.remove('hidden', 'combo-pop');
-                void comboDisplay.offsetWidth; 
-                comboDisplay.classList.add('combo-pop');
-            }
-        }
-
-        // --- スキル・シャッフル ---
-        function increaseSkill(val) {
-            if(val <= 0 || skillGauge >= SKILL_MAX) return;
-            skillGauge = Math.min(SKILL_MAX, skillGauge + val);
-            skillBar.style.width = (skillGauge / SKILL_MAX * 100) + '%';
-            if(skillGauge >= SKILL_MAX) {
-                btnSkill.disabled = false;
-                btnSkill.classList.replace('border-slate-700', 'border-cyan-400');
-                btnSkill.classList.add('animate-pulse');
-                document.getElementById('skill-ready-fx').classList.replace('opacity-0', 'opacity-40');
-                document.getElementById('skill-ready-fx').classList.add('animate-ping');
-            }
-        }
-
-        btnSkill.onclick = () => {
-            if(!isPlaying || isPaused || skillGauge < SKILL_MAX) return;
-            devUtils.playSkill();
-            skillGauge = 0; skillBar.style.width = '0%';
-            btnSkill.disabled = true;
-            btnSkill.classList.replace('border-cyan-400', 'border-slate-700');
-            btnSkill.classList.remove('animate-pulse');
-            document.getElementById('skill-ready-fx').classList.replace('opacity-40', 'opacity-0');
-            document.getElementById('skill-ready-fx').classList.remove('animate-ping');
-
-            const myTsumInfo = ALL_TSUMS.find(t => t.id === user.myTsumId) || ALL_TSUMS[0];
-            
-            const cutinLayer = document.getElementById('layer-skill-cutin');
-            const cutinBox = document.getElementById('skill-cutin-box');
-            document.getElementById('skill-cutin-emoji').innerText = myTsumInfo.emoji;
-            cutinLayer.classList.remove('hidden');
-            cutinBox.classList.remove('cutin-slide');
-            void cutinBox.offsetWidth;
-            cutinBox.classList.add('cutin-slide');
-            
-            setTimeout(() => { cutinLayer.classList.add('hidden'); }, 1400);
-            setTimeout(() => { executeSkill(myTsumInfo.skillType); }, 500);
-        };
-
-        function executeSkill(type) {
-            const cx = CANVAS_W/2, cy = CANVAS_H/2 + 20;
-            const tsums = world.bodies.filter(b => b.label === 'tsum');
-            let toClear = [];
-            
-            switch(type) {
-                case 'center': 
-                    toClear = tsums.filter(b => Math.hypot(b.position.x - cx, b.position.y - cy) < 110); 
-                    break;
-                case 'center_b': 
-                    toClear = tsums.filter(b => Math.hypot(b.position.x - cx, b.position.y - cy) < 130); 
-                    break;
-                case 'time': 
-                    timeLeft += 3; timerEl.innerText = timeLeft; 
-                    timerEl.classList.add('text-green-400', 'scale-125'); 
-                    setTimeout(() => timerEl.classList.remove('text-green-400', 'scale-125'), 500); 
-                    break;
-                case 'random_c': 
-                    toClear = [...tsums].sort(() => Math.random() - 0.5).slice(0, 8); 
-                    break;
-                case 'random_b': 
-                    toClear = [...tsums].sort(() => Math.random() - 0.5).slice(0, 11); 
-                    break;
-                case 'random_a': 
-                    toClear = [...tsums].sort(() => Math.random() - 0.5).slice(0, 14); 
-                    break;
-                case 'random_s': 
-                    toClear = [...tsums].sort(() => Math.random() - 0.5).slice(0, 18); 
-                    break;
-                case 'horizontal_c':
-                    toClear = tsums.filter(b => Math.abs(b.position.y - cy) < 40);
-                    break;
-                case 'vertical_c':
-                    toClear = tsums.filter(b => Math.abs(b.position.x - cx) < 45);
-                    break;
-                case 'vertical_b':
-                    toClear = tsums.filter(b => Math.abs(b.position.x - cx + 50) < 35 || Math.abs(b.position.x - cx - 50) < 35);
-                    break;
-                case 'vertical_a':
-                    toClear = tsums.filter(b => Math.abs(b.position.x - cx) < 70);
-                    break;
-                case 'bottom_c':
-                    toClear = tsums.filter(b => b.position.y > CANVAS_H - 120);
-                    break;
-                case 'slash_b':
-                    toClear = tsums.filter(b => Math.abs(b.position.x - b.position.y) < 50);
-                    break;
-                case 'fever_charge':
-                    increaseFever(30);
-                    break;
-                case 'bomb': 
-                    spawnBomb(cx, cy - 50); 
-                    break;
-                case 'bomb2': 
-                    spawnBomb(cx - 50, cy - 50); spawnBomb(cx + 50, cy - 50); 
-                    break;
-                case 'cross_a':
-                    toClear = tsums.filter(b => Math.abs(b.position.x - b.position.y) < 40 || Math.abs(b.position.x - (CANVAS_H - b.position.y)) < 40);
-                    break;
-                case 'big_bomb':
-                    spawnBomb(cx - 50, cy - 50, 'score'); spawnBomb(cx + 50, cy - 50, 'fever');
-                    break;
-                case 'rainbow_fever':
-                    activeSkillBonusActive = true;
-                    document.getElementById('view-game').classList.add('fever-bg');
-                    setTimeout(() => {
-                        activeSkillBonusActive = false;
-                        if (!isFever) document.getElementById('view-game').classList.remove('fever-bg');
-                    }, 15000); 
-                    break;
-                case 'coin_grab':
-                    const coinPlus = Math.floor(Math.random() * 300) + 200; 
-                    coinsEarned += coinPlus;
-                    scoreEl.innerText = score.toLocaleString();
-                    showAlert(`🐱まねき猫の小判！\n🪙 ${coinPlus}枚 のコインを直接獲得した！`);
-                    break;
-                case 'coin_boost_s':
-                    coinsEarned += 50; 
-                    break;
-                case 'clear_one_type':
-                    if (tsums.length > 0) {
-                        const targetId = tsums[Math.floor(Math.random() * tsums.length)].tsumType.id;
-                        toClear = tsums.filter(b => b.tsumType.id === targetId);
-                    }
-                    break;
-                case 'phoenix_megablast': 
-                    toClear = tsums.filter(b => Math.hypot(b.position.x - cx, b.position.y - cy) < 185); 
-                    break;
-                case 'dark_obliterate': 
-                    toClear = [...tsums].sort(() => Math.random() - 0.5).slice(0, 28); 
-                    break;
-                case 'star_time_ss':
-                    timeLeft += 5;
-                    timerEl.innerText = timeLeft;
-                    spawnBomb(cx - 40, cy - 50, 'time');
-                    spawnBomb(cx + 40, cy - 50, 'time');
-                    break;
-                case 'dragon_slash':
-                    toClear = tsums.filter(b => Math.abs(b.position.x - b.position.y) < 60 || Math.abs(b.position.x - (CANVAS_H - b.position.y)) < 60);
-                    break;
-                case 'phoenix_wings':
-                    toClear = tsums.filter(b => b.position.y < 150 || b.position.y > CANVAS_H - 150);
-                    break;
-            }
-            if(toClear.length > 0) processClear(toClear);
-        }
-
-        document.getElementById('btn-shuffle').onclick = () => {
-            if(!isPlaying || isPaused) return; devUtils.playPop(1);
-            world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb').forEach(b => Body.applyForce(b, b.position, {x:(Math.random()-0.5)*0.1, y:-0.1-Math.random()*0.15}));
-        };
-
-        // --- ポーズ処理 ---
-        document.getElementById('btn-pause').onclick = () => {
-            if(!isPlaying || isPaused) return;
-            isPaused = true;
-            clearAllModals();
-            document.getElementById('modal-pause').classList.remove('hidden'); document.getElementById('modal-pause').classList.add('flex');
-        };
-        document.getElementById('btn-resume').onclick = () => {
-            isPaused = false; lastTickTime = performance.now();
-            document.getElementById('modal-pause').classList.add('hidden'); document.getElementById('modal-pause').classList.remove('flex');
-        };
-        document.getElementById('btn-quit').onclick = () => {
-            isPaused = false; isPlaying = false;
-            document.getElementById('modal-pause').classList.add('hidden'); document.getElementById('modal-pause').classList.remove('flex');
-            returnToHome();
-        };
-
-        // --- フロー制御 ---
-        function resetGameState() {
-            score = 0; coinsEarned = 0; 
-            timeLeft = selectedBoosters.includes('time') ? 65 : 60;
-            
-            comboCount = 0; maxCombo = 0; lastClearTime = 0;
-            feverGauge = 0; feverTimeLeft = 0; isFever = false; skillGauge = 0;
-            activeSkillBonusActive = false;
-            playStats = { fever: 0, bombs: 0, cleared: 0 };
-            lastTickTime = 0; timeAccumulator = 0;
-
-            scoreEl.innerText = '0'; timerEl.innerText = timeLeft;
-            endFever(); skillBar.style.width = '0%'; comboDisplay.classList.add('hidden');
-            
-            btnSkill.disabled = true; btnSkill.classList.replace('border-slate-700', 'border-cyan-400');
-            btnSkill.classList.remove('animate-pulse'); document.getElementById('skill-ready-fx').classList.replace('opacity-40', 'opacity-0');
-        }
-
-        function timeUp() {
-            isPlaying = false;
-            clearAllModals();
-            if (user.highScore > 1000 && score >= user.highScore * 0.9 && score <= user.highScore && user.coins >= 300) {
-                document.getElementById('modal-magical-time').classList.remove('hidden'); document.getElementById('modal-magical-time').classList.add('flex');
-            } else { finishGame(); }
-        }
-
-        document.getElementById('btn-extend-coin').onclick = () => {
-            user.coins -= 300; saveUser();
-            document.getElementById('modal-magical-time').classList.add('hidden'); document.getElementById('modal-magical-time').classList.remove('flex');
-            timeLeft = 10; timerEl.innerText = timeLeft; isPlaying = true;
-            lastTickTime = performance.now(); animReqId = requestAnimationFrame(drawLoop);
-        };
-        document.getElementById('btn-extend-giveup').onclick = () => {
-            document.getElementById('modal-magical-time').classList.add('hidden'); document.getElementById('modal-magical-time').classList.remove('flex');
-            finishGame();
-        };
-
-        // 1プレイ結果でのミッション判定 (1プレイ完結)
-        function checkMission() {
-            if (user.mission.cleared) return null;
-            const m = MISSIONS.find(x => x.id === user.mission.id);
-            if (!m) return null;
-            
-            let val = 0;
-            if (m.type === 'fever') val = playStats.fever;
-            if (m.type === 'fever_hard') val = playStats.fever;
-            if (m.type === 'combo') val = maxCombo;
-            if (m.type === 'combo_hard') val = maxCombo;
-            if (m.type === 'score') val = score;
-            if (m.type === 'score_hard') val = score;
-            if (m.type === 'bomb') val = playStats.bombs;
-            if (m.type === 'bomb_hard') val = playStats.bombs;
-            if (m.type === 'clear') val = playStats.cleared;
-            if (m.type === 'clear_hard') val = playStats.cleared;
-            if (m.type === 'coins') val = coinsEarned;
-            if (m.type === 'coins_hard') val = coinsEarned;
-
-            let resultStr = `${val.toLocaleString()} / ${m.target.toLocaleString()} 達成`;
-            if (val >= m.target) {
-                user.mission.cleared = true; user.coins += m.reward;
-                resultStr = `クリア！ (${val.toLocaleString()}/${m.target.toLocaleString()})`; 
-                return { isClear: true, str: resultStr };
-            }
-            return { isClear: false, str: resultStr };
-        }
-
-        function finishGame() {
-            clearPhysics(); 
-            const isNewHigh = score > user.highScore;
-            if (isNewHigh) user.highScore = score;
-            user.coins += coinsEarned;
-            
-            const mResult = checkMission();
-
-            const myTsumId = user.myTsumId;
-            let currentLv = user.tsumLevels[myTsumId] || 1;
-            let currentExp = user.tsumExps[myTsumId] || 0;
-            
-            const expGained = 100; 
-            currentExp += expGained;
-            
-            const expNeeded = currentLv * 150; 
-            let leveledUp = false;
-            if (currentExp >= expNeeded) {
-                currentExp -= expNeeded;
-                currentLv++;
-                leveledUp = true;
-            }
-            user.tsumLevels[myTsumId] = currentLv;
-            user.tsumExps[myTsumId] = currentExp;
-
-            saveUser();
-
-            // リザルトEXP表示更新
-            const myTsum = ALL_TSUMS.find(t => t.id === myTsumId) || ALL_TSUMS[0];
-            document.getElementById('result-tsum-emoji').innerText = myTsum.emoji;
-            document.getElementById('result-tsum-name').innerText = myTsum.name;
-            document.getElementById('result-tsum-rank').innerText = `${myTsum.rank}ランク`;
-            document.getElementById('result-tsum-level').innerText = `Lv.${currentLv}`;
-            
-            // EXPゲージ
-            const expProgress = (currentExp / (currentLv * 150)) * 100;
-            const expBarEl = document.getElementById('result-exp-bar');
-            expBarEl.style.width = '0%';
-            setTimeout(() => { expBarEl.style.width = `${expProgress}%`; }, 100);
-
-            const lvAlert = document.getElementById('result-level-up-alert');
-            if (leveledUp) lvAlert.classList.remove('hidden'); else lvAlert.classList.add('hidden');
-
-            document.getElementById('result-score').innerText = score.toLocaleString();
-            document.getElementById('result-coins').innerText = coinsEarned;
-            document.getElementById('result-max-combo').innerText = maxCombo;
-            document.getElementById('result-fever-count').innerText = playStats.fever;
-            document.getElementById('result-cleared-tsums').innerText = playStats.cleared;
-            
-            const hl = document.getElementById('result-highscore-label');
-            if(isNewHigh) hl.classList.remove('hidden'); else hl.classList.add('hidden');
-
-            const mBox = document.getElementById('result-mission-box');
-            if (mResult) {
-                mBox.classList.remove('hidden');
-                document.getElementById('result-mission-text').innerText = mResult.str;
-                if (mResult.isClear) document.getElementById('result-mission-reward').classList.remove('hidden');
-                else document.getElementById('result-mission-reward').classList.add('hidden');
-            } else { mBox.classList.add('hidden'); }
-
-            clearAllModals();
-            document.getElementById('modal-result').classList.remove('hidden'); document.getElementById('modal-result').classList.add('flex');
-        }
-
-        function returnToHome() {
-            clearAllModals();
-            document.getElementById('view-game').classList.add('hidden'); document.getElementById('view-home').classList.remove('hidden');
-            updateHomeUI();
-        }
-
-        function retryGame() {
-            clearAllModals();
-            document.getElementById('view-game').classList.add('hidden');
-            showBoosterShop();
-        }
-
-        // --- Init ---
-        loadUser();
-
-    </script>
+    <div class="section card">
+      <div class="row"><div class="section-title">おすすめ</div><span class="mini">初心者向け</span></div>
+      <div id="recommendBox" class="notice">---</div>
+    </div>
+
+    <div class="section card">
+      <div class="row"><div class="section-title">デイリーミッション</div><b id="dailyStatus" class="mini">挑戦中</b></div>
+      <div id="dailyMission" class="notice">---</div>
+    </div>
+
+    <div class="section card">
+      <div class="row"><div class="section-title">ウィークリーミッション</div><b id="weeklyStatus" class="mini">挑戦中</b></div>
+      <div id="weeklyMission" class="notice">---</div>
+    </div>
+
+    <div class="section card">
+      <div class="row">
+        <div><div class="section-title">🎁 プレミアムBOX</div><div class="mini">チケットでも引けます / SSランク天井あり</div></div>
+        <div class="mini">🎫 <span id="ticketCount">0</span></div>
+      </div>
+      <div class="grid2">
+        <button class="btn btn-gold" id="btnGacha1">1回<br><small>🪙1000 / 🎫1</small></button>
+        <button class="btn btn-blue" id="btnGacha10">10連<br><small>🪙10000 / 🎫10</small></button>
+      </div>
+      <div id="pityText" class="mini" style="margin-top:8px">---</div>
+    </div>
+
+    <div class="section card">
+      <div class="section-title">イベント</div>
+      <div id="eventBox" class="notice">---</div>
+      <button class="btn btn-blue" id="btnEventGacha" style="width:100%;margin-top:10px">イベントBOXを引く</button>
+    </div>
+
+    <div class="section card">
+      <div class="section-title">ボスステージ風 特別ミッション</div>
+      <div class="notice">1プレイでボスHPを削る特別チャレンジ。高スコアほど大ダメージ！</div>
+      <button class="btn btn-green" id="btnBoss" style="width:100%;margin-top:10px">ボスミッションに挑戦</button>
+    </div>
+  </div>
+
+  <div id="shop" class="view hidden">
+    <div class="home-head"><h2 style="text-align:center;margin:0">アイテム選択</h2><div class="mini" style="text-align:center">おすすめアイテムも表示</div></div>
+    <div class="scroll" style="padding:14px;flex:1"><div id="shopItems" class="list"></div></div>
+    <div class="footer">
+      <button class="btn" id="btnShopBack" style="flex:1">キャンセル</button>
+      <button class="btn btn-main" id="btnStart" style="flex:1">スタート！</button>
+    </div>
+  </div>
+
+  <div id="game" class="view hidden">
+    <div id="cutin" class="cut hidden"><div class="cut-inner"><span id="cutEmoji">🐭</span><span id="cutText">スキル!</span></div></div>
+    <div class="canvas-wrap"><canvas id="gameCanvas" width="400" height="500"></canvas></div>
+    <div class="game-ui">
+      <div class="hud-left"><div class="mini">スコア</div><div id="gameScore" class="score">0</div></div>
+      <div class="hud-right"><button class="pause" id="btnPause">⏸</button><div id="timer" class="timer">60</div></div>
+      <div class="fever-box"><div class="mini" style="text-align:center">フィーバー</div><div class="bar-bg"><div id="feverBar" class="bar"></div></div></div>
+      <div id="comboBox" class="combo hidden"><b id="comboNum">0</b><div class="mini" style="color:#facc15">コンボ</div></div>
+      <div id="comboWarn" class="combo-warn hidden">コンボが切れそう！</div>
+      <div id="rating" class="rating hidden">GREAT!</div>
+    </div>
+    <div class="footer">
+      <button id="btnShuffle">🌪️</button>
+      <div class="skill-area"><div class="mini">スキル Lv.<span id="skillLevelHud">1</span></div><div class="skillbar"><div id="skillBar" class="bar"></div></div></div>
+      <button id="btnSkill" disabled><span id="skillEmoji">🐭</span><br><small>発動</small></button>
+    </div>
+  </div>
+
+  <div id="modal" class="modal hidden"><div class="modal-box" id="modalBox"></div></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const SAVE_KEYS = ["toy_puzzle_v7_feature_stable","tsum_save_v6_stable","tsum_save_v5"];
+const SAVE_KEY = SAVE_KEYS[0];
+const W=400,H=500,R=24,HEART_MAX=5,RECOVER_MS=60*1000,SKILL_MAX=40;
+let Engine,World,Bodies,Body;
+const rand = n => Math.floor(Math.random()*n);
+const fmt = n => Math.floor(n||0).toLocaleString();
+const today = () => {const d=new Date();return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`};
+const weekKey = () => {const d=new Date();const onejan=new Date(d.getFullYear(),0,1);const w=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7);return `${d.getFullYear()}-W${w}`};
+const seasonName = () => {const m=new Date().getMonth()+1;if([12,1,2].includes(m))return"クリスマス＆ウィンター";if([3,4,5].includes(m))return"スプリング";if([6,7,8].includes(m))return"夏祭り";return"ハロウィン";};
+const seasonTag = () => {const m=new Date().getMonth()+1;if([12,1,2].includes(m))return"winter";if([3,4,5].includes(m))return"spring";if([6,7,8].includes(m))return"summer";return"halloween";};
+
+const ALL_TSUMS = [
+{id:0,name:"まるみみマウス",emoji:"🐭",color:"#ff5b6e",rank:"C",skillType:"center",skillDesc:"中央を消去",ear:"round",baseScore:100},
+{id:1,name:"アヒルおまる",emoji:"🦆",color:"#38bdf8",rank:"C",skillType:"center",skillDesc:"中央を消去",ear:"small",baseScore:100},
+{id:2,name:"どんぐりチップ",emoji:"🐿️",color:"#b45309",rank:"C",skillType:"horizontal_c",skillDesc:"横ライン消去",ear:"round",baseScore:105},
+{id:3,name:"ピンクポーク",emoji:"🐷",color:"#f472b6",rank:"C",skillType:"random_c",skillDesc:"ランダム消去",ear:"small",baseScore:100},
+{id:4,name:"イエローパット",emoji:"🐥",color:"#fbbf24",rank:"C",skillType:"vertical_c",skillDesc:"縦ライン消去",ear:"small",baseScore:105},
+{id:5,name:"ハチミツベア",emoji:"🐻",color:"#f59e0b",rank:"C",skillType:"bottom_c",skillDesc:"下部消去",ear:"bear",baseScore:110},
+{id:6,name:"てんとう虫ドット",emoji:"🐞",color:"#ef4444",rank:"C",skillType:"random_c",skillDesc:"ランダム消去",ear:"small",baseScore:100},
+{id:7,name:"ゴールドハニー",emoji:"🐝",color:"#facc15",rank:"C",skillType:"center",skillDesc:"中央消去",ear:"small",baseScore:115},
+{id:8,name:"うさみみロップ",emoji:"🐰",color:"#f472b6",rank:"B",skillType:"time",skillDesc:"時間+3秒",ear:"bunny",baseScore:120},
+{id:9,name:"フォレストベア",emoji:"🐻‍❄️",color:"#94a3b8",rank:"B",skillType:"random_b",skillDesc:"ランダム11個消去",ear:"bear",baseScore:130},
+{id:10,name:"スマートフォックス",emoji:"🦊",color:"#ea580c",rank:"B",skillType:"slash_b",skillDesc:"斜めライン消去",ear:"point",baseScore:130},
+{id:11,name:"アイスペンギン",emoji:"🐧",color:"#0ea5e9",rank:"B",skillType:"fever_charge",skillDesc:"フィーバーゲージUP",ear:"small",baseScore:125},
+{id:12,name:"もぐもぐコアラ",emoji:"🐨",color:"#64748b",rank:"B",skillType:"center_b",skillDesc:"広めの中央消去",ear:"bear",baseScore:125},
+{id:13,name:"マウンテンモンキー",emoji:"🐒",color:"#854d0e",rank:"B",skillType:"vertical_b",skillDesc:"縦2ライン消去",ear:"round",baseScore:130},
+{id:14,name:"モノクロパンダ",emoji:"🐼",color:"#1e293b",rank:"A",skillType:"bomb",skillDesc:"ボム生成",ear:"bear",baseScore:150},
+{id:15,name:"招き大富豪",emoji:"🐱",color:"#fbbf24",rank:"A",skillType:"coin_grab",skillDesc:"コイン獲得",ear:"point",baseScore:160},
+{id:16,name:"しばっこワン",emoji:"🐕",color:"#fb923c",rank:"A",skillType:"bomb2",skillDesc:"ボム2個生成",ear:"round",baseScore:155},
+{id:17,name:"タイガークロー",emoji:"🐯",color:"#f97316",rank:"A",skillType:"cross_a",skillDesc:"クロス消去",ear:"point",baseScore:165},
+{id:18,name:"アイアンボット",emoji:"🤖",color:"#475569",rank:"A",skillType:"vertical_a",skillDesc:"太い縦ライン消去",ear:"small",baseScore:160},
+{id:19,name:"スペーストイ",emoji:"👽",color:"#a3e635",rank:"A",skillType:"random_a",skillDesc:"ランダム14個消去",ear:"small",baseScore:170},
+{id:20,name:"サバンナレオ",emoji:"🦁",color:"#d97706",rank:"S",skillType:"big_bomb",skillDesc:"強力ボム2個",ear:"round",baseScore:200},
+{id:21,name:"メルヘンコーン",emoji:"🦄",color:"#c084fc",rank:"S",skillType:"rainbow_fever",skillDesc:"15秒スコア3倍",ear:"point",baseScore:220},
+{id:22,name:"ゴールデンレオ",emoji:"🦁",color:"#f59e0b",rank:"S",skillType:"coin_boost_s",skillDesc:"コイン獲得",ear:"round",baseScore:230},
+{id:23,name:"ウィングホース",emoji:"🐎",color:"#38bdf8",rank:"S",skillType:"random_s",skillDesc:"ランダム18個消去",ear:"point",baseScore:210},
+{id:24,name:"ハロウィンナイト",emoji:"👻",color:"#cbd5e1",rank:"S",skillType:"clear_one_type",skillDesc:"1種類を全消去",ear:"small",baseScore:240,event:"halloween"},
+{id:25,name:"インフェルノ",emoji:"🐦‍🔥",color:"#ef4444",rank:"SS",skillType:"phoenix_megablast",skillDesc:"画面の大部分を消去",ear:"point",baseScore:350},
+{id:26,name:"カオスデビル",emoji:"👿",color:"#8b5cf6",rank:"SS",skillType:"dark_obliterate",skillDesc:"ランダム28個消去",ear:"point",baseScore:320},
+{id:27,name:"コスモロップ",emoji:"🐰",color:"#06b6d4",rank:"SS",skillType:"star_time_ss",skillDesc:"時間+5秒とタイムボム",ear:"bunny",baseScore:300},
+{id:28,name:"アースドラゴン",emoji:"🐉",color:"#059669",rank:"SS",skillType:"dragon_slash",skillDesc:"X字消去",ear:"point",baseScore:340},
+{id:29,name:"天帝ホウオウ",emoji:"🦚",color:"#0d9488",rank:"SS",skillType:"phoenix_wings",skillDesc:"上下同時消去",ear:"point",baseScore:330},
+{id:30,name:"夏祭りキツネ",emoji:"🦊",color:"#fb923c",rank:"S",skillType:"festival_fire",skillDesc:"花火ボムを3個生成",ear:"point",baseScore:245,event:"summer",limited:true},
+{id:31,name:"雪だるまベア",emoji:"⛄",color:"#bae6fd",rank:"A",skillType:"winter_freeze",skillDesc:"時間+2秒とボム生成",ear:"bear",baseScore:180,event:"winter",limited:true},
+{id:32,name:"桜ロップ",emoji:"🌸",color:"#f9a8d4",rank:"S",skillType:"spring_bloom",skillDesc:"桜ライン消去",ear:"bunny",baseScore:235,event:"spring",limited:true},
+{id:33,name:"パンプキンゴースト",emoji:"🎃",color:"#f97316",rank:"S",skillType:"halloween_burst",skillDesc:"中央と周囲を消去",ear:"small",baseScore:245,event:"halloween",limited:true}
+];
+
+const DAILY_MISSIONS=[
+{type:"fever",target:2,desc:"1プレイでフィーバーを2回しよう",reward:150},
+{type:"combo",target:20,desc:"1プレイで20コンボを達成しよう",reward:200},
+{type:"score",target:50000,desc:"1プレイで50,000点以上を獲得しよう",reward:250},
+{type:"bomb",target:3,desc:"1プレイでボムを3回消そう",reward:150},
+{type:"clear",target:120,desc:"1プレイでツムを120個消そう",reward:200},
+{type:"coins",target:100,desc:"1プレイでコインを100枚稼ごう",reward:350}
+];
+const WEEKLY_MISSIONS=[
+{type:"score",target:300000,desc:"今週の合計スコア300,000点",reward:1200},
+{type:"clear",target:800,desc:"今週ツムを合計800個消そう",reward:1000},
+{type:"fever",target:12,desc:"今週フィーバーを12回しよう",reward:900},
+{type:"boss",target:1,desc:"今週ボスミッションを1回クリアしよう",reward:1500}
+];
+const BOOSTERS=[
+{id:"score",name:"スコア+10%",desc:"最終スコアが10%アップ",cost:200,icon:"📈"},
+{id:"coin",name:"コイン+10%",desc:"獲得コインが10%アップ",cost:300,icon:"🪙"},
+{id:"time",name:"タイム+5秒",desc:"制限時間が5秒追加",cost:400,icon:"⏱️"},
+{id:"bomb",name:"ボム出現率UP",desc:"6チェーンでボム出現",cost:500,icon:"💣"},
+{id:"fever",name:"フィーバーUP",desc:"ゲージが20%たまりやすい",cost:300,icon:"🔥"},
+{id:"ultra",name:"超軽量ブースト",desc:"演出をさらに減らして安定",cost:0,icon:"📱"}
+];
+
+const defaultUser={
+coins:1500,tickets:3,hearts:5,lastHeartTime:Date.now(),myTsumId:0,highScore:0,friendCode:"",
+unlockedTsums:[0,1],tsumLevels:{0:1,1:1},tsumExps:{0:0,1:0},skillLevels:{0:1,1:1},skillExps:{0:0,1:0},
+tsumStats:{},settings:{sfx:true,lightMode:false,ultraLight:false,vibrate:true},
+daily:{date:today(),id:0,cleared:false},weekly:{week:weekKey(),id:0,cleared:false,progress:{score:0,clear:0,fever:0,boss:0}},
+login:{last:"",streak:0},pity:{ss:0,total:0},weeklyScores:[],friends:[],bossClearedWeek:"",tutorialDone:false,version:8
+};
+let user,selectedBoosters=[],bossMode=false,isPlayingRequested=false,engine=null,world=null,isPlaying=false,isPaused=false,raf=0,lastTick=0,acc=0;
+let score=0,coinsEarned=0,timeLeft=60,combo=0,maxCombo=0,lastClear=0,feverGauge=0,isFever=false,feverLeft=0,skillGauge=0,activeBonus=false,feverBgmTimer=0;
+let stats={fever:0,bombs:0,cleared:0,bossDamage:0},chain=[],dragging=false,particles=[],ripples=[],activeTypes=[];
+const canvas=$("gameCanvas"),ctx=canvas.getContext("2d",{alpha:false});
+
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function getTsum(id){return ALL_TSUMS.find(t=>t.id===id)||ALL_TSUMS[0];}
+function rankPower(r){return {SS:5,S:4,A:3,B:2,C:1}[r]||1}
+function rankColor(r){return {SS:"#ef4444",S:"#facc15",A:"#a855f7",B:"#3b82f6",C:"#94a3b8"}[r]||"#94a3b8"}
+function isUnlocked(id){return user.unlockedTsums.includes(id)}
+function skillLv(id=user.myTsumId){return user.skillLevels[id]||1}
+function tsumLv(id=user.myTsumId){return user.tsumLevels[id]||1}
+
+const audio={ctx:null,init(){if(!user.settings.sfx)return;const A=window.AudioContext||window.webkitAudioContext;if(!A)return;if(!this.ctx)this.ctx=new A();if(this.ctx.state==="suspended")this.ctx.resume().catch(()=>{})},tone(f=440,t="sine",d=.08,v=.06){if(!user.settings.sfx||!this.ctx)return;try{const o=this.ctx.createOscillator(),g=this.ctx.createGain(),n=this.ctx.currentTime;o.type=t;o.frequency.setValueAtTime(f,n);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.01,n+d);o.connect(g);g.connect(this.ctx.destination);o.start(n);o.stop(n+d)}catch(e){}},pop(n=1){this.tone(300+n*35,"sine",.055,.07)},bomb(){this.tone(90,"square",.18,.12);vibrate(45)},skill(){[440,660,880].forEach((f,i)=>setTimeout(()=>this.tone(f,"triangle",.18,.09),i*90));vibrate([25,45,25])},error(){this.tone(150,"sawtooth",.18,.09)}};
+function vibrate(p){if(user.settings.vibrate&&navigator.vibrate)try{navigator.vibrate(p)}catch(e){}}
+
+function loadUser(){
+  user=null;
+  for(const k of SAVE_KEYS){try{const s=localStorage.getItem(k);if(s){user=JSON.parse(s);break}}catch(e){}}
+  user={...clone(defaultUser),...(user||{})};
+  user.settings={...defaultUser.settings,...(user.settings||{})};
+  user.login={...defaultUser.login,...(user.login||{})};
+  user.pity={...defaultUser.pity,...(user.pity||{})};
+  user.unlockedTsums=[...new Set(user.unlockedTsums||[0,1])].filter(id=>ALL_TSUMS.some(t=>t.id===id));
+  if(!user.unlockedTsums.includes(user.myTsumId))user.myTsumId=user.unlockedTsums[0]||0;
+  if(!user.friendCode)user.friendCode=makeFriendCode();
+  refreshDailyWeekly();
+  recoverHeart();
+  checkLoginBonus();
+  save(false);renderHome();
+}
+function save(render=true){try{const data=JSON.stringify(user);localStorage.setItem(SAVE_KEY,data);localStorage.setItem(SAVE_KEY+"_backup",data)}catch(e){}if(render)renderHome()}
+function refreshDailyWeekly(){
+ if(!user.daily||user.daily.date!==today())user.daily={date:today(),id:rand(DAILY_MISSIONS.length),cleared:false};
+ if(!user.weekly||user.weekly.week!==weekKey())user.weekly={week:weekKey(),id:rand(WEEKLY_MISSIONS.length),cleared:false,progress:{score:0,clear:0,fever:0,boss:0}};
+}
+function recoverHeart(){if(user.hearts>=HEART_MAX)return false;const p=Date.now()-user.lastHeartTime;if(p<RECOVER_MS)return false;const c=Math.floor(p/RECOVER_MS);user.hearts=Math.min(HEART_MAX,user.hearts+c);user.lastHeartTime=user.hearts>=HEART_MAX?Date.now():user.lastHeartTime+c*RECOVER_MS;return true}
+function checkLoginBonus(){
+ if(user.login.last===today())return;
+ const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+ const y=`${yesterday.getFullYear()}-${yesterday.getMonth()+1}-${yesterday.getDate()}`;
+ user.login.streak=(user.login.last===y)?(user.login.streak||0)+1:1;user.login.last=today();
+ const coins=300+Math.min(user.login.streak,7)*50;
+ let tickets=0;if(user.login.streak%3===0)tickets++;if(user.login.streak%7===0)tickets+=2;
+ user.coins+=coins;user.tickets+=tickets;
+ setTimeout(()=>showModal(`<h2>ログインボーナス</h2><div class="notice">連続ログイン ${user.login.streak}日目！<br>🪙 ${coins}枚${tickets?`<br>🎫 ${tickets}枚`:``}</div><button class="btn btn-main" onclick="closeModal()" style="width:100%;margin-top:12px">OK</button>`),300);
+}
+function makeFriendCode(){return "TP-"+Math.random().toString(36).slice(2,6).toUpperCase()+"-"+Math.random().toString(36).slice(2,6).toUpperCase()}
+
+function drawTsum(c,tsum,size=120,lvl=1){
+ const d=c.getContext("2d");c.width=size;c.height=size;d.clearRect(0,0,size,size);drawToy(d,tsum,size/2,size/2+4,size*.34,0,false,1,lvl);
+}
+function shade(hex,p){const n=parseInt(hex.slice(1),16);let r=(n>>16)+p,g=((n>>8)&255)+p,b=(n&255)+p;r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));return`rgb(${r},${g},${b})`}
+function oval(d,x,y,rx,ry,rot,col){d.save();d.translate(x,y);d.rotate(rot);d.beginPath();d.ellipse(0,0,rx,ry,0,0,Math.PI*2);d.fillStyle=col;d.fill();d.restore()}
+function drawToy(d,t,x,y,r,a=0,sel=false,alpha=1,lvl=1){
+ d.save();d.globalAlpha=alpha;d.translate(x,y);d.rotate(a);
+ const col=t.color,light=shade(col,35),dark=shade(col,-30);
+ if(lvl>=10){d.shadowBlur=18;d.shadowColor=rankColor(t.rank);d.beginPath();d.arc(0,0,r+7,0,Math.PI*2);d.fillStyle=rankColor(t.rank)+"55";d.fill();d.shadowBlur=0}
+ if(t.ear==="bunny"){oval(d,-r*.42,-r*.95,r*.22,r*.62,-.25,dark);oval(d,r*.42,-r*.95,r*.22,r*.62,.25,dark);oval(d,-r*.42,-r*.95,r*.1,r*.4,-.25,"#ffd6e7");oval(d,r*.42,-r*.95,r*.1,r*.4,.25,"#ffd6e7")}
+ else if(t.ear==="point"){d.fillStyle=dark;d.beginPath();d.moveTo(-r*.55,-r*.55);d.lineTo(-r*.2,-r*.9);d.lineTo(-r*.1,-r*.42);d.fill();d.beginPath();d.moveTo(r*.55,-r*.55);d.lineTo(r*.2,-r*.9);d.lineTo(r*.1,-r*.42);d.fill()}
+ else{d.fillStyle=dark;d.beginPath();d.arc(-r*.52,-r*.55,r*.25,0,Math.PI*2);d.fill();d.beginPath();d.arc(r*.52,-r*.55,r*.25,0,Math.PI*2);d.fill()}
+ d.shadowBlur=sel?20:8;d.shadowColor=sel?"#fff":"#0008";const g=d.createRadialGradient(-r*.25,-r*.28,r*.1,0,0,r*1.1);g.addColorStop(0,light);g.addColorStop(.72,col);g.addColorStop(1,dark);d.beginPath();d.arc(0,0,r,0,Math.PI*2);d.fillStyle=g;d.fill();d.shadowBlur=0;d.lineWidth=sel?4:2;d.strokeStyle=sel?"#fff":"#ffffff66";d.stroke();
+ d.fillStyle="#111827";d.beginPath();d.ellipse(-r*.24,-r*.08,r*.08,r*.11,0,0,Math.PI*2);d.fill();d.beginPath();d.ellipse(r*.24,-r*.08,r*.08,r*.11,0,0,Math.PI*2);d.fill();d.fillStyle="#fff";d.beginPath();d.arc(-r*.27,-r*.12,r*.025,0,Math.PI*2);d.fill();d.beginPath();d.arc(r*.21,-r*.12,r*.025,0,Math.PI*2);d.fill();d.fillStyle="#fda4afaa";d.beginPath();d.arc(-r*.42,r*.12,r*.1,0,Math.PI*2);d.fill();d.beginPath();d.arc(r*.42,r*.12,r*.1,0,Math.PI*2);d.fill();d.strokeStyle="#111827";d.lineWidth=2;d.beginPath();d.arc(0,r*.18,r*.12,.2*Math.PI,.8*Math.PI);d.stroke();
+ d.font=`${Math.max(12,r*.48)}px system-ui`;d.textAlign="center";d.textBaseline="middle";d.fillText(t.emoji,0,-r*.42);d.restore();
+}
+
+function renderHome(){
+ $("coinCount").textContent=fmt(user.coins);$("heartCount").textContent=`${user.hearts}/${HEART_MAX}`;$("heartTimer").textContent=user.hearts>=HEART_MAX?"MAX":heartRemain();
+ $("homeHigh").textContent=fmt(user.highScore);$("ticketCount").textContent=fmt(user.tickets);$("pityText").textContent=`SSランク天井まであと ${Math.max(0,50-(user.pity.ss||0))}回　/　総ガチャ ${user.pity.total||0}回`;
+ const t=getTsum(user.myTsumId);$("myBg").style.background=t.color;$("myRank").textContent=t.rank;$("myRank").style.background=rankColor(t.rank);$("myRank").style.color=t.rank==="S"?"#111827":"white";$("myLv").textContent=`Lv.${tsumLv()}`;drawTsum($("myCanvas"),t,140,tsumLv());
+ $("skillEmoji").textContent=t.emoji;$("skillLevelHud").textContent=skillLv();
+ const dm=DAILY_MISSIONS[user.daily.id]||DAILY_MISSIONS[0];$("dailyMission").innerHTML=`${dm.desc}<br><b>報酬 🪙${dm.reward}</b>`;$("dailyStatus").textContent=user.daily.cleared?"CLEAR!":"挑戦中";
+ const wm=WEEKLY_MISSIONS[user.weekly.id]||WEEKLY_MISSIONS[0];const prog=user.weekly.progress[wm.type]||0;$("weeklyMission").innerHTML=`${wm.desc}<br><b>${fmt(prog)} / ${fmt(wm.target)}　報酬 🪙${wm.reward}</b>`;$("weeklyStatus").textContent=user.weekly.cleared?"CLEAR!":"挑戦中";
+ const rec=recommendTsum();$("recommendBox").innerHTML=`おすすめツム：<b>${rec.emoji} ${rec.name}</b><br><span class="mini-label">理由：</span>${rec.reason}`;
+ $("eventBox").innerHTML=`開催中：<b>${seasonName()}イベント</b><br>イベント限定ツムが出やすいBOXです。`;
+}
+function heartRemain(){const s=Math.ceil((RECOVER_MS-(Date.now()-user.lastHeartTime))/1000);return`${Math.max(0,Math.floor(s/60))}:${String(Math.max(0,s%60)).padStart(2,"0")}`}
+function recommendTsum(){const owned=user.unlockedTsums.map(getTsum).sort((a,b)=>rankPower(b.rank)-rankPower(a.rank)||tsumLv(b.id)-tsumLv(a.id));const t=owned[0]||getTsum(0);let reason="高ランクでスコアを伸ばしやすいです。";if(["time","star_time_ss"].includes(t.skillType))reason="時間を増やせるので初心者でも長く遊びやすいです。";if(["bomb","bomb2","big_bomb"].includes(t.skillType))reason="ボムを作れるので消しやすく安定します。";return{...t,reason}}
+
+function showModal(html){$("modalBox").innerHTML=html;$("modal").classList.remove("hidden");setTimeout(applyReadableUiHints,0)}
+window.closeModal=()=>{$("modal").classList.add("hidden")};
+
+function showTsumSelect(){
+ let html=`<h2>マイツムを選択</h2><div class="notice" id="tsumInfo">持っているツムを選んでください。タップでマイツムに設定できます。</div><div class="tsum-grid" style="margin-top:12px">`;
+ ALL_TSUMS.forEach(t=>{const own=isUnlocked(t.id);html+=`<button class="tsum-cell ${own?"":"locked"}" ${own?`onclick="selectTsum(${t.id})"`:""}><canvas id="sel${t.id}" width="70" height="70"></canvas><span class="badge badge-rank" style="background:${rankColor(t.rank)}">${t.rank}</span>${own?`<span class="badge badge-lv">Lv.${tsumLv(t.id)}</span>`:""}</button>`});
+ html+=`</div><button class="btn" onclick="closeModal()" style="width:100%;margin-top:14px">閉じる</button>`;showModal(html);
+ ALL_TSUMS.forEach(t=>{const c=$("sel"+t.id);if(c)drawTsum(c,t,70,tsumLv(t.id))});
+}
+window.selectTsum=id=>{user.myTsumId=id;save();closeModal();renderHome()};
+
+function showCodex(){
+ let html=`<h2>ツム図鑑</h2><div class="tabbar"><button class="active">全ツム一覧</button></div><div class="list">`;
+ ALL_TSUMS.forEach(t=>{const own=isUnlocked(t.id),st=user.tsumStats[t.id]||{};html+=`<div class="list-item row"><div style="display:flex;gap:10px;align-items:center"><canvas id="cod${t.id}" width="60" height="60"></canvas><div><b>${own?t.name:"？？？？"}</b> <span style="color:${rankColor(t.rank)}">${t.rank}</span><div class="mini">${own?`スキル：${t.skillDesc}<br>レベル：Lv.${tsumLv(t.id)}　/　スキルLv.${skillLv(t.id)}`:"未入手"}</div><div class="mini">使用回数：${st.uses||0}回　/　最高スコア：${fmt(st.best||0)}</div></div></div></div>`});
+ html+=`</div><button class="btn" onclick="closeModal()" style="width:100%;margin-top:12px">閉じる</button>`;showModal(html);ALL_TSUMS.forEach(t=>{const c=$("cod"+t.id);if(c)drawTsum(c,t,60,tsumLv(t.id))});
+}
+function showRanking(){
+ const scores=[...(user.weeklyScores||[]),{name:"あなた",score:user.highScore,code:user.friendCode}].sort((a,b)=>b.score-a.score).slice(0,10);
+ let rows=scores.map((s,i)=>`<div class="list-item row"><b>${i+1}. ${s.name||"ともだち"}</b><span>${fmt(s.score)}</span></div>`).join("");
+ const saveCode=makeSaveCode();
+ const share=makeFriendShareCode();
+ showModal(`<h2>週間ランキング</h2><div class="notice">あなたの友達コード：<b>${user.friendCode}</b><br>友達と比べる場合は、下の共有コードを交換してください。</div><div class="list" style="margin-top:10px">${rows}</div><h3>友達スコアを追加</h3><textarea id="friendInput" placeholder="友達からもらった共有コードをここに貼り付け"></textarea><button class="btn btn-blue" onclick="importFriend()" style="width:100%;margin-top:8px">読み込む</button><h3>あなたのランキング共有コード</h3><textarea readonly>${share}</textarea><h3>セーブコード（データ移行用）</h3><textarea readonly>${saveCode}</textarea><textarea id="saveInput" placeholder="セーブコード（データ移行用）を貼り付けて復元"></textarea><button class="btn btn-green" onclick="importSave()" style="width:100%;margin-top:8px">復元</button><button class="btn" onclick="closeModal()" style="width:100%;margin-top:10px">閉じる</button>`);
+}
+function makeFriendShareCode(){return btoa(unescape(encodeURIComponent(JSON.stringify({v:1,name:"ともだち",code:user.friendCode,score:user.highScore,week:weekKey()}))))}
+window.importFriend=()=>{try{const d=JSON.parse(decodeURIComponent(escape(atob($("friendInput").value.trim()))));if(!d.code||typeof d.score!=="number")throw 0;user.weeklyScores=user.weeklyScores||[];user.weeklyScores=user.weeklyScores.filter(x=>x.code!==d.code);user.weeklyScores.push({name:d.name||"ともだち",code:d.code,score:d.score,week:d.week||weekKey()});save();showRanking()}catch(e){alert("共有コードを読み込めませんでした")}};
+function makeSaveCode(){return btoa(unescape(encodeURIComponent(JSON.stringify({v:7,user}))))}
+window.importSave=()=>{try{const d=JSON.parse(decodeURIComponent(escape(atob($("saveInput").value.trim()))));if(!d.user)throw 0;user={...clone(defaultUser),...d.user};save();closeModal();renderHome();alert("復元しました")}catch(e){alert("セーブコード（データ移行用）を読み込めませんでした")}};
+
+function showSettings(){
+ showModal(`<h2>設定</h2>
+ <label class="list-item row">🔊 効果音 <input id="setSfx" type="checkbox" ${user.settings.sfx?"checked":""}></label>
+ <label class="list-item row">⚡ 軽量モード <span class="mini">演出を少し減らす</span> <input id="setLight" type="checkbox" ${user.settings.lightMode?"checked":""}></label>
+ <label class="list-item row">📱 超軽量モード <span class="mini">重い端末向け</span> <input id="setUltra" type="checkbox" ${user.settings.ultraLight?"checked":""}></label>
+ <label class="list-item row">📳 振動 <input id="setVib" type="checkbox" ${user.settings.vibrate?"checked":""}></label>
+ <button class="btn btn-green" onclick="saveSettings()" style="width:100%;margin-top:10px">保存</button>
+ <button class="btn" onclick="resetSave()" style="width:100%;margin-top:10px;color:#fb7185">セーブデータリセット</button>
+ <button class="btn" onclick="closeModal()" style="width:100%;margin-top:10px">閉じる</button>`);
+}
+window.saveSettings=()=>{user.settings.sfx=$("setSfx").checked;user.settings.lightMode=$("setLight").checked;user.settings.ultraLight=$("setUltra").checked;user.settings.vibrate=$("setVib").checked;save();audio.init();closeModal()};
+window.resetSave=()=>{if(confirm("本当にリセットしますか？")){SAVE_KEYS.forEach(k=>localStorage.removeItem(k));location.reload()}};
+
+function showShop(){
+ selectedBoosters=[];$("home").classList.add("hidden");$("shop").classList.remove("hidden");renderShop();
+}
+function renderShop(){
+ const rec=scoreRecommendation();
+ $("shopItems").innerHTML=BOOSTERS.map(b=>`<button class="list-item row" id="boost${b.id}" onclick="toggleBooster('${b.id}')"><div><b>${b.icon} ${b.name}</b>${rec===b.id?` <span style="color:#facc15">おすすめ</span>`:""}<div class="mini">${b.desc}</div></div><b class="cost-label">🪙 ${b.cost}</b></button>`).join("");
+}
+function scoreRecommendation(){if(user.highScore<50000)return"time";if(user.highScore<150000)return"bomb";return"score"}
+window.toggleBooster=id=>{const i=selectedBoosters.indexOf(id),b=BOOSTERS.find(x=>x.id===id);if(i<0){const cost=selectedBoosters.reduce((s,x)=>s+BOOSTERS.find(y=>y.id===x).cost,0)+b.cost;if(user.coins<cost){audio.error();alert("コインが足りません");return}selectedBoosters.push(id)}else selectedBoosters.splice(i,1);renderShop();selectedBoosters.forEach(x=>{const el=$("boost"+x);if(el){el.style.borderColor="#6366f1";el.style.background="#312e81"}})}
+function backHome(){$("shop").classList.add("hidden");$("home").classList.remove("hidden");bossMode=false}
+function startBoss(){bossMode=true;showShop()}
+
+function useGachaCost(n){if(user.tickets>=n){user.tickets-=n;return true}const cost=n*1000;if(user.coins>=cost){user.coins-=cost;return true}return false}
+function gachaOne(eventOnly=false,forcedSS=false){
+ let pool=ALL_TSUMS.filter(t=>!t.limited||t.event===seasonTag()||isUnlocked(t.id));
+ if(eventOnly)pool=ALL_TSUMS.filter(t=>t.event===seasonTag()||(!t.limited&&["A","S","SS"].includes(t.rank)));
+ if(forcedSS)pool=pool.filter(t=>t.rank==="SS");
+ const weights={SS:8,S:15,A:25,B:32,C:20};let total=pool.reduce((s,t)=>s+(weights[t.rank]||10),0),roll=Math.random()*total;
+ for(const t of pool){roll-=weights[t.rank]||10;if(roll<=0)return t}return pool[pool.length-1];
+}
+function runGacha(n=1,eventOnly=false){
+ if(!useGachaCost(n)){audio.error();alert("コインまたはチケットが足りません");return}
+ audio.init();let results=[];for(let i=0;i<n;i++){const forced=(user.pity.ss||0)>=49;const t=gachaOne(eventOnly,forced);results.push(t);user.pity.total++;user.pity.ss=t.rank==="SS"?0:(user.pity.ss||0)+1;if(!isUnlocked(t.id)){user.unlockedTsums.push(t.id);user.tsumLevels[t.id]=1;user.tsumExps[t.id]=0;user.skillLevels[t.id]=1;user.skillExps[t.id]=0}else{addExp(t.id,120);addSkillExp(t.id,1)}}
+ save();showGachaResults(results);
+}
+function addExp(id,amt){user.tsumExps[id]=(user.tsumExps[id]||0)+amt;user.tsumLevels[id]=user.tsumLevels[id]||1;while(user.tsumExps[id]>=user.tsumLevels[id]*150){user.tsumExps[id]-=user.tsumLevels[id]*150;user.tsumLevels[id]++}}
+function addSkillExp(id,amt){user.skillExps[id]=(user.skillExps[id]||0)+amt;user.skillLevels[id]=user.skillLevels[id]||1;while(user.skillLevels[id]<6&&user.skillExps[id]>=user.skillLevels[id]*3){user.skillExps[id]-=user.skillLevels[id]*3;user.skillLevels[id]++}}
+function showGachaResults(res){
+ const best=[...res].sort((a,b)=>rankPower(b.rank)-rankPower(a.rank))[0];
+ let html=`<h2>ガチャ結果</h2><div style="text-align:center"><canvas id="gachaBest" width="150" height="150"></canvas><h2 style="color:${rankColor(best.rank)}">${best.emoji} ${best.name}</h2><div class="notice">${best.rank}ランク<br>スキル：${best.skillDesc}</div></div>`;
+ if(res.length>1)html+=`<div class="list" style="margin-top:10px">${res.map(t=>`<div class="list-item">${t.emoji} ${t.name} <b style="color:${rankColor(t.rank)}">${t.rank}</b></div>`).join("")}</div>`;
+ html+=`<button class="btn btn-main" onclick="closeModal()" style="width:100%;margin-top:12px">OK</button>`;showModal(html);drawTsum($("gachaBest"),best,150,tsumLv(best.id));audio.skill();
+}
+
+function startGame(){
+ if(!window.Matter){alert("Matter.jsの読み込みに失敗しました。再読み込みしてください。");return}
+ Engine=Matter.Engine;World=Matter.World;Bodies=Matter.Bodies;Body=Matter.Body;
+ const cost=selectedBoosters.reduce((s,x)=>s+BOOSTERS.find(y=>y.id===x).cost,0);if(user.coins<cost){alert("コインが足りません");return}if(user.hearts<=0){alert("ハートが足りません");return}
+ user.coins-=cost;user.hearts--;if(user.hearts===HEART_MAX-1)user.lastHeartTime=Date.now();save();
+ $("shop").classList.add("hidden");$("game").classList.remove("hidden");resetGame();initPhysics();isPlaying=true;isPaused=false;raf=requestAnimationFrame(loop);
+}
+function resetGame(){score=0;coinsEarned=0;timeLeft=selectedBoosters.includes("time")?65:60;if(bossMode)timeLeft+=10;combo=0;maxCombo=0;lastClear=0;feverGauge=0;isFever=false;feverLeft=0;skillGauge=0;activeBonus=false;feverBgmTimer=0;stats={fever:0,bombs:0,cleared:0,bossDamage:0};chain=[];dragging=false;particles=[];ripples=[];lastTick=0;acc=0;$("gameScore").textContent="0";$("timer").textContent=timeLeft;$("feverBar").style.width="0%";$("skillBar").style.width="0%";$("comboBox").classList.add("hidden");$("comboWarn").classList.add("hidden");$("btnSkill").disabled=true;$("btnSkill").classList.remove("skill-ready");$("game").classList.remove("fever-flash");$("skillEmoji").textContent=getTsum(user.myTsumId).emoji;$("skillLevelHud").textContent=skillLv()}
+function initPhysics(){clearPhysics(false);engine=Engine.create({gravity:{y:1.45},positionIterations:6,velocityIterations:5});world=engine.world;const opt={isStatic:true};World.add(world,[Bodies.rectangle(W/2,H+35,W+120,70,opt),Bodies.rectangle(-35,H/2,70,H*2,opt),Bodies.rectangle(W+35,H/2,70,H*2,opt)]);activeTypes=[getTsum(user.myTsumId),...ALL_TSUMS.filter(t=>t.id!==user.myTsumId&&!t.limited).sort(()=>Math.random()-.5).slice(0,4)];for(let i=0;i<maxTsums();i++)spawnTsum(36+Math.random()*(W-72),-280+Math.random()*250)}
+function clearPhysics(stop=true){if(stop&&raf)cancelAnimationFrame(raf);raf=0;if(engine&&world){try{World.clear(world,false);Engine.clear(engine)}catch(e){}}engine=null;world=null}
+function maxTsums(){return user.settings.ultraLight||selectedBoosters.includes("ultra")?32:user.settings.lightMode?38:44}
+function spawnTsum(x,y){const t=activeTypes[rand(activeTypes.length)];const b=Bodies.circle(x,y,R,{restitution:.12,friction:.05,density:.001,label:"tsum"});b.tsumType=t;World.add(world,b)}
+function spawnBomb(x,y,type="normal"){const b=Bodies.circle(x,y,R*1.3,{restitution:.18,friction:.1,density:.003,label:"bomb"});b.bombType=type;World.add(world,b)}
+function refill(){const c=world.bodies.filter(b=>b.label==="tsum"||b.label==="bomb").length;for(let i=0;i<Math.min(maxTsums()-c,3);i++)spawnTsum(40+Math.random()*(W-80),-60-i*34)}
+function loop(ts){if(!isPlaying)return;raf=requestAnimationFrame(loop);if(!lastTick)lastTick=ts;const dt=Math.min(40,ts-lastTick);lastTick=ts;if(isPaused)return;acc+=dt;if(acc>=1000){timeLeft--;acc-=1000;$("timer").textContent=timeLeft;if(timeLeft<=0){timeUp();return}}if(isFever){feverLeft-=dt;feverBgmTimer+=dt;$("feverBar").style.width=Math.max(0,feverLeft/10000*100)+"%";if(feverBgmTimer>600){feverBgmTimer=0;audio.tone(500+rand(300),"sine",.06,.035)}if(feverLeft<=0)endFever()}else if(combo>0){const left=3000-(Date.now()-lastClear);$("comboWarn").classList.toggle("hidden",!(left<900&&left>0));if(left<=0){combo=0;$("comboBox").classList.add("hidden");$("comboWarn").classList.add("hidden")}}Engine.update(engine,Math.min(dt,30));if(Math.random()<.14)refill();draw()}
+function draw(){ctx.fillStyle=activeBonus?"#2d1b4e":isFever?"#2e1065":"#0f172a";ctx.fillRect(0,0,W,H);const bodies=world.bodies.filter(b=>b.label==="tsum"||b.label==="bomb");for(const b of bodies){const sel=chain.includes(b);if(b.label==="tsum")drawToy(ctx,b.tsumType,b.position.x,b.position.y,R,b.angle,sel,1,tsumLv(b.tsumType.id));else drawBomb(b)}drawChain();drawParticles()}
+function drawBomb(b){ctx.save();ctx.translate(b.position.x,b.position.y);let col="#cbd5e1",txt="⭐";if(b.bombType==="score"){col="#facc15";txt="✨"}if(b.bombType==="coin"){col="#f59e0b";txt="🪙"}if(b.bombType==="time"){col="#38bdf8";txt="⏱️"}if(b.bombType==="fever"){col="#ec4899";txt="🔥"}if(b.bombType==="skill"){col="#22d3ee";txt="💠"}if(b.bombType==="mega"){col="#a78bfa";txt="💥"}if(b.bombType==="rainbow"){col="#f0abfc";txt="🌈"}ctx.beginPath();ctx.arc(0,0,R*1.3,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();ctx.lineWidth=3;ctx.strokeStyle="#fff";ctx.stroke();ctx.font="24px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(txt,0,1);ctx.restore()}
+function drawChain(){if(chain.length<1)return;const col=chain[0].tsumType.color;ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.lineWidth=18;ctx.strokeStyle=col;ctx.globalAlpha=.55;pathChain();ctx.stroke();ctx.globalAlpha=1;ctx.lineWidth=7;ctx.strokeStyle="#fff";pathChain();ctx.stroke();ctx.restore()}
+function pathChain(){ctx.beginPath();ctx.moveTo(chain[0].position.x,chain[0].position.y);for(let i=1;i<chain.length;i++)ctx.lineTo(chain[i].position.x,chain[i].position.y)}
+function burst(x,y,col,c=6){if(user.settings.ultraLight||selectedBoosters.includes("ultra"))return;const max=user.settings.lightMode?25:70;for(let i=0;i<c&&particles.length<max;i++)particles.push({x,y,vx:(Math.random()-.5)*7,vy:(Math.random()-.5)*7,r:2+Math.random()*4,c:col,a:1})}
+function drawParticles(){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.a-=.05;if(p.a<=0)particles.splice(i,1);else{ctx.save();ctx.globalAlpha=p.a;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.c;ctx.fill();ctx.restore()}}}
+
+function pos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}}
+function bodyAt(p){const bs=world.bodies.filter(b=>b.label==="tsum"||b.label==="bomb");let best=null,d=1e9;for(let i=bs.length-1;i>=0;i--){const b=bs[i],rr=b.label==="bomb"?R*1.4+8:R+8,dd=Math.hypot(b.position.x-p.x,b.position.y-p.y);if(dd<rr&&dd<d){d=dd;best=b}}return best}
+function down(e){if(!isPlaying||isPaused)return;canvas.setPointerCapture?.(e.pointerId);const b=bodyAt(pos(e));if(!b)return;if(b.label==="bomb")explodeBomb(b);else{dragging=true;chain=[b];audio.pop(1)}}
+function move(e){if(!isPlaying||isPaused||!dragging||!chain.length)return;const p=pos(e),search=R*2.55,connect=R*3.9;if(chain.length>=2){const prev=chain[chain.length-2];if(Math.hypot(prev.position.x-p.x,prev.position.y-p.y)<search){chain.pop();audio.pop(chain.length);return}}const last=chain[chain.length-1];const cs=world.bodies.filter(b=>b.label==="tsum"&&!chain.includes(b)&&b.tsumType.id===chain[0].tsumType.id&&Math.hypot(b.position.x-p.x,b.position.y-p.y)<search&&Math.hypot(b.position.x-last.position.x,b.position.y-last.position.y)<connect);if(cs.length){cs.sort((a,b)=>Math.hypot(a.position.x-p.x,a.position.y-p.y)-Math.hypot(b.position.x-p.x,b.position.y-p.y));chain.push(cs[0]);audio.pop(chain.length);burst(cs[0].position.x,cs[0].position.y,"#fff",3)}}
+function up(e){canvas.releasePointerCapture?.(e.pointerId);if(!isPlaying||isPaused||!dragging)return;dragging=false;if(chain.length>=3){const len=chain.length,last={x:chain[len-1].position.x,y:chain[len-1].position.y};clearTsums([...chain]);const min=selectedBoosters.includes("bomb")?6:7;if(len>=min)spawnBomb(last.x,last.y,pickBomb(len))}chain=[]}
+function pickBomb(len){const r=Math.random();if(len>=18)return r<.25?"rainbow":r<.5?"mega":r<.75?"time":"skill";if(len>=13)return r<.25?"time":r<.5?"coin":r<.75?"score":"fever";if(len>=10)return r<.34?"time":r<.67?"coin":"score";if(len>=7&&r<.18)return"score";return"normal"}
+function clearTsums(arr){const live=arr.filter(b=>world.bodies.includes(b));if(!live.length)return;const n=live.length;stats.cleared+=n;combo++;maxCombo=Math.max(maxCombo,combo);lastClear=Date.now();$("comboBox").classList.remove("hidden");$("comboNum").textContent=combo;
+ const my=getTsum(user.myTsumId),lv=tsumLv(),sl=skillLv();let add=Math.floor((n*100+(n-3)*50+combo*12)*({SS:2,S:1.6,A:1.3,B:1.1,C:1}[my.rank]||1)*(1+lv*.05)*(1+sl*.03));if(selectedBoosters.includes("score"))add=Math.floor(add*1.1);if(isFever||activeBonus)add*=3;score+=add;let cc=n>=4?(n-3)*2:0;if(selectedBoosters.includes("coin"))cc=Math.floor(cc*1.1);coinsEarned+=cc;$("gameScore").textContent=fmt(score);
+ increaseFever(Math.floor(n*3*(selectedBoosters.includes("fever")?1.2:1)));increaseSkill(live.filter(b=>b.tsumType.id===user.myTsumId).length);if(n>=15)rating("EXCELLENT!!");else if(n>=10)rating("GREAT!");else if(n>=7)rating("GOOD!");
+ live.forEach(b=>{burst(b.position.x,b.position.y,b.tsumType.color,3);World.remove(world,b)})}
+function explodeBomb(b){if(!world.bodies.includes(b))return;audio.bomb();stats.bombs++;const p={x:b.position.x,y:b.position.y};if(b.bombType==="score")score+=3000;if(b.bombType==="coin")coinsEarned+=20;if(b.bombType==="time")timeLeft+=2;if(b.bombType==="fever")increaseFever(50);if(b.bombType==="skill")increaseSkill(12);if(b.bombType==="rainbow"){score+=5000;increaseFever(70);coinsEarned+=30}const rad=b.bombType==="mega"?R*7:R*4.5;$("gameScore").textContent=fmt(score);$("timer").textContent=timeLeft;World.remove(world,b);burst(p.x,p.y,"#fff",18);const clear=world.bodies.filter(x=>x.label==="tsum"&&Math.hypot(x.position.x-p.x,x.position.y-p.y)<rad);if(clear.length)clearTsums(clear)}
+function rating(t){$("rating").textContent=t;$("rating").classList.remove("hidden");setTimeout(()=>$("rating").classList.add("hidden"),1000)}
+function increaseFever(v){if(isFever)return;feverGauge=Math.min(100,feverGauge+v);$("feverBar").style.width=feverGauge+"%";if(feverGauge>=100){isFever=true;feverLeft=10000;timeLeft+=5;stats.fever++;$("timer").textContent=timeLeft;$("game").classList.add("fever-flash");rating("フィーバータイム!")}}
+function endFever(){isFever=false;feverGauge=0;feverLeft=0;$("feverBar").style.width="0%";$("game").classList.remove("fever-flash")}
+function increaseSkill(v){if(v<=0||skillGauge>=SKILL_MAX)return;skillGauge=Math.min(SKILL_MAX,skillGauge+v);$("skillBar").style.width=skillGauge/SKILL_MAX*100+"%";if(skillGauge>=SKILL_MAX){$("btnSkill").disabled=false;$("btnSkill").classList.add("skill-ready")}}
+function useSkill(){if(!isPlaying||isPaused||skillGauge<SKILL_MAX)return;skillGauge=0;$("skillBar").style.width="0%";$("btnSkill").disabled=true;$("btnSkill").classList.remove("skill-ready");const t=getTsum(user.myTsumId);showCutin(t);setTimeout(()=>execSkill(t.skillType),420);audio.skill()}
+function showCutin(t){$("cutEmoji").textContent=t.emoji;$("cutText").textContent=t.rank==="SS"?`${t.name}!!`:"スキル発動!";$("cutin").className=`cut ${t.rank==="SS"?"cut-ss":"cut-normal"}`;setTimeout(()=>$("cutin").classList.add("hidden"),1150)}
+function execSkill(type){if(!world)return;const cx=W/2,cy=H/2+20,ts=world.bodies.filter(b=>b.label==="tsum"),sl=skillLv();let clear=[];const bonus=1+(sl-1)*.08;switch(type){case"center":clear=ts.filter(b=>Math.hypot(b.position.x-cx,b.position.y-cy)<110*bonus);break;case"center_b":clear=ts.filter(b=>Math.hypot(b.position.x-cx,b.position.y-cy)<130*bonus);break;case"time":timeLeft+=3+Math.floor(sl/2);break;case"random_c":clear=ts.sort(()=>Math.random()-.5).slice(0,8+sl);break;case"random_b":clear=ts.sort(()=>Math.random()-.5).slice(0,11+sl);break;case"random_a":clear=ts.sort(()=>Math.random()-.5).slice(0,14+sl);break;case"random_s":clear=ts.sort(()=>Math.random()-.5).slice(0,18+sl);break;case"horizontal_c":clear=ts.filter(b=>Math.abs(b.position.y-cy)<40*bonus);break;case"vertical_c":clear=ts.filter(b=>Math.abs(b.position.x-cx)<45*bonus);break;case"vertical_b":clear=ts.filter(b=>Math.abs(b.position.x-cx+50)<35*bonus||Math.abs(b.position.x-cx-50)<35*bonus);break;case"vertical_a":clear=ts.filter(b=>Math.abs(b.position.x-cx)<70*bonus);break;case"bottom_c":clear=ts.filter(b=>b.position.y>H-120*bonus);break;case"slash_b":clear=ts.filter(b=>Math.abs(b.position.x-b.position.y)<50*bonus);break;case"fever_charge":increaseFever(30+sl*5);break;case"bomb":spawnBomb(cx,cy-50,sl>=4?"mega":"normal");break;case"bomb2":spawnBomb(cx-50,cy-50);spawnBomb(cx+50,cy-50,sl>=3?"skill":"normal");break;case"cross_a":clear=ts.filter(b=>Math.abs(b.position.x-b.position.y)<40*bonus||Math.abs(b.position.x-(H-b.position.y))<40*bonus);break;case"big_bomb":spawnBomb(cx-50,cy-50,"score");spawnBomb(cx+50,cy-50,"fever");break;case"rainbow_fever":activeBonus=true;$("game").classList.add("fever-flash");setTimeout(()=>{activeBonus=false;if(!isFever)$("game").classList.remove("fever-flash")},15000);break;case"coin_grab":coinsEarned+=200+rand(300)+sl*20;rating("コインGET!");break;case"coin_boost_s":coinsEarned+=50+sl*20;break;case"clear_one_type":if(ts.length){const id=ts[rand(ts.length)].tsumType.id;clear=ts.filter(b=>b.tsumType.id===id)}break;case"phoenix_megablast":clear=ts.filter(b=>Math.hypot(b.position.x-cx,b.position.y-cy)<185*bonus);break;case"dark_obliterate":clear=ts.sort(()=>Math.random()-.5).slice(0,28+sl);break;case"star_time_ss":timeLeft+=5+sl;spawnBomb(cx-40,cy-50,"time");spawnBomb(cx+40,cy-50,"time");break;case"dragon_slash":clear=ts.filter(b=>Math.abs(b.position.x-b.position.y)<60*bonus||Math.abs(b.position.x-(H-b.position.y))<60*bonus);break;case"phoenix_wings":clear=ts.filter(b=>b.position.y<150*bonus||b.position.y>H-150*bonus);break;case"festival_fire":spawnBomb(cx,cy,"mega");spawnBomb(cx-60,cy-30,"score");spawnBomb(cx+60,cy-30,"fever");break;case"winter_freeze":timeLeft+=2+sl;spawnBomb(cx,cy-60,"time");break;case"spring_bloom":clear=ts.filter(b=>Math.abs(b.position.y-(cy-50))<55*bonus||Math.abs(b.position.y-(cy+50))<35*bonus);break;case"halloween_burst":clear=ts.filter(b=>Math.hypot(b.position.x-cx,b.position.y-cy)<155*bonus);break}if(clear.length)clearTsums(clear);$("timer").textContent=timeLeft}
+function shuffle(){if(!isPlaying||isPaused)return;world.bodies.filter(b=>b.label==="tsum"||b.label==="bomb").forEach(b=>Body.applyForce(b,b.position,{x:(Math.random()-.5)*.08,y:-.1-Math.random()*.12}));audio.pop(1)}
+function pause(){if(!isPlaying)return;isPaused=true;showModal(`<h2>一時停止</h2><button class="btn btn-green" onclick="resumeGame()" style="width:100%">▶ 再開</button><button class="btn" onclick="quitGame()" style="width:100%;margin-top:10px">ホームへ戻る</button>`)}
+window.resumeGame=()=>{isPaused=false;lastTick=performance.now();closeModal()}
+window.quitGame=()=>{finishGame(false)}
+function timeUp(){isPlaying=false;finishGame(true)}
+function finishGame(showResult=true){isPlaying=false;clearPhysics();const myId=user.myTsumId;addExp(myId,100);const st=user.tsumStats[myId]||{uses:0,best:0};st.uses++;st.best=Math.max(st.best,score);user.tsumStats[myId]=st;const newHigh=score>user.highScore;if(newHigh)user.highScore=score;user.coins+=coinsEarned;updateMissions();if(bossMode){stats.bossDamage=Math.floor(score/1000);if(stats.bossDamage>=100){user.weekly.progress.boss=(user.weekly.progress.boss||0)+1;user.bossClearedWeek=weekKey()}}save();if(!showResult){closeModal();$("game").classList.add("hidden");$("home").classList.remove("hidden");bossMode=false;return}
+ const t=getTsum(myId);let cls=newHigh?"new-record":"";showModal(`<h2 class="${cls}" style="text-align:center;color:#facc15">リザルト</h2><div style="text-align:center"><canvas id="resTsum" width="90" height="90"></canvas><h1>${fmt(score)}</h1>${newHigh?`<div class="notice" style="border-color:#facc15">ハイスコア更新!!</div>`:""}</div><div class="grid2" style="margin-top:10px"><div class="list-item"><b>獲得コイン</b><br>🪙 ${fmt(coinsEarned)}</div><div class="list-item"><b>最大コンボ</b><br>${maxCombo}</div><div class="list-item"><b>フィーバー</b><br>${stats.fever}回</div><div class="list-item"><b>消去ツム数</b><br>${stats.cleared}</div></div>${bossMode?`<div class="notice" style="margin-top:10px">ボスダメージ：${stats.bossDamage}<br>${stats.bossDamage>=100?"ボス撃破！週間進捗に追加":"あと少し！"}</div>`:""}<button class="btn btn-main" onclick="resultHome()" style="width:100%;margin-top:12px">ホームへ</button><button class="btn btn-blue" onclick="resultRetry()" style="width:100%;margin-top:10px">もう一度</button>`);drawTsum($("resTsum"),t,90,tsumLv(myId));bossMode=false}
+function updateMissions(){
+ const dm=DAILY_MISSIONS[user.daily.id]||DAILY_MISSIONS[0];const val={score,combo:maxCombo,fever:stats.fever,bomb:stats.bombs,clear:stats.cleared,coins:coinsEarned}[dm.type]||0;if(!user.daily.cleared&&val>=dm.target){user.daily.cleared=true;user.coins+=dm.reward}
+ const p=user.weekly.progress;p.score=(p.score||0)+score;p.clear=(p.clear||0)+stats.cleared;p.fever=(p.fever||0)+stats.fever;const wm=WEEKLY_MISSIONS[user.weekly.id]||WEEKLY_MISSIONS[0];if(!user.weekly.cleared&&(p[wm.type]||0)>=wm.target){user.weekly.cleared=true;user.coins+=wm.reward}
+ const wk=weekKey();user.weeklyScores=user.weeklyScores||[];const cur=user.weeklyScores.find(x=>x.code===user.friendCode&&x.week===wk);if(cur)cur.score=Math.max(cur.score,score,user.highScore);else user.weeklyScores.push({name:"あなた",code:user.friendCode,score:Math.max(score,user.highScore),week:wk});
+}
+window.resultHome=()=>{closeModal();$("game").classList.add("hidden");$("home").classList.remove("hidden");renderHome()}
+window.resultRetry=()=>{closeModal();$("game").classList.add("hidden");showShop()}
+
+
+
+/* V8 UI READABILITY PATCH: 補助ラベル */
+function applyReadableUiHints(){
+  const labels = [
+    ["btnCodex","ツム図鑑を開く"],["btnRanking","週間ランキングとセーブコードを開く"],["btnSettings","設定を開く"],
+    ["btnPlay","プレイ前ショップへ進む"],["btnGacha1","ガチャを1回引く"],["btnGacha10","ガチャを10回引く"],
+    ["btnEventGacha","イベントBOXを引く"],["btnBoss","ボスミッションを始める"],["btnShopBack","ホームへ戻る"],
+    ["btnStart","ゲームを開始する"],["btnPause","一時停止"],["btnShuffle","ツムをシャッフル"],["btnSkill","スキルを発動"]
+  ];
+  labels.forEach(([id,label])=>{const el=$(id);if(el){el.setAttribute("aria-label",label);el.setAttribute("title",label)}});
+}
+
+function bind(){
+ let sx=0,sy=0,moved=false;$("app").addEventListener("pointerdown",e=>{sx=e.clientX;sy=e.clientY;moved=false},true);$("app").addEventListener("pointermove",e=>{if(Math.hypot(e.clientX-sx,e.clientY-sy)>12)moved=true},true);$("app").addEventListener("click",e=>{if(moved&&e.target.closest("button,[data-clickable='true']")){e.preventDefault();e.stopImmediatePropagation()}},true);
+ $("btnSettings").onclick=showSettings;$("btnCodex").onclick=showCodex;$("btnRanking").onclick=showRanking;$("btnTsumSelect").onclick=showTsumSelect;$("btnPlay").onclick=()=>{bossMode=false;if(!user.tutorialDone){user.tutorialDone=true;save(false);showModal(`<h2>遊び方</h2><div class="notice">同じツムを3個以上なぞって消します。7個以上つなぐとボムが出ます。フィーバー中はスコア3倍です。</div><button class="btn btn-main" onclick="closeModal();showShop()" style="width:100%;margin-top:12px">はじめる</button>`)}else showShop()};
+ window.showShop=showShop;$("btnBoss").onclick=startBoss;$("btnEventGacha").onclick=()=>runGacha(1,true);$("btnGacha1").onclick=()=>runGacha(1,false);$("btnGacha10").onclick=()=>runGacha(10,false);$("btnShopBack").onclick=backHome;$("btnStart").onclick=startGame;$("btnPause").onclick=pause;$("btnShuffle").onclick=shuffle;$("btnSkill").onclick=useSkill;canvas.addEventListener("pointerdown",down);canvas.addEventListener("pointermove",move);canvas.addEventListener("pointerup",up);canvas.addEventListener("pointercancel",up);document.addEventListener("visibilitychange",()=>{if(document.hidden&&isPlaying&&!isPaused)pause()});}
+bind();loadUser();applyReadableUiHints();setInterval(()=>{refreshDailyWeekly();if(recoverHeart())save(false);renderHome()},1000);
+})();
+</script>
 </body>
 </html>
