@@ -3,106 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ツムツム風パズル - 運営型最適化版</title>
+    <title>ツムツム風パズル - Masterpiece Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --app-bg: #0f172a;
-        }
+        :root { --app-bg: #0f172a; }
         body {
             font-family: 'M PLUS Rounded 1c', sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
+            user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
             touch-action: manipulation;
             background-color: var(--app-bg);
-            margin: 0;
-            padding: 0;
-            color: #f1f5f9;
+            margin: 0; padding: 0; color: #f1f5f9;
+            overflow: hidden; /* 全体スクロール防止 */
         }
         #app-container {
-            width: 100%;
-            height: 100dvh;
-            max-width: 450px;
-            margin: 0 auto;
-            position: relative;
-            overflow: hidden;
-            background-color: #0f172a;
-            display: flex;
-            flex-direction: column;
+            width: 100%; height: 100dvh; max-width: 450px;
+            margin: 0 auto; position: relative;
+            background-color: #0f172a; display: flex; flex-direction: column;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            overflow: hidden;
         }
         @media (min-width: 450px) {
             body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-            #app-container { height: 800px; border-radius: 40px; border: 8px solid #1e293b; }
+            #app-container { height: 850px; max-height: 95vh; border-radius: 40px; border: 8px solid #1e293b; }
+        }
+        
+        /* CanvasラッパーとCanvasの正確なスケーリング */
+        #canvas-wrapper {
+            flex-grow: 1; position: relative; width: 100%;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; background: linear-gradient(to bottom, #1e293b, #020617);
         }
         canvas {
-            touch-action: none;
-            display: block;
-            width: 100%;
-            height: 100%;
+            touch-action: none; display: block;
+            max-width: 100%; max-height: 100%;
+            aspect-ratio: 4 / 5; /* 内部解像度400x500に固定 */
             object-fit: contain;
         }
-        /* アニメーション類 */
+
+        /* アニメーション群 */
         .fever-bg { animation: discoBg 0.8s infinite alternate; }
-        .fever-bg-light { animation: discoBgLight 1.5s infinite alternate; } /* 軽量版 */
+        .fever-bg-light { background-color: #31133e !important; }
         @keyframes discoBg {
             0% { box-shadow: inset 0 0 40px rgba(236, 72, 153, 0.4); }
-            100% { box-shadow: inset 0 0 60px rgba(168, 85, 247, 0.6); }
-        }
-        @keyframes discoBgLight {
-            0% { background-color: #1e1b4b; }
-            100% { background-color: #31133e; }
+            100% { box-shadow: inset 0 0 80px rgba(168, 85, 247, 0.7); }
         }
         .combo-pop { animation: popText 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes popText {
             0% { transform: scale(0.5); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
-        .btn-push { transition: transform 0.1s, box-shadow 0.1s; }
-        .btn-push:active { transform: translateY(4px); box-shadow: 0 0px 0 0; }
-        
-        /* スクロールバー非表示 */
+        .btn-push { transition: transform 0.1s, box-shadow 0.1s, filter 0.1s; }
+        .btn-push:active { transform: translateY(4px); box-shadow: 0 0px 0 0; filter: brightness(0.9); }
         ::-webkit-scrollbar { display: none; }
-        
-        /* モーダルのフェード */
         .modal-enter { animation: fadeIn 0.2s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* スキルカットインアニメーション */
+        .cutin-slide { animation: slideInFade 1.5s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+        @keyframes slideInFade {
+            0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+            20% { transform: translateX(0) skewX(-15deg); opacity: 1; }
+            80% { transform: translateX(0) skewX(-15deg); opacity: 1; }
+            100% { transform: translateX(100%) skewX(-15deg); opacity: 0; }
+        }
+
+        /* ガチャ超豪華な虹演出用 */
+        .rainbow-glow {
+            animation: rainbowAnim 3s linear infinite;
+        }
+        @keyframes rainbowAnim {
+            0% { border-color: #ff007f; box-shadow: 0 0 20px #ff007f, inset 0 0 20px #ff007f; }
+            20% { border-color: #ffaa00; box-shadow: 0 0 20px #ffaa00, inset 0 0 20px #ffaa00; }
+            40% { border-color: #00ff66; box-shadow: 0 0 20px #00ff66, inset 0 0 20px #00ff66; }
+            60% { border-color: #00ffff; box-shadow: 0 0 20px #00ffff, inset 0 0 20px #00ffff; }
+            80% { border-color: #7f00ff; box-shadow: 0 0 20px #7f00ff, inset 0 0 20px #7f00ff; }
+            100% { border-color: #ff007f; box-shadow: 0 0 20px #ff007f, inset 0 0 20px #ff007f; }
+        }
+        .sparkle-slow {
+            animation: spinSlow 8s linear infinite;
+        }
+        @keyframes spinSlow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <!-- グローバルヘッダー (ハートとコイン) -->
+        <!-- ヘッダー (ハート・コイン) -->
         <div class="h-14 bg-slate-800 flex items-center justify-between px-4 z-50 shadow-md shrink-0 border-b border-slate-700">
-            <div class="flex items-center space-x-2 bg-slate-700 rounded-full px-3 py-1 border border-slate-600">
-                <span class="text-rose-500 text-xl">❤️</span>
-                <span id="heart-count" class="font-bold text-lg">5/5</span>
+            <div class="flex items-center space-x-2 bg-slate-700 rounded-full px-3 py-1.5 border border-slate-600">
+                <span class="text-rose-500 text-lg leading-none">❤️</span>
+                <span id="heart-count" class="font-bold text-base tabular-nums">5/5</span>
                 <span id="heart-timer" class="text-xs text-slate-400 font-mono w-10 text-right">0:00</span>
             </div>
-            <div class="flex items-center space-x-2 bg-slate-700 rounded-full px-3 py-1 border border-slate-600">
-                <span class="text-yellow-400 text-xl">🪙</span>
-                <span id="coin-count" class="font-bold text-lg tabular-nums">0</span>
+            <div class="flex items-center space-x-2 bg-slate-700 rounded-full px-3 py-1.5 border border-slate-600">
+                <span class="text-yellow-400 text-lg leading-none">🪙</span>
+                <span id="coin-count" class="font-bold text-base tabular-nums tracking-wide">0</span>
             </div>
         </div>
 
         <!-- ========================================== -->
         <!-- 画面1: ホーム画面 -->
         <!-- ========================================== -->
-        <div id="view-home" class="flex-grow flex flex-col bg-slate-900 relative z-40 overflow-y-auto pb-6">
+        <div id="view-home" class="flex-grow flex flex-col relative z-40 overflow-y-auto pb-6">
             <!-- プレイヤー情報 -->
             <div class="p-4 bg-gradient-to-b from-slate-800 to-slate-900 shadow-lg shrink-0">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-xs text-slate-400 font-bold">ハイスコア</p>
-                        <p id="home-highscore" class="text-3xl font-black text-yellow-400 drop-shadow">0</p>
+                        <p class="text-[10px] text-slate-400 font-bold tracking-wider">ハイスコア</p>
+                        <p id="home-highscore" class="text-3xl font-black text-yellow-400 drop-shadow tabular-nums">0</p>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="showTutorial()" class="bg-sky-600 hover:bg-sky-500 text-white p-2 rounded-full shadow-md active:scale-95 transition-transform" aria-label="遊び方">
+                    <div class="flex gap-3">
+                        <button onclick="showTutorial(false)" class="bg-sky-600 hover:bg-sky-500 text-white p-2.5 rounded-full shadow-lg active:scale-95 transition-transform">
                             ❓
                         </button>
-                        <button onclick="showSettings()" class="bg-slate-600 hover:bg-slate-500 text-white p-2 rounded-full shadow-md active:scale-95 transition-transform" aria-label="設定">
+                        <button onclick="showSettings()" class="bg-slate-600 hover:bg-slate-500 text-white p-2.5 rounded-full shadow-lg active:scale-95 transition-transform">
                             ⚙️
                         </button>
                     </div>
@@ -112,16 +130,20 @@
             <!-- マイツム＆スタートボタン -->
             <div class="flex flex-col items-center justify-center mt-6 space-y-6 shrink-0">
                 <div class="relative group cursor-pointer active:scale-95 transition-transform" onclick="showTsumSelect()">
-                    <div class="w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-600 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative">
-                        <div id="home-mytsum-bg" class="absolute inset-0 opacity-50"></div>
+                    <div class="w-32 h-32 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-600 shadow-[0_0_20px_rgba(0,0,0,0.5)] overflow-hidden relative">
+                        <div id="home-mytsum-bg" class="absolute inset-0 opacity-50 transition-colors"></div>
                         <span id="home-mytsum-emoji" class="text-7xl drop-shadow-md z-10">🐈</span>
+                        <!-- ランクバッジ -->
+                        <div id="home-mytsum-rank" class="absolute top-2 left-2 bg-yellow-400 text-slate-950 font-black px-2 py-0.5 rounded-md text-xs shadow-md z-20">S</div>
+                        <!-- レベルバッジ -->
+                        <div id="home-mytsum-level" class="absolute bottom-2 right-2 bg-indigo-600 text-white font-bold px-2 py-0.5 rounded-full text-[10px] border border-indigo-400 shadow-md z-20">Lv.1</div>
                     </div>
-                    <div class="absolute -bottom-2 right-0 left-0 mx-auto w-20 bg-indigo-500 text-white text-xs font-bold px-2 py-1 rounded-full border-2 border-slate-900 text-center shadow-md">
-                        変更
+                    <div class="absolute -bottom-2 right-0 left-0 mx-auto w-24 bg-gradient-to-r from-indigo-600 to-blue-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full border-2 border-slate-900 text-center shadow-md tracking-widest">
+                        ツム変更
                     </div>
                 </div>
                 
-                <button id="btn-start" class="w-64 bg-gradient-to-b from-rose-500 to-rose-700 text-white font-black text-3xl py-4 rounded-full shadow-[0_6px_0_#be123c] btn-push flex justify-center items-center gap-2 border-2 border-rose-400">
+                <button id="btn-start" class="w-64 bg-gradient-to-b from-rose-500 to-rose-700 text-white font-black text-3xl py-4 rounded-full shadow-[0_6px_0_#be123c] btn-push flex justify-center items-center gap-2 border-2 border-rose-400 tracking-wider">
                     PLAY <span class="text-xl">▶</span>
                 </button>
             </div>
@@ -129,22 +151,19 @@
             <!-- 日次ミッション -->
             <div class="mx-4 mt-8 bg-slate-800 rounded-2xl p-4 border border-slate-700 shrink-0 shadow-lg">
                 <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-sm font-bold text-slate-300 flex items-center">
-                        <span class="mr-2 text-indigo-400 text-lg">📋</span> 今日のミッション
+                    <h3 class="text-sm font-bold text-slate-300 flex items-center tracking-wider">
+                        <span class="mr-2 text-indigo-400 text-lg">📋</span> 本日のミッション
                     </h3>
-                    <span id="mission-status" class="text-xs font-bold px-2 py-1 rounded-full bg-slate-700 text-slate-400">進行中</span>
+                    <span id="mission-status" class="text-[10px] font-black px-2 py-1 rounded-full tracking-widest bg-slate-700 text-slate-400">挑戦中</span>
                 </div>
                 <div class="flex justify-between items-center bg-slate-900 p-3 rounded-xl border border-slate-700/50">
                     <div class="flex-grow mr-4">
-                        <p id="mission-desc" class="text-sm font-bold text-white mb-1">---</p>
-                        <div class="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden">
-                            <div id="mission-progress" class="bg-gradient-to-r from-yellow-400 to-amber-500 h-full transition-all duration-500" style="width: 0%;"></div>
-                        </div>
-                        <p id="mission-text" class="text-[10px] text-slate-400 mt-1 text-right">0 / 0</p>
+                        <p id="mission-desc" class="text-xs font-bold text-white mb-2 leading-relaxed">---</p>
+                        <p class="text-[10px] text-slate-400">※1プレイの成績で判定されます</p>
                     </div>
-                    <div class="text-center shrink-0 bg-slate-800 p-2 rounded-lg border border-slate-700">
-                        <p class="text-[10px] text-slate-400 font-bold">報酬</p>
-                        <p id="mission-reward" class="text-sm font-black text-yellow-400">🪙 ---</p>
+                    <div class="text-center shrink-0 bg-slate-800 p-2.5 rounded-lg border border-slate-700 shadow-inner">
+                        <p class="text-[10px] text-slate-400 font-bold mb-0.5">クリア報酬</p>
+                        <p id="mission-reward" class="text-sm font-black text-yellow-400 tabular-nums">🪙 ---</p>
                     </div>
                 </div>
             </div>
@@ -152,77 +171,85 @@
             <!-- BOXガチャ -->
             <div class="mx-4 mt-4 bg-gradient-to-r from-indigo-900 to-slate-800 rounded-2xl p-4 border border-indigo-700 flex justify-between items-center shrink-0 shadow-lg">
                 <div>
-                    <h3 class="text-sm font-bold text-white flex items-center gap-1">🎁 プレミアムBOX</h3>
-                    <p class="text-xs text-indigo-200 mt-1">新しいツムを解放！</p>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-1 tracking-wider">🎁 プレミアムBOX</h3>
+                    <p class="text-[10px] text-indigo-200 mt-1">コインを貯めて新ツム解放！</p>
                 </div>
                 <button id="btn-gacha" class="bg-gradient-to-b from-yellow-400 to-amber-600 text-slate-900 font-black px-5 py-3 rounded-xl shadow-[0_4px_0_#b45309] btn-push flex items-center space-x-1 border border-yellow-300">
-                    <span class="text-lg">🪙 1000</span>
+                    <span class="text-lg tabular-nums">🪙 1000</span>
                 </button>
             </div>
-            <!-- 空白埋め -->
             <div class="h-8 shrink-0"></div>
         </div>
 
         <!-- ========================================== -->
         <!-- 画面2: ゲーム画面 (Canvas) -->
         <!-- ========================================== -->
-        <div id="view-game" class="flex-grow flex flex-col relative z-30 hidden bg-slate-900">
+        <div id="view-game" class="flex-grow flex flex-col relative z-30 hidden">
+            
+            <!-- スキルカットインレイヤー -->
+            <div id="layer-skill-cutin" class="absolute inset-0 z-40 pointer-events-none hidden flex items-center justify-center overflow-hidden">
+                <div class="absolute inset-0 bg-black/40"></div>
+                <div id="skill-cutin-box" class="w-full bg-gradient-to-r from-transparent via-cyan-500 to-transparent h-40 flex items-center justify-center transform -translate-x-full border-y border-cyan-300/50 shadow-[0_0_30px_rgba(6,182,212,0.5)]">
+                    <span id="skill-cutin-emoji" class="text-7xl drop-shadow-lg scale-110">🐈</span>
+                    <span class="text-white font-black text-5xl ml-4 italic tracking-widest drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">SKILL!</span>
+                </div>
+            </div>
+
             <!-- ゲームヘッダー -->
-            <div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start z-10 pointer-events-none">
-                <div class="bg-slate-900/60 px-3 py-1 rounded-xl backdrop-blur-sm border border-slate-700/50">
-                    <p class="text-[10px] text-slate-300 font-bold">SCORE</p>
-                    <p id="game-score" class="text-3xl font-black text-yellow-400 drop-shadow-md tabular-nums">0</p>
+            <div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start z-20 pointer-events-none">
+                <div class="bg-slate-900/70 px-4 py-1.5 rounded-2xl backdrop-blur-sm border border-slate-600/50 shadow-lg">
+                    <p class="text-[10px] text-slate-300 font-bold tracking-widest">SCORE</p>
+                    <p id="game-score" class="text-3xl font-black text-yellow-400 drop-shadow-md tabular-nums leading-none mt-0.5">0</p>
                 </div>
                 
                 <div class="flex flex-col items-end pointer-events-auto">
-                    <button id="btn-pause" class="bg-slate-800 p-2.5 rounded-full border border-slate-600 mb-2 active:scale-95 shadow-lg text-lg flex items-center justify-center w-10 h-10 text-white">
+                    <button id="btn-pause" class="bg-slate-800 hover:bg-slate-700 p-2.5 rounded-full border border-slate-600 mb-2 active:scale-95 shadow-lg text-xl flex items-center justify-center w-11 h-11 text-white transition-colors">
                         ⏸
                     </button>
                     <div id="game-timer-box" class="bg-slate-800/90 px-4 py-1.5 rounded-full border-2 border-slate-500 shadow-lg text-center min-w-[70px] transition-colors">
-                        <p id="game-timer" class="text-3xl font-black text-white tabular-nums">60</p>
+                        <p id="game-timer" class="text-3xl font-black text-white tabular-nums leading-none">60</p>
                     </div>
                 </div>
             </div>
 
-            <!-- フィーバーゲージ & UIコンボ -->
-            <div class="absolute top-20 left-3 z-10 w-36 pointer-events-none">
-                <div id="fever-ui" class="bg-slate-900/70 border border-slate-600 rounded-lg p-1.5 opacity-80 backdrop-blur-sm transition-all duration-300">
-                    <p class="text-[10px] text-center font-bold text-slate-300 tracking-widest">FEVER</p>
+            <!-- フィーバーゲージ & コンボ -->
+            <div class="absolute top-24 left-3 z-10 w-36 pointer-events-none">
+                <div id="fever-ui" class="bg-slate-900/80 border border-slate-600 rounded-xl p-2 backdrop-blur-sm transition-all duration-300 shadow-lg">
+                    <p class="text-[10px] text-center font-black text-slate-300 tracking-widest">FEVER</p>
                     <div class="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden mt-1 border border-slate-700/50">
                         <div id="fever-bar" class="h-full bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 w-0 transition-all duration-200"></div>
                     </div>
                 </div>
                 
-                <div id="combo-display" class="mt-4 hidden text-center combo-pop bg-slate-900/40 rounded-xl py-1 backdrop-blur-sm">
-                    <span id="combo-count" class="text-5xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tabular-nums">12</span>
-                    <span class="text-sm font-bold text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] block -mt-1 tracking-widest">COMBO</span>
+                <div id="combo-display" class="mt-4 hidden text-center combo-pop bg-slate-900/60 rounded-2xl py-1.5 px-2 backdrop-blur-sm border border-slate-700/50 shadow-lg">
+                    <span id="combo-count" class="text-5xl font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tabular-nums leading-none">12</span>
+                    <span class="text-[10px] font-black text-yellow-400 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] block mt-1 tracking-widest">COMBO</span>
                 </div>
             </div>
 
-            <!-- キャンバス (固定解像度で描き、CSSで拡縮) -->
-            <div class="flex-grow relative bg-gradient-to-b from-slate-800 to-slate-950 overflow-hidden" id="canvas-wrapper">
+            <!-- キャンバスラッパー -->
+            <div id="canvas-wrapper">
                 <canvas id="game-canvas" width="400" height="500"></canvas>
             </div>
 
-            <!-- ゲームフッター (スキルゲージとシャッフル) -->
-            <div class="h-24 shrink-0 w-full p-3 bg-slate-900 border-t border-slate-700 flex justify-between items-center gap-3 z-10 relative shadow-[0_-10px_20px_rgba(0,0,0,0.3)]">
-                <button id="btn-shuffle" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-2xl p-2 active:scale-95 transition-transform text-2xl w-16 h-16 shadow-lg flex items-center justify-center">
+            <!-- ゲームフッター (スキル・シャッフル) -->
+            <div class="h-24 shrink-0 w-full px-4 py-2 bg-slate-900 border-t-2 border-slate-700 flex justify-between items-center gap-4 z-20 relative shadow-[0_-10px_20px_rgba(0,0,0,0.4)]">
+                <button id="btn-shuffle" class="bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 rounded-2xl active:scale-95 transition-transform text-2xl w-16 h-16 shadow-lg flex items-center justify-center shrink-0">
                     🌪️
                 </button>
                 
-                <div class="flex-grow flex flex-col justify-center px-1">
-                    <div class="flex justify-between items-end mb-1">
-                        <span class="text-[10px] font-bold text-slate-400 tracking-wider">SKILL GAUGE</span>
-                        <span id="skill-desc-text" class="text-[10px] text-cyan-300 truncate ml-2">---</span>
+                <div class="flex-grow flex flex-col justify-center max-w-[200px]">
+                    <div class="flex justify-between items-end mb-1 px-1">
+                        <span class="text-[10px] font-black text-slate-400 tracking-widest">SKILL</span>
                     </div>
-                    <div class="h-6 w-full bg-slate-950 rounded-full border-2 border-slate-700 overflow-hidden relative shadow-inner p-0.5">
-                        <div id="skill-bar" class="h-full rounded-full bg-gradient-to-r from-cyan-600 to-blue-500 w-0 transition-all duration-300"></div>
+                    <div class="h-7 w-full bg-slate-950 rounded-full border-2 border-slate-700 overflow-hidden relative shadow-inner p-0.5">
+                        <div id="skill-bar" class="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 w-0 transition-all duration-300"></div>
                     </div>
                 </div>
 
-                <button id="btn-skill" disabled class="bg-slate-800 text-slate-500 border-2 border-slate-700 rounded-2xl font-black text-sm w-20 h-16 shadow-lg transition-all flex flex-col items-center justify-center pointer-events-auto shrink-0 relative overflow-hidden">
+                <button id="btn-skill" disabled class="bg-slate-800 text-slate-500 border-2 border-slate-700 rounded-2xl font-black text-sm w-20 h-16 shadow-lg transition-all flex flex-col items-center justify-center pointer-events-auto shrink-0 relative overflow-hidden group">
                     <span id="skill-mytsum-emoji" class="text-2xl opacity-50 z-10 transition-transform">🐈</span>
-                    <span class="text-[10px] z-10 mt-0.5">発動</span>
+                    <span class="text-[10px] z-10 mt-0.5 tracking-widest">発動</span>
                     <div id="skill-ready-fx" class="absolute inset-0 bg-white opacity-0 transition-opacity"></div>
                 </button>
             </div>
@@ -235,8 +262,8 @@
         <!-- 汎用アラートモーダル -->
         <div id="modal-alert" class="absolute inset-0 bg-slate-950/80 z-[100] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-slate-800 w-full max-w-xs rounded-3xl p-6 border border-slate-600 shadow-2xl text-center modal-enter">
-                <p id="alert-msg" class="text-lg font-bold text-white mb-6 whitespace-pre-wrap"></p>
-                <button onclick="closeAlert()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-colors active:scale-95">
+                <p id="alert-msg" class="text-sm font-bold text-white mb-6 whitespace-pre-wrap leading-relaxed"></p>
+                <button onclick="closeAlert()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-colors active:scale-95 shadow-md">
                     OK
                 </button>
             </div>
@@ -244,31 +271,47 @@
 
         <!-- マイツム選択 -->
         <div id="modal-tsum-select" class="absolute inset-0 bg-slate-950/90 z-[60] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
-            <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-4 border border-slate-600 shadow-2xl flex flex-col max-h-[80%] modal-enter">
-                <h2 class="text-xl font-bold text-center mb-4 text-white">マイツムを選択</h2>
-                <div class="bg-slate-900 p-3 rounded-xl mb-4 shrink-0 text-center border border-slate-700">
-                    <p class="text-xs text-slate-400 mb-1">選択中のスキル</p>
-                    <p id="tsum-select-skill-desc" class="text-sm font-bold text-cyan-300">---</p>
+            <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-5 border border-slate-600 shadow-2xl flex flex-col max-h-[85vh] modal-enter">
+                <h2 class="text-lg font-black text-center mb-4 text-white tracking-widest">マイツムを選択</h2>
+                <div class="bg-slate-900 p-3 rounded-xl mb-4 shrink-0 text-center border border-slate-700 shadow-inner">
+                    <p class="text-[10px] text-slate-400 mb-1 font-bold">選択中のスキル</p>
+                    <p id="tsum-select-skill-desc" class="text-xs font-bold text-cyan-300 leading-snug">---</p>
                 </div>
-                <div id="tsum-list" class="grid grid-cols-4 gap-3 mb-4 overflow-y-auto p-1 scroll-smooth">
+                <div id="tsum-list" class="grid grid-cols-4 gap-3 mb-4 overflow-y-auto p-2 scroll-smooth">
                     <!-- JSで動的生成 -->
                 </div>
-                <button onclick="hideTsumSelect()" class="w-full bg-slate-600 text-white font-bold py-3 rounded-xl active:scale-95 shrink-0 mt-auto">
+                <button onclick="hideTsumSelect()" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3.5 rounded-xl active:scale-95 shrink-0 mt-auto shadow-md">
                     閉じる
                 </button>
             </div>
         </div>
 
-        <!-- ガチャ結果 -->
+        <!-- ガチャ結果 (超豪華にリニューアル) -->
         <div id="modal-gacha" class="absolute inset-0 bg-slate-950/95 z-[70] hidden flex-col items-center justify-center p-4">
-            <h2 class="text-3xl font-black text-yellow-400 mb-8 animate-bounce tracking-widest drop-shadow-lg">BOX OPEN!</h2>
-            <div class="w-48 h-48 bg-slate-800 rounded-full flex items-center justify-center border-4 border-yellow-400 shadow-[0_0_40px_rgba(250,204,21,0.6)] relative overflow-hidden">
-                <div id="gacha-bg" class="absolute inset-0 opacity-50"></div>
-                <span id="gacha-emoji" class="text-8xl z-10 scale-0 transition-transform duration-500 ease-out drop-shadow-md">❓</span>
+            <div class="text-center">
+                <h2 class="text-3xl font-black text-yellow-400 mb-4 animate-bounce tracking-widest drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]">PREMIUM BOX OPEN!</h2>
+                <p id="gacha-status" class="text-xs text-indigo-300 font-bold mb-6 animate-pulse tracking-widest">ドキドキ... 虹色の光が走る！</p>
             </div>
-            <p id="gacha-name" class="mt-8 text-3xl font-bold text-white opacity-0 transition-opacity duration-500 drop-shadow">???</p>
-            <p id="gacha-msg" class="mt-3 text-cyan-300 font-bold opacity-0 transition-opacity duration-500 bg-slate-900/80 px-4 py-2 rounded-full border border-cyan-800/50">新しいツムを解放した！</p>
-            <button id="btn-gacha-close" class="mt-12 w-48 bg-white text-slate-900 font-black py-4 rounded-full opacity-0 transition-opacity duration-500 active:scale-95 shadow-lg">
+            
+            <div class="relative w-60 h-60 flex items-center justify-center">
+                <!-- 後光エフェクト -->
+                <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-yellow-400 via-pink-500 to-indigo-500 rounded-full animate-spin sparkle-slow filter blur-xl opacity-75"></div>
+                <!-- 豪華な枠線 -->
+                <div id="gacha-frame" class="w-48 h-48 bg-slate-900/90 rounded-full flex items-center justify-center border-8 rainbow-glow shadow-[0_0_50px_rgba(250,204,21,0.8)] relative overflow-hidden z-10 transition-all duration-700 scale-90">
+                    <div id="gacha-bg" class="absolute inset-0 opacity-40 transition-colors duration-500"></div>
+                    <span id="gacha-emoji" class="text-9xl z-10 scale-0 transition-transform duration-[800ms] ease-out drop-shadow-[0_5px_10px_rgba(0,0,0,0.7)]">❓</span>
+                    <!-- ランクバッジ -->
+                    <div id="gacha-rank-badge" class="absolute top-4 left-4 bg-yellow-400 text-slate-950 font-black px-2.5 py-1 rounded-md text-sm shadow-md z-20 hidden">S</div>
+                </div>
+            </div>
+
+            <p id="gacha-name" class="mt-8 text-3xl font-black text-white opacity-0 transition-opacity duration-500 drop-shadow">???</p>
+            <div id="gacha-desc-box" class="mt-3 text-center opacity-0 transition-opacity duration-500 max-w-xs px-4">
+                <p id="gacha-msg" class="text-xs text-cyan-300 font-bold bg-slate-900/80 px-4 py-2 rounded-full border border-cyan-800/50">新ツムを解放！</p>
+                <p id="gacha-skill" class="text-[10px] text-slate-300 mt-2 bg-slate-800 p-2 rounded-lg border border-slate-700"></p>
+            </div>
+
+            <button id="btn-gacha-close" class="mt-10 w-48 bg-white hover:bg-slate-100 text-slate-900 font-black py-4 rounded-full opacity-0 transition-opacity duration-500 active:scale-95 shadow-2xl tracking-widest">
                 OK
             </button>
         </div>
@@ -281,8 +324,8 @@
                     <button id="btn-resume" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-xl py-4 rounded-xl shadow-lg active:scale-95 transition-transform">
                         ▶ 再開する
                     </button>
-                    <button id="btn-quit" class="w-full bg-slate-700 text-slate-300 font-bold py-3 rounded-xl active:scale-95 transition-transform">
-                        ⏹ やめる (ホームへ)
+                    <button id="btn-quit" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3.5 rounded-xl active:scale-95 transition-transform">
+                        ⏹ ホームへ戻る
                     </button>
                 </div>
             </div>
@@ -309,69 +352,93 @@
 
         <!-- リザルト画面 -->
         <div id="modal-result" class="absolute inset-0 bg-slate-950/90 z-[60] hidden flex-col items-center justify-center p-4 backdrop-blur-md">
-            <h2 class="text-4xl font-black text-white mb-6 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] modal-enter">RESULT</h2>
+            <h2 class="text-4xl font-black text-white mb-4 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] modal-enter">RESULT</h2>
             
-            <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-6 border-2 border-slate-600 shadow-2xl space-y-5 text-center modal-enter" style="animation-delay: 0.1s;">
-                <div class="bg-slate-900 rounded-2xl p-4 border border-slate-700 relative overflow-hidden">
-                    <p class="text-sm text-slate-400 font-bold">FINAL SCORE</p>
-                    <p id="result-score" class="text-5xl font-black text-yellow-400 drop-shadow-md tabular-nums mt-1">0</p>
-                    <div id="result-highscore-label" class="absolute top-2 right-[-20px] bg-rose-500 text-white text-[10px] font-bold py-1 px-8 transform rotate-45 shadow-md hidden">NEW HIGH!</div>
+            <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-5 border-2 border-slate-600 shadow-2xl space-y-4 text-center modal-enter" style="animation-delay: 0.1s;">
+                <div class="bg-slate-900 rounded-2xl p-4 border border-slate-700 relative overflow-hidden shadow-inner">
+                    <p class="text-xs text-slate-400 font-bold tracking-widest">FINAL SCORE</p>
+                    <p id="result-score" class="text-5xl font-black text-yellow-400 drop-shadow-md tabular-nums mt-1 leading-none">0</p>
+                    <div id="result-highscore-label" class="absolute top-2 right-[-24px] bg-rose-500 text-white text-[10px] font-black py-1 px-8 transform rotate-45 shadow-md hidden tracking-widest">NEW HIGH!</div>
+                </div>
+
+                <!-- マイツム獲得EXP＆レベルアップ進捗 -->
+                <div class="bg-slate-900 rounded-2xl p-3 border border-slate-700">
+                    <div class="flex items-center justify-between mb-1 px-1">
+                        <span id="result-tsum-emoji" class="text-2xl">🐈</span>
+                        <div class="text-left flex-grow ml-3">
+                            <span class="text-xs font-black text-white" id="result-tsum-name">ミケネコ</span>
+                            <span class="text-[10px] text-indigo-300 font-bold ml-2" id="result-tsum-rank">Sランク</span>
+                        </div>
+                        <span class="text-xs font-black text-yellow-400" id="result-tsum-level">Lv.1</span>
+                    </div>
+                    <div class="h-3 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-700 relative">
+                        <div id="result-exp-bar" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 w-0 transition-all duration-1000"></div>
+                    </div>
+                    <div class="flex justify-between text-[8px] text-slate-400 mt-1 px-1">
+                        <span>EXP獲得+100!</span>
+                        <span id="result-level-up-alert" class="text-yellow-400 font-black hidden animate-pulse">LEVEL UP!! 🪙スコア倍率アップ！</span>
+                    </div>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-slate-700/50 rounded-xl p-3 border border-slate-600">
-                        <p class="text-xs text-slate-400">獲得コイン</p>
-                        <p class="text-xl font-bold text-white flex justify-center items-center gap-1 mt-1">
-                            <span class="text-yellow-400">🪙</span> <span id="result-coins" class="tabular-nums">0</span>
+                        <p class="text-[10px] text-slate-400 font-bold">獲得コイン</p>
+                        <p class="text-xl font-black text-white flex justify-center items-center gap-1 mt-0.5">
+                            <span class="text-yellow-400 text-sm">🪙</span> <span id="result-coins" class="tabular-nums">0</span>
                         </p>
                     </div>
                     <div class="bg-slate-700/50 rounded-xl p-3 border border-slate-600">
-                        <p class="text-xs text-slate-400">最大コンボ</p>
-                        <p class="text-xl font-bold text-white mt-1 tabular-nums" id="result-max-combo">0</p>
+                        <p class="text-[10px] text-slate-400 font-bold">最大コンボ</p>
+                        <p class="text-xl font-black text-white mt-0.5 tabular-nums" id="result-max-combo">0</p>
                     </div>
                     <div class="bg-slate-700/50 rounded-xl p-3 border border-slate-600">
-                        <p class="text-xs text-slate-400">フィーバー回数</p>
-                        <p class="text-xl font-bold text-white mt-1 tabular-nums" id="result-fever-count">0</p>
+                        <p class="text-[10px] text-slate-400 font-bold">フィーバー回数</p>
+                        <p class="text-xl font-black text-white mt-0.5 tabular-nums" id="result-fever-count">0</p>
                     </div>
                     <div class="bg-slate-700/50 rounded-xl p-3 border border-slate-600">
-                        <p class="text-xs text-slate-400">消去ツム数</p>
-                        <p class="text-xl font-bold text-white mt-1 tabular-nums" id="result-cleared-tsums">0</p>
+                        <p class="text-[10px] text-slate-400 font-bold">消去ツム数</p>
+                        <p class="text-xl font-black text-white mt-0.5 tabular-nums" id="result-cleared-tsums">0</p>
                     </div>
                 </div>
 
                 <!-- ミッション進捗報告 -->
-                <div id="result-mission-box" class="bg-indigo-900/50 rounded-xl p-3 border border-indigo-500 hidden">
-                    <p class="text-xs text-indigo-300 font-bold mb-1">ミッション進行</p>
-                    <p id="result-mission-text" class="text-sm text-white font-bold">---</p>
-                    <p id="result-mission-reward" class="text-xs text-yellow-400 font-bold mt-1 hidden">CLEAR! 🪙報酬獲得</p>
+                <div id="result-mission-box" class="bg-indigo-900/40 rounded-xl p-3 border border-indigo-500/50 hidden">
+                    <p class="text-[10px] text-indigo-300 font-bold mb-1">ミッション判定</p>
+                    <p id="result-mission-text" class="text-xs text-white font-bold leading-relaxed">---</p>
+                    <p id="result-mission-reward" class="text-xs text-yellow-400 font-black mt-1.5 hidden bg-yellow-900/50 rounded p-1">CLEAR! 報酬獲得 🪙</p>
                 </div>
             </div>
 
-            <button onclick="returnToHome()" class="mt-8 w-48 bg-white text-slate-900 font-black text-xl py-4 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95 transition-transform modal-enter" style="animation-delay: 0.2s;">
-                OK
-            </button>
+            <div class="flex gap-3 mt-6 w-full max-w-sm px-4 modal-enter" style="animation-delay: 0.2s;">
+                <button onclick="returnToHome()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold text-sm py-4 rounded-full shadow-lg active:scale-95 transition-transform border border-slate-600">
+                    ホームへ
+                </button>
+                <button onclick="retryGame()" class="flex-1 bg-gradient-to-b from-rose-500 to-rose-700 text-white font-black text-lg py-4 rounded-full shadow-[0_4px_0_#be123c] active:translate-y-[4px] active:shadow-none transition-all">
+                    もう一度
+                </button>
+            </div>
         </div>
 
         <!-- チュートリアルモーダル -->
         <div id="modal-tutorial" class="absolute inset-0 bg-slate-950/95 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-6 border border-slate-600 shadow-2xl modal-enter">
-                <h2 class="text-2xl font-bold text-center text-white mb-4">遊び方</h2>
-                <div class="space-y-4 text-sm text-slate-200">
-                    <div class="bg-slate-700/50 p-3 rounded-xl">
-                        <p class="font-bold text-yellow-400 mb-1">1. ツムを繋げて消そう！</p>
-                        <p>同じ種類のツムをドラッグして<span class="font-bold text-white">3個以上</span>繋げます。指を離すと消えてスコアが入ります。</p>
+                <h2 class="text-2xl font-black text-center text-white mb-5 tracking-widest">遊び方</h2>
+                <div class="space-y-4 text-xs text-slate-200 leading-relaxed">
+                    <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                        <p class="font-black text-yellow-400 mb-1 text-sm">1. ツムを繋げて消そう！</p>
+                        <p>同じツムをドラッグして<span class="font-bold text-white">3個以上</span>繋げます。指を離すと消えてスコアになります。</p>
                     </div>
-                    <div class="bg-slate-700/50 p-3 rounded-xl">
-                        <p class="font-bold text-rose-400 mb-1">2. ボムとフィーバー</p>
-                        <p><span class="font-bold text-white">7個以上</span>繋げるとタップで周りを消せるボムが出現！たくさん消すとフィーバーに突入し、スコアが3倍になります。</p>
+                    <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                        <p class="font-black text-rose-400 mb-1 text-sm">2. ボムとフィーバー</p>
+                        <p><span class="font-bold text-white">7個以上</span>繋げるとタップで周りを消せる「ボム」が出現！たくさん消すと「フィーバー」に入りスコア3倍！</p>
                     </div>
-                    <div class="bg-slate-700/50 p-3 rounded-xl">
-                        <p class="font-bold text-cyan-400 mb-1">3. マイツムのスキル</p>
-                        <p>ホーム画面で設定した「マイツム」を消すとゲージが貯まります。満タンで強力なスキルが発動できます。</p>
+                    <div class="bg-slate-700/50 p-4 rounded-xl border border-slate-600">
+                        <p class="font-black text-cyan-400 mb-1 text-sm">3. マイツムのスキル</p>
+                        <p>設定した「マイツム」を消すとゲージが貯まります。満タンになったらスキルボタンで一発逆転！</p>
                     </div>
                 </div>
-                <button onclick="closeTutorial()" class="mt-6 w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded-xl active:scale-95 transition-transform">
-                    わかった
+                <button onclick="closeTutorial()" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl active:scale-95 transition-transform shadow-md">
+                    ゲームスタート！
                 </button>
             </div>
         </div>
@@ -379,31 +446,31 @@
         <!-- 設定モーダル -->
         <div id="modal-settings" class="absolute inset-0 bg-slate-950/90 z-[80] hidden flex-col items-center justify-center p-4 backdrop-blur-sm">
             <div class="bg-slate-800 w-full max-w-sm rounded-3xl p-6 border border-slate-600 shadow-2xl modal-enter">
-                <h2 class="text-2xl font-bold text-center text-white mb-6">設定</h2>
+                <h2 class="text-xl font-black text-center text-white mb-6 tracking-widest">設定</h2>
                 
-                <div class="space-y-4 mb-8">
-                    <label class="flex items-center justify-between bg-slate-700 p-3 rounded-xl cursor-pointer">
+                <div class="space-y-4 mb-6 text-sm">
+                    <label class="flex items-center justify-between bg-slate-700 p-3.5 rounded-xl cursor-pointer shadow-inner">
                         <span class="font-bold">🔊 効果音</span>
-                        <input type="checkbox" id="setting-sfx" class="w-6 h-6 accent-indigo-500">
+                        <input type="checkbox" id="setting-sfx" class="w-5 h-5 accent-indigo-500">
                     </label>
-                    <label class="flex items-center justify-between bg-slate-700 p-3 rounded-xl cursor-pointer">
+                    <label class="flex items-center justify-between bg-slate-700 p-3.5 rounded-xl cursor-pointer shadow-inner">
                         <div>
                             <span class="font-bold block">⚡ 軽量モード</span>
                             <span class="text-[10px] text-slate-400">動作が重い場合にON (演出を減らします)</span>
                         </div>
-                        <input type="checkbox" id="setting-light" class="w-6 h-6 accent-indigo-500">
+                        <input type="checkbox" id="setting-light" class="w-5 h-5 accent-indigo-500">
                     </label>
-                    <label class="flex items-center justify-between bg-slate-700 p-3 rounded-xl cursor-pointer">
+                    <label class="flex items-center justify-between bg-slate-700 p-3.5 rounded-xl cursor-pointer shadow-inner">
                         <span class="font-bold">📳 振動 (対応端末のみ)</span>
-                        <input type="checkbox" id="setting-vibrate" class="w-6 h-6 accent-indigo-500">
+                        <input type="checkbox" id="setting-vibrate" class="w-5 h-5 accent-indigo-500">
                     </label>
                 </div>
 
-                <div class="space-y-3 border-t border-slate-600 pt-6">
-                    <button onclick="resetSaveData()" class="w-full border border-rose-500 text-rose-400 font-bold py-2 rounded-xl active:bg-rose-500/20 text-sm">
+                <div class="space-y-3 border-t border-slate-600 pt-5">
+                    <button onclick="resetSaveData()" class="w-full border border-rose-500 text-rose-400 font-bold py-2.5 rounded-xl active:bg-rose-500/20 text-xs transition-colors">
                         ⚠️ セーブデータをリセット
                     </button>
-                    <button onclick="closeSettings()" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3 rounded-xl active:scale-95 transition-transform">
+                    <button onclick="closeSettings()" class="w-full bg-slate-600 hover:bg-slate-500 text-white font-bold py-3.5 rounded-xl active:scale-95 transition-transform shadow-md">
                         閉じる
                     </button>
                 </div>
@@ -412,31 +479,52 @@
 
     </div>
 
-    <!-- メインスクリプト -->
+    <!-- === メインスクリプト === -->
     <script>
-        // === マスターデータ ===
-        // 各ツムに個別スキルを設定
+        // --- マスターデータ (種類・ランク・特殊強スキル増強) ---
         const ALL_TSUMS = [
-            { id: 0, name: 'ミケネコ', emoji: '🐈', color: '#f59e0b', bg: 'bg-amber-500', skillDesc: '画面中央のツムをまとめて消すよ！', skillType: 'center' },
-            { id: 1, name: 'うさぎ', emoji: '🐰', color: '#f472b6', bg: 'bg-pink-400', skillDesc: '残り時間が少し(3秒)増えるよ！', skillType: 'time' },
-            { id: 2, name: 'くま', emoji: '🐻', color: '#78350f', bg: 'bg-amber-900', skillDesc: 'ランダムなツムを10個消すよ！', skillType: 'random' },
-            { id: 3, name: 'パンダ', emoji: '🐼', color: '#e2e8f0', bg: 'bg-slate-200', skillDesc: 'マジカルボムを1個作るよ！', skillType: 'bomb' },
-            { id: 4, name: 'かえる', emoji: '🐸', color: '#22c55e', bg: 'bg-green-500', skillDesc: '画面中央のツムをまとめて消すよ！', skillType: 'center' },
-            { id: 5, name: 'キツネ', emoji: '🦊', color: '#ea580c', bg: 'bg-orange-600', skillDesc: 'ランダムなツムを10個消すよ！', skillType: 'random' },
-            { id: 6, name: 'ペンギン', emoji: '🐧', color: '#0ea5e9', bg: 'bg-sky-500', skillDesc: '残り時間が少し(3秒)増えるよ！', skillType: 'time' },
-            { id: 7, name: 'ライオン', emoji: '🦁', color: '#eab308', bg: 'bg-yellow-500', skillDesc: 'マジカルボムを2個作るよ！', skillType: 'bomb2' }
+            { id: 0, name: 'ミケネコ', emoji: '🐈', color: '#f59e0b', bg: 'bg-amber-500', skillDesc: '【C】画面中央のツムを中範囲で消去するよ！', skillType: 'center', rank: 'C', baseScore: 100 },
+            { id: 1, name: 'うさぎ', emoji: '🐰', color: '#f472b6', bg: 'bg-pink-400', skillDesc: '【B】残り時間を少し(3秒)増やすよ！', skillType: 'time', rank: 'B', baseScore: 120 },
+            { id: 2, name: 'くま', emoji: '🐻', color: '#78350f', bg: 'bg-amber-900', skillDesc: '【B】ランダムなツムを10個消去するよ！', skillType: 'random', rank: 'B', baseScore: 130 },
+            { id: 3, name: 'パンダ', emoji: '🐼', color: '#e2e8f0', bg: 'bg-slate-200', skillDesc: '【A】マジカルボムを1個生成するよ！', skillType: 'bomb', rank: 'A', baseScore: 150 },
+            { id: 4, name: 'かえる', emoji: '🐸', color: '#22c55e', bg: 'bg-green-500', skillDesc: '【C】画面中央のツムを消去するよ！', skillType: 'center', rank: 'C', baseScore: 100 },
+            { id: 5, name: 'キツネ', emoji: '🦊', color: '#ea580c', bg: 'bg-orange-600', skillDesc: '【B】ランダムなツムを10個消去するよ！', skillType: 'random', rank: 'B', baseScore: 130 },
+            { id: 6, name: 'ペンギン', emoji: '🐧', color: '#0ea5e9', bg: 'bg-sky-500', skillDesc: '【B】残り時間を少し(3秒)増やすよ！', skillType: 'time', rank: 'B', baseScore: 120 },
+            { id: 7, name: 'ライオン', emoji: '🦁', color: '#eab308', bg: 'bg-yellow-500', skillDesc: '【S】マジカルボムを2個生成するよ！', skillType: 'bomb2', rank: 'S', baseScore: 200 },
+            
+            // --- 超強力なプレミアム新規ツム ---
+            { id: 8, name: '不死鳥', emoji: '🐦‍🔥', color: '#ef4444', bg: 'bg-red-500', skillDesc: '【SS】究極業火！画面の大部分(広範囲)を吹き飛ばす！', skillType: 'phoenix_megablast', rank: 'SS', baseScore: 350 },
+            { id: 9, name: '暗黒魔王', emoji: '👿', color: '#8b5cf6', bg: 'bg-violet-600', skillDesc: '【SS】魔界の重力！ランダムに25個のツムを消滅させる！', skillType: 'dark_obliterate', rank: 'SS', baseScore: 320 },
+            { id: 10, name: 'ユニコーン', emoji: '🦄', color: '#a78bfa', bg: 'bg-purple-400', skillDesc: '【S】虹の奇跡！15秒間フィーバーと同等の3倍スコア状態にする！', skillType: 'rainbow_fever', rank: 'S', baseScore: 220 },
+            { id: 11, name: '大富豪ネコ', emoji: '🐱', color: '#facc15', bg: 'bg-yellow-400', skillDesc: '【A】招き猫！即座にコインを200〜500枚獲得する！', skillType: 'coin_grab', rank: 'A', baseScore: 160 }
         ];
 
-        // ミッション定義群
+        // ミッション数を12種類へ超大幅増強！
         const MISSIONS = [
-            { id: 0, type: 'fever', target: 2, desc: '1プレイでフィーバー2回しよう', reward: 150 },
-            { id: 1, type: 'combo', target: 20, desc: '1プレイで20コンボしよう', reward: 200 },
-            { id: 2, type: 'score', target: 10000, desc: '1プレイで10000点とろう', reward: 300 },
-            { id: 3, type: 'bomb', target: 3, desc: '1プレイでボムを3回使おう', reward: 150 },
-            { id: 4, type: 'clear', target: 100, desc: '1プレイでツムを100個消そう', reward: 200 }
+            { id: 0, type: 'fever', target: 2, desc: '1プレイでフィーバーを2回しよう', reward: 150 },
+            { id: 1, type: 'combo', target: 20, desc: '1プレイで最大20コンボを達成しよう', reward: 200 },
+            { id: 2, type: 'score', target: 50000, desc: '1プレイで50,000点以上を獲得しよう', reward: 250 },
+            { id: 3, type: 'bomb', target: 3, desc: '1プレイでマジカルボムを3回炸裂させよう', reward: 150 },
+            { id: 4, type: 'clear', target: 120, desc: '1プレイでツムを合計120個以上消そう', reward: 200 },
+            { id: 5, type: 'fever_hard', target: 4, desc: '1プレイでフィーバーを4回以上達成しよう', reward: 400 },
+            { id: 6, type: 'combo_hard', target: 40, desc: '1プレイで最大40コンボ以上の神技を決めよう', reward: 500 },
+            { id: 7, type: 'score_hard', target: 150000, desc: '1プレイで驚異の150,000点以上を獲得しよう', reward: 600 },
+            { id: 8, type: 'bomb_hard', target: 8, desc: '1プレイでボムを8回以上消し去ろう', reward: 300 },
+            { id: 9, type: 'clear_hard', target: 250, desc: '1プレイでツムを250個以上消滅させよう', reward: 500 },
+            { id: 10, type: 'coins', target: 100, desc: '1プレイでコインを100枚以上稼ぎ出そう', reward: 350 },
+            { id: 11, type: 'coins_hard', target: 300, desc: '1プレイでコインを300枚以上超獲得しよう', reward: 600 }
         ];
 
-        // === ユーティリティ (Audio, Vibrate, Alert) ===
+        // ランク毎のガチャ排出確率
+        const RANK_CHANCES = {
+            'SS': 0.08,  // 8%
+            'S': 0.15,   // 15%
+            'A': 0.25,   // 25%
+            'B': 0.32,   // 32%
+            'C': 0.20    // 20%
+        };
+
+        // --- ユーティリティ (Audio, Vibrate, Alert) ---
         class DeviceUtils {
             constructor() { this.ctx = null; }
             initAudio() {
@@ -444,7 +532,6 @@
                     const AudioContext = window.AudioContext || window.webkitAudioContext;
                     if(AudioContext) {
                         this.ctx = new AudioContext();
-                        // iOS/Chrome対策 (ユーザー操作時にResume)
                         if(this.ctx.state === 'suspended') this.ctx.resume();
                     }
                 }
@@ -458,26 +545,21 @@
                     const now = this.ctx.currentTime;
                     osc.type = type;
                     osc.frequency.setValueAtTime(freq, now);
-                    if(rampDown) {
-                        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + duration);
-                    }
+                    if(rampDown) osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + duration);
                     gain.gain.setValueAtTime(vol, now);
                     gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start(now);
-                    osc.stop(now + duration);
-                } catch(e){} // 念のためのエラーハンドリング
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(now); osc.stop(now + duration);
+                } catch(e){}
             }
-            playPop(chainLen) { this.playTone(300 + (chainLen * 40), 'sine', 0.06, 0.1, true); }
+            playPop(chainLen) { this.playTone(300 + (Math.min(chainLen, 15) * 40), 'sine', 0.06, 0.1, true); }
             playBomb() { this.playTone(100, 'square', 0.2, 0.15, false); this.vibrate(50); }
             playSkill() {
                 if (!user.settings.sfx || !this.ctx) return;
                 try {
                     const now = this.ctx.currentTime;
                     [400, 600, 800].forEach((freq, i) => {
-                        const osc = this.ctx.createOscillator();
-                        const gain = this.ctx.createGain();
+                        const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
                         osc.type = 'triangle';
                         osc.frequency.setValueAtTime(freq, now + i * 0.1);
                         gain.gain.setValueAtTime(0.1, now + i * 0.1);
@@ -490,9 +572,7 @@
             }
             playError() { this.playTone(150, 'sawtooth', 0.2, 0.1, false); }
             vibrate(pattern) {
-                if (user.settings.vibrate && navigator.vibrate) {
-                    try { navigator.vibrate(pattern); } catch(e){}
-                }
+                if (user.settings.vibrate && navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e){} }
             }
         }
         const devUtils = new DeviceUtils();
@@ -507,70 +587,66 @@
             el.classList.add('hidden'); el.classList.remove('flex');
         }
 
-        // === ユーザーデータ・セーブ管理 ===
+        // --- セーブデータ管理 (ツムレベル情報とセーブバージョン管理対応) ---
+        const HEART_MAX = 5;
+        const RECOVER_MS = 60 * 1000; // テスト用: 1分
+        const SAVE_KEY = 'tsum_save_v4'; // レベルとガチャ更新のためキーを変更
+
         const defaultUser = {
             coins: 1500,
             hearts: 5,
             lastHeartTime: Date.now(),
             myTsumId: 0,
             highScore: 0,
-            unlockedTsums: [0, 1, 2, 3, 4],
+            unlockedTsums: [0, 4], // 初期ツム (ミケネコ、かえる)
+            tsumLevels: { 0: 1, 4: 1 }, // ID: Levelのマッピング
+            tsumExps: { 0: 0, 4: 0 },   // ID: EXPのマッピング
             settings: { sfx: true, lightMode: false, vibrate: true },
-            mission: { id: 0, progress: 0, cleared: false, date: getTodayStr() }
+            mission: { id: 0, cleared: false, date: getTodayStr() },
+            tutorialDone: false
         };
-        let user = JSON.parse(JSON.stringify(defaultUser)); // Deep copy
+        let user = JSON.parse(JSON.stringify(defaultUser));
 
         function getTodayStr() {
-            const d = new Date();
-            return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+            const d = new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
         }
 
         function loadUser() {
             try {
-                const saved = localStorage.getItem('tsum_save_opt');
+                const saved = localStorage.getItem(SAVE_KEY);
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    // 安全にマージ (不足プロパティ補完)
                     user = { ...defaultUser, ...parsed };
                     user.settings = { ...defaultUser.settings, ...(parsed.settings || {}) };
                     user.mission = { ...defaultUser.mission, ...(parsed.mission || {}) };
+                    user.tsumLevels = { ...defaultUser.tsumLevels, ...(parsed.tsumLevels || {}) };
+                    user.tsumExps = { ...defaultUser.tsumExps, ...(parsed.tsumExps || {}) };
                 }
             } catch(e) {
-                console.error("Save data corrupted, using defaults");
+                console.error("Save corrupted");
                 user = JSON.parse(JSON.stringify(defaultUser));
             }
             
-            // ミッション日替わりチェック
+            // ミッション日替わりランダムチェック (12種類からランダム)
             if (user.mission.date !== getTodayStr()) {
-                user.mission = {
-                    id: Math.floor(Math.random() * MISSIONS.length),
-                    progress: 0,
-                    cleared: false,
-                    date: getTodayStr()
-                };
+                user.mission = { id: Math.floor(Math.random() * MISSIONS.length), cleared: false, date: getTodayStr() };
             }
             
-            // ハートオフライン回復処理
             processHeartRecovery();
             applySettingsToUI();
             updateHomeUI();
         }
         
         function saveUser() {
-            try { localStorage.setItem('tsum_save_opt', JSON.stringify(user)); } catch(e){}
+            try { localStorage.setItem(SAVE_KEY, JSON.stringify(user)); } catch(e){}
             updateHomeUI();
         }
 
         function resetSaveData() {
-            if(confirm("本当にセーブデータをリセットしますか？この操作は取り消せません。")) {
-                localStorage.removeItem('tsum_save_opt');
-                location.reload();
+            if(confirm("セーブデータを初期化します。よろしいですか？")) {
+                localStorage.removeItem(SAVE_KEY); location.reload();
             }
         }
-
-        // --- ハート管理 ---
-        const HEART_MAX = 5;
-        const RECOVER_MS = 60 * 1000; // テスト用: 1分 (本番は15分等)
 
         function processHeartRecovery() {
             if (user.hearts < HEART_MAX) {
@@ -579,11 +655,8 @@
                 if (passed >= RECOVER_MS) {
                     const recoverCount = Math.floor(passed / RECOVER_MS);
                     user.hearts = Math.min(HEART_MAX, user.hearts + recoverCount);
-                    if (user.hearts === HEART_MAX) {
-                        user.lastHeartTime = now;
-                    } else {
-                        user.lastHeartTime += recoverCount * RECOVER_MS;
-                    }
+                    if (user.hearts === HEART_MAX) user.lastHeartTime = now;
+                    else user.lastHeartTime += recoverCount * RECOVER_MS;
                 }
             } else {
                 user.lastHeartTime = Date.now();
@@ -592,7 +665,7 @@
 
         setInterval(() => {
             processHeartRecovery();
-            saveUser(); // Save silently
+            saveUser(); 
             updateHeartTimerUI();
         }, 1000);
 
@@ -604,58 +677,61 @@
             } else {
                 const remaining = RECOVER_MS - (Date.now() - user.lastHeartTime);
                 const secs = Math.max(0, Math.ceil(remaining / 1000));
-                const m = Math.floor(secs / 60);
-                const s = secs % 60;
-                timerEl.innerText = `${m}:${s.toString().padStart(2, '0')}`;
+                timerEl.innerText = `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, '0')}`;
             }
         }
 
-        // --- UI更新 ---
         function updateHomeUI() {
             document.getElementById('coin-count').innerText = user.coins.toLocaleString();
             document.getElementById('home-highscore').innerText = user.highScore.toLocaleString();
             
             const myTsum = ALL_TSUMS.find(t => t.id === user.myTsumId) || ALL_TSUMS[0];
+            const myLevel = user.tsumLevels[user.myTsumId] || 1;
+            
             document.getElementById('home-mytsum-emoji').innerText = myTsum.emoji;
-            document.getElementById('home-mytsum-bg').className = `absolute inset-0 opacity-50 ${myTsum.bg}`;
+            document.getElementById('home-mytsum-bg').className = `absolute inset-0 opacity-50 ${myTsum.bg} transition-colors`;
+            document.getElementById('home-mytsum-rank').innerText = myTsum.rank;
+            document.getElementById('home-mytsum-level').innerText = `Lv.${myLevel}`;
+            
+            // ランク別バッジの色分け
+            const rankBadges = {
+                'SS': 'bg-red-500 text-white animate-pulse',
+                'S': 'bg-yellow-400 text-slate-950',
+                'A': 'bg-purple-600 text-white',
+                'B': 'bg-blue-500 text-white',
+                'C': 'bg-slate-400 text-slate-900'
+            };
+            document.getElementById('home-mytsum-rank').className = `absolute top-2 left-2 font-black px-2 py-0.5 rounded-md text-xs shadow-md z-20 ${rankBadges[myTsum.rank]}`;
+
             document.getElementById('skill-mytsum-emoji').innerText = myTsum.emoji;
-            document.getElementById('skill-desc-text').innerText = myTsum.skillDesc;
 
             // ミッションUI
             const missionData = MISSIONS.find(m => m.id === user.mission.id) || MISSIONS[0];
             document.getElementById('mission-desc').innerText = missionData.desc;
             document.getElementById('mission-reward').innerText = `🪙 ${missionData.reward}`;
             
-            const progressRatio = Math.min(100, (user.mission.progress / missionData.target) * 100);
-            document.getElementById('mission-progress').style.width = `${progressRatio}%`;
-            document.getElementById('mission-text').innerText = `${user.mission.progress} / ${missionData.target}`;
-            
             const statusEl = document.getElementById('mission-status');
             if (user.mission.cleared) {
                 statusEl.innerText = 'CLEAR!';
-                statusEl.className = 'text-xs font-bold px-2 py-1 rounded-full bg-yellow-500 text-slate-900';
+                statusEl.className = 'text-[10px] font-black px-2 py-1 rounded-full tracking-widest bg-yellow-500 text-slate-900';
             } else {
-                statusEl.innerText = '進行中';
-                statusEl.className = 'text-xs font-bold px-2 py-1 rounded-full bg-slate-700 text-slate-400';
+                statusEl.innerText = '挑戦中';
+                statusEl.className = 'text-[10px] font-black px-2 py-1 rounded-full tracking-widest bg-slate-700 text-slate-400';
             }
-
             updateHeartTimerUI();
         }
 
-        // === 設定・チュートリアル・その他モーダル ===
+        // --- モーダル制御 ---
         function showSettings() {
-            document.getElementById('modal-settings').classList.remove('hidden');
-            document.getElementById('modal-settings').classList.add('flex');
+            document.getElementById('modal-settings').classList.remove('hidden'); document.getElementById('modal-settings').classList.add('flex');
         }
         function closeSettings() {
             user.settings.sfx = document.getElementById('setting-sfx').checked;
             user.settings.lightMode = document.getElementById('setting-light').checked;
             user.settings.vibrate = document.getElementById('setting-vibrate').checked;
             saveUser();
-            applySettingsToUI();
-            document.getElementById('modal-settings').classList.add('hidden');
-            document.getElementById('modal-settings').classList.remove('flex');
-            devUtils.initAudio(); // Initialize on user interaction
+            document.getElementById('modal-settings').classList.add('hidden'); document.getElementById('modal-settings').classList.remove('flex');
+            devUtils.initAudio();
         }
         function applySettingsToUI() {
             document.getElementById('setting-sfx').checked = user.settings.sfx;
@@ -663,67 +739,88 @@
             document.getElementById('setting-vibrate').checked = user.settings.vibrate;
         }
 
-        function showTutorial() {
-            document.getElementById('modal-tutorial').classList.remove('hidden');
-            document.getElementById('modal-tutorial').classList.add('flex');
+        function showTutorial(isInitial) {
+            document.getElementById('modal-tutorial').classList.remove('hidden'); document.getElementById('modal-tutorial').classList.add('flex');
+            if(isInitial) user.tutorialDone = true; saveUser();
         }
         function closeTutorial() {
-            document.getElementById('modal-tutorial').classList.add('hidden');
-            document.getElementById('modal-tutorial').classList.remove('flex');
+            document.getElementById('modal-tutorial').classList.add('hidden'); document.getElementById('modal-tutorial').classList.remove('flex');
         }
 
-        // === マイツム選択 ===
+        // --- マイツム選択 ---
         function showTsumSelect() {
             const list = document.getElementById('tsum-list');
             list.innerHTML = '';
-            
-            // 選択中のスキル表示要素
             const skillDescEl = document.getElementById('tsum-select-skill-desc');
-            const updateSkillDesc = (id) => {
-                const t = ALL_TSUMS.find(t=>t.id===id);
-                if(t) skillDescEl.innerText = t.skillDesc;
-            };
+            const updateSkillDesc = (id) => { const t = ALL_TSUMS.find(t=>t.id===id); if(t) skillDescEl.innerText = t.skillDesc; };
             updateSkillDesc(user.myTsumId);
 
             ALL_TSUMS.forEach(t => {
                 const isUnlocked = user.unlockedTsums.includes(t.id);
                 const div = document.createElement('div');
-                div.className = `w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto cursor-pointer border-4 transition-transform active:scale-90 ${user.myTsumId === t.id ? 'border-yellow-400 bg-slate-700' : 'border-slate-600 bg-slate-800'} ${!isUnlocked && 'opacity-30 grayscale pointer-events-none'}`;
+                const lv = user.tsumLevels[t.id] || 1;
+                div.className = `w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-3xl mx-auto cursor-pointer border-4 transition-transform active:scale-90 relative ${user.myTsumId === t.id ? 'border-yellow-400 bg-slate-700 shadow-md' : 'border-slate-600 bg-slate-800'} ${!isUnlocked && 'opacity-30 grayscale pointer-events-none'}`;
                 div.innerText = t.emoji;
+                
+                // レベル表記追加
                 if (isUnlocked) {
-                    div.onclick = () => {
-                        user.myTsumId = t.id;
-                        saveUser();
-                        showTsumSelect(); // リロードして選択状態更新
-                    };
-                    // ホバー/タッチでスキル説明更新(PC向け)
+                    const lvTag = document.createElement('div');
+                    lvTag.className = "absolute -bottom-1 -right-1 bg-slate-900 text-[8px] font-black px-1.5 py-0.2 rounded-full border border-slate-600 text-yellow-300";
+                    lvTag.innerText = `L.${lv}`;
+                    div.appendChild(lvTag);
+
+                    // ランク表記
+                    const rTag = document.createElement('div');
+                    const rColors = {'SS':'bg-red-500','S':'bg-yellow-500','A':'bg-purple-500','B':'bg-blue-500','C':'bg-slate-500'};
+                    rTag.className = `absolute -top-1 -left-1 text-[8px] font-black px-1 rounded-sm text-white ${rColors[t.rank] || 'bg-slate-500'}`;
+                    rTag.innerText = t.rank;
+                    div.appendChild(rTag);
+
+                    div.onclick = () => { user.myTsumId = t.id; saveUser(); showTsumSelect(); };
                     div.onpointerenter = () => updateSkillDesc(t.id);
                 }
                 list.appendChild(div);
             });
-            document.getElementById('modal-tsum-select').classList.remove('hidden');
-            document.getElementById('modal-tsum-select').classList.add('flex');
+            document.getElementById('modal-tsum-select').classList.remove('hidden'); document.getElementById('modal-tsum-select').classList.add('flex');
         }
         function hideTsumSelect() {
-            document.getElementById('modal-tsum-select').classList.add('hidden');
-            document.getElementById('modal-tsum-select').classList.remove('flex');
+            document.getElementById('modal-tsum-select').classList.add('hidden'); document.getElementById('modal-tsum-select').classList.remove('flex');
         }
 
-        // === ガチャ ===
+        // --- ガチャ (超絶豪華にアップデート) ---
         let isGachaRunning = false;
         document.getElementById('btn-gacha').onclick = () => {
             if (isGachaRunning) return;
-            if (user.coins < 1000) { showAlert('コインが足りません'); devUtils.playError(); return; }
+            if (user.coins < 1000) { showAlert('コインが足りません！\nパズルで🪙1,000枚集めてプレミアムBOXを引こう。'); devUtils.playError(); return; }
             
             const locked = ALL_TSUMS.filter(t => !user.unlockedTsums.includes(t.id));
-            if (locked.length === 0) { showAlert('すべてのツムを所持しています！\n（今後のアップデートをお待ちください）'); return; }
+            if (locked.length === 0) { showAlert('すべてのプレミアムツムをコンプリートしています！\n新ツムの実装をお楽しみに！'); return; }
 
             isGachaRunning = true;
             user.coins -= 1000;
-            const target = locked[Math.floor(Math.random() * locked.length)];
+            
+            // 確率に基づいた厳密なガチャシステム
+            let target = null;
+            // 未解放のレアツムから確率分配して抽選
+            let pool = [...locked];
+            // 排出計算の重み付け
+            const weights = { 'SS': 8, 'S': 15, 'A': 25, 'B': 32, 'C': 20 };
+            let totalWeight = pool.reduce((acc, t) => acc + (weights[t.rank] || 10), 0);
+            let roll = Math.random() * totalWeight;
+            
+            for(let t of pool) {
+                let w = weights[t.rank] || 10;
+                if(roll < w) {
+                    target = t; break;
+                }
+                roll -= w;
+            }
+            if(!target) target = pool[pool.length - 1]; // 安全弁
+
             user.unlockedTsums.push(target.id);
-            saveUser();
-            devUtils.initAudio();
+            user.tsumLevels[target.id] = 1;
+            user.tsumExps[target.id] = 0;
+            saveUser(); devUtils.initAudio();
 
             const modal = document.getElementById('modal-gacha');
             const emoji = document.getElementById('gacha-emoji');
@@ -731,78 +828,84 @@
             const msg = document.getElementById('gacha-msg');
             const btn = document.getElementById('btn-gacha-close');
             const bg = document.getElementById('gacha-bg');
+            const statusText = document.getElementById('gacha-status');
+            const frame = document.getElementById('gacha-frame');
+            const skillText = document.getElementById('gacha-skill');
+            const rBadge = document.getElementById('gacha-rank-badge');
             
-            emoji.style.transform = 'scale(0)';
-            emoji.innerText = '❓';
-            bg.className = `absolute inset-0 opacity-50 bg-slate-800`;
-            name.style.opacity = '0';
-            msg.style.opacity = '0';
-            btn.style.opacity = '0';
+            // 演出初期化
+            frame.style.transform = 'scale(0) rotate(0deg)';
+            rBadge.classList.add('hidden');
+            emoji.style.transform = 'scale(0)'; emoji.innerText = '❓';
+            bg.className = `absolute inset-0 opacity-40 bg-slate-900 transition-colors duration-500`;
+            name.style.opacity = '0'; msg.style.opacity = '0'; btn.style.opacity = '0';
+            document.getElementById('gacha-desc-box').style.opacity = '0';
+            statusText.innerText = '金色のスパークが舞う... 虹色光臨！';
 
             modal.classList.remove('hidden'); modal.classList.add('flex');
 
+            // 段階的ゴージャス演出
             setTimeout(() => {
+                devUtils.playTone(400, 'sawtooth', 0.2, 0.1, false);
+                frame.style.transform = 'scale(1.1) rotate(180deg)';
+                statusText.innerText = '激しく輝きだした！何が出る！？';
+            }, 600);
+
+            setTimeout(() => {
+                // 排出！
                 emoji.innerText = target.emoji;
                 bg.className = `absolute inset-0 opacity-50 ${target.bg}`;
+                frame.style.transform = 'scale(1) rotate(360deg)';
                 emoji.style.transform = 'scale(1.2) rotate(360deg)';
+                
+                // ランクバッジ
+                rBadge.innerText = `${target.rank}`;
+                const rColors = {'SS':'bg-red-500 text-white animate-pulse','S':'bg-yellow-400 text-slate-950','A':'bg-purple-600 text-white','B':'bg-blue-500 text-white','C':'bg-slate-400 text-slate-900'};
+                rBadge.className = `absolute top-4 left-4 font-black px-2.5 py-1 rounded-md text-sm shadow-md z-20 ${rColors[target.rank]}`;
+                rBadge.classList.remove('hidden');
+
                 setTimeout(() => { emoji.style.transform = 'scale(1)'; }, 300);
-                name.innerText = target.name;
+                
+                name.innerText = `${target.name} (${target.rank}ランク)`;
+                msg.innerText = `プレミアムツム [ ${target.name} ] 解放！`;
+                skillText.innerText = target.skillDesc;
+                
                 name.style.opacity = '1'; msg.style.opacity = '1'; btn.style.opacity = '1';
+                document.getElementById('gacha-desc-box').style.opacity = '1';
+                statusText.innerText = `超激レア ${target.rank}ランク 引き当てた！`;
+                
                 devUtils.playSkill();
                 isGachaRunning = false;
-            }, 1000);
+            }, 2000);
         };
         document.getElementById('btn-gacha-close').onclick = () => {
             if(isGachaRunning) return;
-            document.getElementById('modal-gacha').classList.add('hidden');
-            document.getElementById('modal-gacha').classList.remove('flex');
+            document.getElementById('modal-gacha').classList.add('hidden'); document.getElementById('modal-gacha').classList.remove('flex');
         };
 
         // ==========================================
         // ゲームメインロジック (Matter.js)
         // ==========================================
         const canvas = document.getElementById('game-canvas');
-        // 解像度は固定（CSSでレスポンシブに拡縮）
-        const CANVAS_W = 400;
-        const CANVAS_H = 500; 
-        
-        // ツムのサイズを実際のアプリと同等の比率（画面横に約8個並ぶサイズ）に調整
+        const CANVAS_W = 400; const CANVAS_H = 500; 
         const TSUM_R = 24; 
-        
-        const ctx = canvas.getContext('2d', { alpha: false }); // パフォーマンス最適化
+        const ctx = canvas.getContext('2d', { alpha: false });
 
         const { Engine, World, Bodies, Body, Events } = Matter;
         let engine = null, world = null;
         
-        // --- ゲーム状態変数 ---
-        let isPlaying = false;
-        let isPaused = false;
-        let animReqId = null;
-        let lastTickTime = 0;
-        let timeAccumulator = 0; // 1秒カウント用
+        let isPlaying = false, isPaused = false;
+        let animReqId = null, lastTickTime = 0, timeAccumulator = 0;
 
-        // プレイ成績
-        let score = 0;
-        let coinsEarned = 0;
-        let timeLeft = 60;
-        let comboCount = 0;
-        let maxCombo = 0;
-        let lastClearTime = 0;
-        let playStats = { fever: 0, bombs: 0, cleared: 0 };
+        let score = 0, coinsEarned = 0, timeLeft = 60, comboCount = 0, maxCombo = 0, lastClearTime = 0;
+        let playStats = { fever: 0, bombs: 0, cleared: 0 }; // 1プレイ用統計
+        let feverGauge = 0, isFever = false, feverTimeLeft = 0;
+        let skillGauge = 0; const SKILL_MAX = 40;
+        let activeSkillBonusActive = false; // ユニコーンの特殊レインボー効果用
         
-        let feverGauge = 0;
-        let isFever = false;
-        let feverTimeLeft = 0; // ミリ秒単位
+        let currentChain = [], isDragging = false, particles = [], activeTsumTypes = [];
+        let chainRipples = []; // 追加: つながったときのエフェクト
         
-        let skillGauge = 0;
-        const SKILL_MAX = 40;
-        
-        let currentChain = [];
-        let isDragging = false;
-        let particles = [];
-        let activeTsumTypes = [];
-        
-        // UI参照
         const scoreEl = document.getElementById('game-score');
         const timerEl = document.getElementById('game-timer');
         const feverBar = document.getElementById('fever-bar');
@@ -811,39 +914,31 @@
         const comboCountEl = document.getElementById('combo-count');
         const skillBar = document.getElementById('skill-bar');
         const btnSkill = document.getElementById('btn-skill');
-        const viewGame = document.getElementById('view-game');
 
-        // --- 物理初期化・破棄 ---
         function clearPhysics() {
             if (animReqId) { cancelAnimationFrame(animReqId); animReqId = null; }
             if (engine) {
-                Events.off(engine);
-                World.clear(engine.world, false);
-                Engine.clear(engine);
-                engine = null;
-                world = null;
+                Events.off(engine); World.clear(engine.world, false); Engine.clear(engine);
+                engine = null; world = null;
             }
-            particles = [];
-            currentChain = [];
+            particles = []; currentChain = []; chainRipples = []; isDragging = false;
+            // UI強制リセット
+            document.getElementById('view-game').classList.remove('fever-bg', 'fever-bg-light');
+            feverUI.classList.add('bg-slate-900/80'); feverUI.classList.remove('bg-rose-900/80', 'animate-pulse');
         }
 
         function initPhysics() {
             clearPhysics();
-            engine = Engine.create({ 
-                gravity: { y: 1.5, x: 0 }, // 重力を本家に近い自然な落下速度に調整
-                positionIterations: 8,
-                velocityIterations: 8
-            });
+            engine = Engine.create({ gravity: { y: 1.5, x: 0 }, positionIterations: 6, velocityIterations: 6 });
             world = engine.world;
             
             const wallOpt = { isStatic: true, friction: 0.1, render: { visible: false } };
-            // 壁を極端に厚く長くして、ツムがはみ出したりすり抜けてバグるのを完全防止
-            const floor = Bodies.rectangle(CANVAS_W/2, CANVAS_H + 500, CANVAS_W * 3, 1000, wallOpt);
-            const lWall = Bodies.rectangle(-500, CANVAS_H/2, 1000, CANVAS_H * 4, wallOpt);
-            const rWall = Bodies.rectangle(CANVAS_W + 500, CANVAS_H/2, 1000, CANVAS_H * 4, wallOpt);
-            World.add(world, [floor, lWall, rWall]);
+            World.add(world, [
+                Bodies.rectangle(CANVAS_W/2, CANVAS_H + 500, CANVAS_W * 3, 1000, wallOpt),
+                Bodies.rectangle(-500, CANVAS_H/2, 1000, CANVAS_H * 4, wallOpt),
+                Bodies.rectangle(CANVAS_W + 500, CANVAS_H/2, 1000, CANVAS_H * 4, wallOpt)
+            ]);
 
-            // 登場ツムの選定 (マイツム + ランダム4種)
             activeTsumTypes = [ALL_TSUMS.find(t=>t.id === user.myTsumId) || ALL_TSUMS[0]];
             const others = ALL_TSUMS.filter(t => t.id !== activeTsumTypes[0].id).sort(() => Math.random() - 0.5);
             activeTsumTypes.push(...others.slice(0, 4));
@@ -851,93 +946,87 @@
 
         function spawnTsum(x, y) {
             const type = activeTsumTypes[Math.floor(Math.random() * activeTsumTypes.length)];
-            const body = Bodies.circle(x, y, TSUM_R, {
-                restitution: 0.15, // ぷるぷる感を出しつつ弾け飛ばない適度な反発
-                friction: 0.05,
-                density: 0.001,
-                label: 'tsum'
-            });
+            const body = Bodies.circle(x, y, TSUM_R, { restitution: 0.15, friction: 0.05, density: 0.001, label: 'tsum' });
             body.tsumType = type;
             World.add(world, body);
         }
 
         function spawnBomb(x, y) {
-            const body = Bodies.circle(x, y, TSUM_R * 1.3, {
-                restitution: 0.2, 
-                friction: 0.1, 
-                density: 0.003, 
-                label: 'bomb'
-            });
+            const body = Bodies.circle(x, y, TSUM_R * 1.3, { restitution: 0.2, friction: 0.1, density: 0.003, label: 'bomb' });
+            body.tsumType = null; // ボム自体はツムの種類を持たない
             World.add(world, body);
         }
 
         function refillTsums() {
-            // パフォーマンスと本家のバランスを考慮した最大量（通常45個）
             const maxTsums = user.settings.lightMode ? 40 : 45; 
             const count = world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb').length;
             const needed = maxTsums - count;
-            
             if(needed > 0) {
-                const spawnCount = Math.min(needed, 5); // 詰まりを防ぐため少しずつ降らせる
-                for(let i=0; i<spawnCount; i++) {
-                    const x = 40 + Math.random()*(CANVAS_W-80);
-                    const y = -80 - i*35;
-                    spawnTsum(x, y);
+                for(let i=0; i<Math.min(needed, 4); i++) {
+                    spawnTsum(40 + Math.random()*(CANVAS_W-80), -60 - i*30);
                 }
             }
         }
 
-        // --- 描画＆更新ループ ---
         function drawLoop(timestamp) {
-            if (!isPlaying) return; // 終了時はループ停止
+            if (!isPlaying) return;
             animReqId = requestAnimationFrame(drawLoop);
 
             if (!lastTickTime) lastTickTime = timestamp;
             const delta = timestamp - lastTickTime;
             lastTickTime = timestamp;
 
-            if (isPaused) return; // ポーズ時は時間経過・物理演算スキップ
+            if (isPaused) return;
 
-            // 1. タイマー処理
+            // Timer
             timeAccumulator += delta;
             if (timeAccumulator >= 1000) {
-                timeLeft--;
-                timeAccumulator -= 1000;
+                timeLeft--; timeAccumulator -= 1000;
                 timerEl.innerText = timeLeft;
-                if (timeLeft <= 0) { timeUp(); return; } // ループを抜ける
+                if (timeLeft <= 0) { timeUp(); return; }
             }
 
-            // 2. フィーバー管理
+            // Fever & Combo Timeout
             if (isFever) {
                 feverTimeLeft -= delta;
-                // ゲージを減らす演出
                 feverBar.style.width = Math.max(0, (feverTimeLeft / 10000) * 100) + '%';
-                if (feverTimeLeft <= 0) {
-                    endFever();
-                }
+                if (feverTimeLeft <= 0) endFever();
             } else if (comboCount > 0 && Date.now() - lastClearTime > 3000) {
-                // コンボ切れ (3秒)
-                comboCount = 0;
-                comboDisplay.classList.add('hidden');
+                comboCount = 0; comboDisplay.classList.add('hidden');
             }
 
-            // 3. 物理更新 (過大なdeltaを防ぐ)
+            // Physics Update
             Engine.update(engine, Math.min(delta, 30));
-            if(Math.random() < 0.1) refillTsums(); // 毎フレームではなく分散して補充
+            if(Math.random() < 0.15) refillTsums();
 
-            // 4. 描画
-            // 背景
-            ctx.fillStyle = isFever ? (user.settings.lightMode ? '#31133e' : '#1e1b4b') : '#0f172a';
+            // Draw Background (スキル発動中の虹背景対応)
+            if (activeSkillBonusActive) {
+                ctx.fillStyle = '#2d1b4e';
+            } else {
+                ctx.fillStyle = isFever ? (user.settings.lightMode ? '#31133e' : '#1e1b4b') : '#0f172a';
+            }
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
             const isLight = user.settings.lightMode;
             const bodies = world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb');
             
+            // Draw Bodies
             bodies.forEach(b => {
                 ctx.save();
-                ctx.translate(b.position.x, b.position.y);
-                ctx.rotate(b.angle);
+                ctx.translate(b.position.x, b.position.y); ctx.rotate(b.angle);
                 
+                const inChainIndex = currentChain.indexOf(b);
+                const isHead = inChainIndex !== -1 && inChainIndex === currentChain.length - 1;
+                
+                // チェーンに含まれるツムのエフェクト
+                if (inChainIndex !== -1 && !isLight) {
+                    ctx.scale(1.15, 1.15); // つながっているツムは少し大きくなる
+                    // 発光ハイライトリング
+                    ctx.beginPath(); ctx.arc(0, 0, TSUM_R + 3, 0, Math.PI*2);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'; ctx.fill();
+                    ctx.lineWidth = 3; ctx.strokeStyle = 'white'; ctx.stroke();
+                }
+
                 if (b.label === 'tsum') {
                     if (!isLight) {
                         ctx.beginPath(); ctx.arc(1, 2, TSUM_R, 0, Math.PI*2);
@@ -945,92 +1034,134 @@
                     }
                     ctx.beginPath(); ctx.arc(0, 0, TSUM_R, 0, Math.PI*2);
                     ctx.fillStyle = b.tsumType.color; ctx.fill();
-                    ctx.font = `28px sans-serif`; // ツムのサイズに合わせた絵文字フォントサイズ
-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.font = `28px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.fillText(b.tsumType.emoji, 0, 1);
                 } else if (b.label === 'bomb') {
                     ctx.beginPath(); ctx.arc(0, 0, TSUM_R*1.3, 0, Math.PI*2);
                     ctx.fillStyle = '#e2e8f0'; ctx.fill();
                     ctx.lineWidth = 2; ctx.strokeStyle = '#475569'; ctx.stroke();
-                    ctx.font = `24px sans-serif`;
-                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.font = `24px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                     ctx.fillText('⭐', 0, 1);
+                }
+                
+                // 指で持っている（現在の先頭）ツムからキラキラパーティクルを出す
+                if (isHead && isDragging && !isLight) {
+                    if (Math.random() < 0.6) {
+                        particles.push({
+                            x: b.position.x + (Math.random() - 0.5) * TSUM_R * 2,
+                            y: b.position.y + (Math.random() - 0.5) * TSUM_R * 2,
+                            vx: (Math.random() - 0.5) * 1.5,
+                            vy: (Math.random() - 0.5) * 1.5 - 1,
+                            r: Math.random() * 3 + 1.5,
+                            c: 'white',
+                            alpha: 1
+                        });
+                    }
                 }
                 ctx.restore();
             });
 
-            // なぞり線
+            // Draw Chain Line (エフェクト豪華版)
             if (currentChain.length > 0) {
                 ctx.save();
-                ctx.lineWidth = 14; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-                ctx.strokeStyle = currentChain[0].tsumType.color;
-                ctx.globalAlpha = isLight ? 0.8 : 0.6;
-                ctx.beginPath();
-                ctx.moveTo(currentChain[0].position.x, currentChain[0].position.y);
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                const chainColor = currentChain[0].tsumType ? currentChain[0].tsumType.color : '#fff';
+                
+                if (!isLight) {
+                    // 外側の発光グロー
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = chainColor;
+                    ctx.lineWidth = 22;
+                    ctx.strokeStyle = chainColor;
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath(); ctx.moveTo(currentChain[0].position.x, currentChain[0].position.y);
+                    for(let i=1; i<currentChain.length; i++) ctx.lineTo(currentChain[i].position.x, currentChain[i].position.y);
+                    ctx.stroke();
+                }
+
+                // 中間のカラー線
+                ctx.shadowBlur = 0;
+                ctx.lineWidth = 14; 
+                ctx.strokeStyle = chainColor;
+                ctx.globalAlpha = isLight ? 0.8 : 0.9;
+                ctx.beginPath(); ctx.moveTo(currentChain[0].position.x, currentChain[0].position.y);
                 for(let i=1; i<currentChain.length; i++) ctx.lineTo(currentChain[i].position.x, currentChain[i].position.y);
                 ctx.stroke();
-                ctx.lineWidth = 6; ctx.strokeStyle = '#fff'; ctx.globalAlpha = 1; ctx.stroke();
+
+                // 内側の白い芯線
+                ctx.lineWidth = 6; ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = 1; 
+                ctx.beginPath(); ctx.moveTo(currentChain[0].position.x, currentChain[0].position.y);
+                for(let i=1; i<currentChain.length; i++) ctx.lineTo(currentChain[i].position.x, currentChain[i].position.y);
+                ctx.stroke();
                 ctx.restore();
             }
 
-            // パーティクル
+            // Draw Ripples (繋がった瞬間の波紋)
+            for(let i=chainRipples.length-1; i>=0; i--) {
+                let r = chainRipples[i];
+                r.r += 3; // 波紋の広がる速度
+                r.alpha -= 0.08;
+                if(r.alpha <= 0) chainRipples.splice(i, 1);
+                else {
+                    ctx.save();
+                    ctx.globalAlpha = r.alpha;
+                    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI*2);
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = 'white';
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+
+            // Draw Particles
             for(let i=particles.length-1; i>=0; i--) {
                 let p = particles[i];
-                p.x += p.vx; p.y += p.vy; p.alpha -= 0.04;
+                p.x += p.vx; p.y += p.vy; p.alpha -= 0.05;
                 if(p.alpha <= 0) particles.splice(i, 1);
                 else {
                     ctx.save(); ctx.globalAlpha = p.alpha;
                     ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-                    ctx.fillStyle = p.c; ctx.fill();
-                    ctx.restore();
+                    ctx.fillStyle = p.c; ctx.fill(); ctx.restore();
                 }
             }
         }
 
-        // --- インタラクション (座標補正とCapture) ---
+        // --- Interaction ---
         function getPointerPos(e) {
             const rect = canvas.getBoundingClientRect();
-            // 実際のCanvasサイズ(400x500)とCSSでの表示サイズ(rect)の比率
+            // css object-fitによる実際の描画スケールを計算
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: (clientX - rect.left) * scaleX,
-                y: (clientY - rect.top) * scaleY
-            };
+            return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
         }
 
-        // タップ開始時に、一番近くにある対象を正確に拾う処理
         function getBodyAt(pos) {
             const bodies = world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb');
-            let closest = null;
-            let minDist = Infinity;
+            let closest = null, minDist = Infinity;
             for(let i=bodies.length-1; i>=0; i--) {
                 const b = bodies[i];
                 const r = b.label==='bomb' ? TSUM_R*1.3+5 : TSUM_R+5;
                 const dist = Math.hypot(b.position.x - pos.x, b.position.y - pos.y);
-                if(dist <= r && dist < minDist) {
-                    minDist = dist;
-                    closest = b;
-                }
+                if(dist <= r && dist < minDist) { minDist = dist; closest = b; }
             }
             return closest;
         }
 
         function handlePointerDown(e) {
             if(!isPlaying || isPaused) return;
-            // Capture events to handle dragging outside canvas
             if(e.pointerId) canvas.setPointerCapture(e.pointerId);
             
             const b = getBodyAt(getPointerPos(e));
             if(b) {
-                if (b.label === 'bomb') {
-                    explodeBomb(b);
-                } else {
-                    isDragging = true;
-                    currentChain = [b];
-                    devUtils.playPop(1);
+                if (b.label === 'bomb') explodeBomb(b);
+                else { 
+                    isDragging = true; currentChain = [b]; devUtils.playPop(1); 
+                    // 最初につかんだ瞬間の波紋
+                    if (!user.settings.lightMode) {
+                        chainRipples.push({ x: b.position.x, y: b.position.y, r: TSUM_R, alpha: 1 });
+                    }
                 }
             }
         }
@@ -1038,111 +1169,117 @@
         function handlePointerMove(e) {
             if(!isPlaying || isPaused || !isDragging || currentChain.length===0) return;
             const pos = getPointerPos(e);
-            const lastTsum = currentChain[currentChain.length-1];
             
-            // 操作感度を大幅に良くする（吸着）ため、指の周囲少し広めの範囲を検索
-            const searchRadius = TSUM_R * 1.8; 
-            const candidates = world.bodies.filter(b => {
-                if (b.label !== 'tsum') return false;
-                return Math.hypot(b.position.x - pos.x, b.position.y - pos.y) <= searchRadius;
-            });
+            // 吸着判定（広めに検索）
+            const searchRadius = TSUM_R * 2.5; 
+            const connectRadius = TSUM_R * 3.8;
             
-            // 1. なぞり戻り処理（指が一つ前のツムに戻った場合）
+            // 1. なぞり戻り処理（最優先）
             if (currentChain.length >= 2) {
                 const prevTsum = currentChain[currentChain.length-2];
                 if (Math.hypot(prevTsum.position.x - pos.x, prevTsum.position.y - pos.y) <= searchRadius) {
-                    currentChain.pop();
-                    devUtils.playPop(currentChain.length);
-                    return;
+                    currentChain.pop(); devUtils.playPop(currentChain.length); return;
                 }
             }
 
-            // 2. 新しく繋ぐ処理（吸着判定）
-            const validNext = candidates.filter(b => 
-                b.tsumType.id === currentChain[0].tsumType.id && 
-                !currentChain.includes(b) &&
-                Math.hypot(b.position.x - lastTsum.position.x, b.position.y - lastTsum.position.y) < TSUM_R * 3.8 // 繋がる許容距離を最適化
-            );
+            // 2. 新規接続
+            const lastTsum = currentChain[currentChain.length-1];
+            const candidates = world.bodies.filter(b => {
+                if (b.label !== 'tsum' || currentChain.includes(b) || b.tsumType.id !== currentChain[0].tsumType.id) return false;
+                // 指の近くにあるか ＆ 最後のツムと繋がる距離か
+                return Math.hypot(b.position.x - pos.x, b.position.y - pos.y) <= searchRadius &&
+                       Math.hypot(b.position.x - lastTsum.position.x, b.position.y - lastTsum.position.y) <= connectRadius;
+            });
 
-            if (validNext.length > 0) {
-                // 条件を満たす候補の中から、指の位置に一番近いツムを吸い込んで繋げる
-                validNext.sort((a, b) => Math.hypot(a.position.x - pos.x, a.position.y - pos.y) - Math.hypot(b.position.x - pos.x, b.position.y - pos.y));
-                currentChain.push(validNext[0]);
+            if (candidates.length > 0) {
+                // 指に一番近いものを接続
+                candidates.sort((a, b) => Math.hypot(a.position.x - pos.x, a.position.y - pos.y) - Math.hypot(b.position.x - pos.x, b.position.y - pos.y));
+                const nextTsum = candidates[0];
+                currentChain.push(nextTsum);
                 devUtils.playPop(currentChain.length);
+                
+                // 新しくつながった瞬間の豪華エフェクト
+                if (!user.settings.lightMode) {
+                    // 波紋を追加
+                    chainRipples.push({ x: nextTsum.position.x, y: nextTsum.position.y, r: TSUM_R, alpha: 1 });
+                    // 少し火花を散らす
+                    for(let i=0; i<4; i++) {
+                        particles.push({
+                            x: nextTsum.position.x, y: nextTsum.position.y,
+                            vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
+                            r: Math.random() * 3 + 2, c: '#fff', alpha: 1
+                        });
+                    }
+                }
             }
         }
 
         function handlePointerUp(e) {
-            if(e.pointerId && canvas.hasPointerCapture(e.pointerId)) {
-                canvas.releasePointerCapture(e.pointerId);
-            }
+            if(e.pointerId && canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
             if(!isPlaying || isPaused || !isDragging) return;
             isDragging = false;
             
             if(currentChain.length >= 3) {
+                const len = currentChain.length;
                 processClear(currentChain);
-                if(currentChain.length >= 7) {
-                    const last = currentChain[currentChain.length-1];
-                    spawnBomb(last.position.x, last.position.y);
-                }
+                if(len >= 7) spawnBomb(currentChain[len-1].position.x, currentChain[len-1].position.y);
             }
             currentChain = [];
         }
 
-        // Pointer Events (Unified touch & mouse)
         canvas.addEventListener('pointerdown', handlePointerDown);
         canvas.addEventListener('pointermove', handlePointerMove);
         canvas.addEventListener('pointerup', handlePointerUp);
         canvas.addEventListener('pointercancel', handlePointerUp);
-        // Fallback for safety
-        window.addEventListener('pointerup', (e) => { if(isDragging) handlePointerUp(e); });
 
-        // --- ゲームルールロジック ---
+        // --- ゲームルール (スコアに「ツムレベル」「ツムランク」の影響を上乗せ) ---
         function processClear(bodiesArray) {
             const count = bodiesArray.length;
             playStats.cleared += count;
             
-            // コンボ更新
-            comboCount++;
-            if(comboCount > maxCombo) maxCombo = comboCount;
-            lastClearTime = Date.now();
-            updateComboUI();
+            comboCount++; if(comboCount > maxCombo) maxCombo = comboCount;
+            lastClearTime = Date.now(); updateComboUI();
 
-            // スコア・コイン計算
+            // 基礎点計算
             let base = count * 100;
             let chainBonus = (count - 3) * 50;
             let comboBonus = comboCount * 10;
-            let addedScore = base + chainBonus + comboBonus;
-            if (isFever) addedScore *= 3;
+            
+            // ツムレベル＆ツムランクによるスコアボーナス倍率加算
+            const myTsumInfo = ALL_TSUMS.find(t => t.id === user.myTsumId) || ALL_TSUMS[0];
+            const myTsumLevel = user.tsumLevels[user.myTsumId] || 1;
+            
+            // ランク別ベースボーナス率
+            const rankScores = { 'SS': 2.0, 'S': 1.6, 'A': 1.3, 'B': 1.1, 'C': 1.0 };
+            const rankMultiplier = rankScores[myTsumInfo.rank] || 1.0;
+            const levelMultiplier = 1 + (myTsumLevel * 0.05); // レベルごとに5%スコア上昇
+            
+            let addedScore = Math.floor((base + chainBonus + comboBonus) * rankMultiplier * levelMultiplier);
+            
+            if (isFever || activeSkillBonusActive) addedScore *= 3; // フィーバーまたはユニコーン虹発動中はスコア3倍！
             score += addedScore;
             
             if (count >= 4) coinsEarned += (count - 3) * 2;
-
             scoreEl.innerText = score.toLocaleString();
 
-            // ゲージ増加
             increaseFever(count * 3);
             
-            // スキル (マイツム判定)
             const myCount = bodiesArray.filter(b => b.tsumType && b.tsumType.id === user.myTsumId).length;
             increaseSkill(myCount);
 
-            // 削除・エフェクト
             const isLight = user.settings.lightMode;
             bodiesArray.forEach(b => {
-                if(!isLight && particles.length < 50) { // Limit particles
-                    for(let i=0;i<4;i++) particles.push({ x: b.position.x, y: b.position.y, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, r:3+Math.random()*4, c:b.tsumType.color, alpha:1});
+                if(!isLight && particles.length < 40) {
+                    for(let i=0;i<3;i++) particles.push({ x: b.position.x, y: b.position.y, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, r:3+Math.random()*4, c:b.tsumType.color, alpha:1});
                 }
                 World.remove(world, b);
             });
         }
 
         function explodeBomb(bombBody) {
-            devUtils.playBomb();
-            playStats.bombs++;
-            const radius = TSUM_R * 4.5; // ボムの消去範囲をツムサイズに連動（適度に周りを巻き込む）
+            devUtils.playBomb(); playStats.bombs++;
+            const radius = TSUM_R * 4.5;
             const toClear = world.bodies.filter(b => b.label === 'tsum' && Math.hypot(b.position.x - bombBody.position.x, b.position.y - bombBody.position.y) < radius);
-            
             World.remove(world, bombBody);
             if(toClear.length > 0) processClear(toClear); 
         }
@@ -1152,32 +1289,24 @@
             feverGauge = Math.min(100, feverGauge + val);
             feverBar.style.width = feverGauge + '%';
             if(feverGauge >= 100) {
-                isFever = true;
-                feverTimeLeft = 10000; // 10秒
-                timeLeft += 5; // 延長ボーナス
-                playStats.fever++;
-                
-                viewGame.classList.add(user.settings.lightMode ? 'fever-bg-light' : 'fever-bg');
-                feverUI.classList.remove('opacity-80');
-                feverUI.classList.add('animate-pulse', 'border-rose-500');
+                isFever = true; feverTimeLeft = 10000; timeLeft += 5; playStats.fever++;
+                document.getElementById('view-game').classList.add(user.settings.lightMode ? 'fever-bg-light' : 'fever-bg');
+                feverUI.classList.replace('bg-slate-900/80', 'bg-rose-900/80');
+                feverUI.classList.add('animate-pulse');
             }
         }
 
         function endFever() {
-            isFever = false;
-            feverGauge = 0;
-            feverTimeLeft = 0;
-            feverBar.style.width = '0%';
-            viewGame.classList.remove('fever-bg', 'fever-bg-light');
-            feverUI.classList.add('opacity-80');
-            feverUI.classList.remove('animate-pulse', 'border-rose-500');
+            isFever = false; feverGauge = 0; feverTimeLeft = 0; feverBar.style.width = '0%';
+            document.getElementById('view-game').classList.remove('fever-bg', 'fever-bg-light');
+            feverUI.classList.replace('bg-rose-900/80', 'bg-slate-900/80');
+            feverUI.classList.remove('animate-pulse');
         }
 
         function updateComboUI() {
             if (comboCount > 1) {
                 comboCountEl.innerText = comboCount;
-                comboDisplay.classList.remove('hidden');
-                comboDisplay.classList.remove('combo-pop');
+                comboDisplay.classList.remove('hidden', 'combo-pop');
                 void comboDisplay.offsetWidth; // Reflow
                 comboDisplay.classList.add('combo-pop');
             }
@@ -1192,166 +1321,159 @@
                 btnSkill.disabled = false;
                 btnSkill.classList.replace('border-slate-700', 'border-cyan-400');
                 btnSkill.classList.add('animate-pulse');
-                document.getElementById('skill-ready-fx').classList.remove('opacity-0');
-                document.getElementById('skill-ready-fx').classList.add('opacity-30', 'animate-ping');
+                document.getElementById('skill-ready-fx').classList.replace('opacity-0', 'opacity-40');
+                document.getElementById('skill-ready-fx').classList.add('animate-ping');
             }
         }
 
         btnSkill.onclick = () => {
             if(!isPlaying || isPaused || skillGauge < SKILL_MAX) return;
             devUtils.playSkill();
-            skillGauge = 0;
-            skillBar.style.width = '0%';
+            skillGauge = 0; skillBar.style.width = '0%';
             btnSkill.disabled = true;
             btnSkill.classList.replace('border-cyan-400', 'border-slate-700');
             btnSkill.classList.remove('animate-pulse');
-            document.getElementById('skill-ready-fx').classList.add('opacity-0');
-            document.getElementById('skill-ready-fx').classList.remove('opacity-30', 'animate-ping');
+            document.getElementById('skill-ready-fx').classList.replace('opacity-40', 'opacity-0');
+            document.getElementById('skill-ready-fx').classList.remove('animate-ping');
 
-            // ツムごとのスキル処理
             const myTsumInfo = ALL_TSUMS.find(t => t.id === user.myTsumId) || ALL_TSUMS[0];
-            executeSkill(myTsumInfo.skillType);
+            
+            // スキルカットイン演出
+            const cutinLayer = document.getElementById('layer-skill-cutin');
+            const cutinBox = document.getElementById('skill-cutin-box');
+            document.getElementById('skill-cutin-emoji').innerText = myTsumInfo.emoji;
+            cutinLayer.classList.remove('hidden');
+            cutinBox.classList.remove('cutin-slide');
+            void cutinBox.offsetWidth;
+            cutinBox.classList.add('cutin-slide');
+            
+            setTimeout(() => { cutinLayer.classList.add('hidden'); }, 1500);
+
+            // 効果発動
+            setTimeout(() => { executeSkill(myTsumInfo.skillType); }, 500);
         };
 
         function executeSkill(type) {
             const cx = CANVAS_W/2, cy = CANVAS_H/2 + 20;
             const tsums = world.bodies.filter(b => b.label === 'tsum');
             let toClear = [];
-            
             switch(type) {
-                case 'center': // 中央消去
-                    toClear = tsums.filter(b => Math.hypot(b.position.x - cx, b.position.y - cy) < 120);
+                case 'center': toClear = tsums.filter(b => Math.hypot(b.position.x - cx, b.position.y - cy) < 120); break;
+                case 'time': timeLeft += 3; timerEl.innerText = timeLeft; timerEl.classList.add('text-green-400', 'scale-125'); setTimeout(() => timerEl.classList.remove('text-green-400', 'scale-125'), 500); break;
+                case 'random': toClear = [...tsums].sort(() => Math.random() - 0.5).slice(0, 10); break;
+                case 'bomb': spawnBomb(cx, cy - 50); break;
+                case 'bomb2': spawnBomb(cx - 40, cy - 50); spawnBomb(cx + 40, cy - 50); break;
+                
+                // --- SSランク不死鳥：究極爆破(ほぼ全画面) ---
+                case 'phoenix_megablast': 
+                    toClear = tsums.filter(b => Math.hypot(b.position.x - cx, b.position.y - cy) < 185); 
                     break;
-                case 'time': // 時間延長
-                    timeLeft += 3;
-                    timerEl.innerText = timeLeft;
-                    // 時間増加演出
-                    timerEl.classList.add('text-green-400', 'scale-150');
-                    setTimeout(() => timerEl.classList.remove('text-green-400', 'scale-150'), 500);
+                // --- SSランク暗黒魔王：超多数消去(ランダム25個) ---
+                case 'dark_obliterate': 
+                    toClear = [...tsums].sort(() => Math.random() - 0.5).slice(0, 25); 
                     break;
-                case 'random': // ランダム消去
-                    const shuffled = [...tsums].sort(() => Math.random() - 0.5);
-                    toClear = shuffled.slice(0, 10);
+                // --- Sランクユニコーン：スコア3倍レインボータイム ---
+                case 'rainbow_fever':
+                    activeSkillBonusActive = true;
+                    document.getElementById('view-game').classList.add('fever-bg');
+                    setTimeout(() => {
+                        activeSkillBonusActive = false;
+                        if (!isFever) document.getElementById('view-game').classList.remove('fever-bg');
+                    }, 15000); // 15秒間持続
                     break;
-                case 'bomb': // ボム1個生成
-                    spawnBomb(cx, cy - 50);
-                    break;
-                case 'bomb2': // ボム2個生成
-                    spawnBomb(cx - 40, cy - 50);
-                    spawnBomb(cx + 40, cy - 50);
+                // --- Aランク大富豪ネコ：コイン直接獲得 ---
+                case 'coin_grab':
+                    const coinPlus = Math.floor(Math.random() * 300) + 200; // 200〜500
+                    coinsEarned += coinPlus;
+                    // コイン加算演出代わり
+                    scoreEl.innerText = score.toLocaleString();
+                    showAlert(`🐱まねき猫の小判！\n🪙 ${coinPlus}枚 のコインを直接獲得した！`);
                     break;
             }
             if(toClear.length > 0) processClear(toClear);
         }
 
         document.getElementById('btn-shuffle').onclick = () => {
-            if(!isPlaying || isPaused) return;
-            devUtils.playPop(1);
-            const tsums = world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb');
-            tsums.forEach(b => Body.applyForce(b, b.position, {x:(Math.random()-0.5)*0.1, y:-0.1-Math.random()*0.15}));
+            if(!isPlaying || isPaused) return; devUtils.playPop(1);
+            world.bodies.filter(b => b.label === 'tsum' || b.label === 'bomb').forEach(b => Body.applyForce(b, b.position, {x:(Math.random()-0.5)*0.1, y:-0.1-Math.random()*0.15}));
         };
 
         // --- ポーズ処理 ---
         document.getElementById('btn-pause').onclick = () => {
             if(!isPlaying || isPaused) return;
             isPaused = true;
-            document.getElementById('modal-pause').classList.remove('hidden');
-            document.getElementById('modal-pause').classList.add('flex');
+            document.getElementById('modal-pause').classList.remove('hidden'); document.getElementById('modal-pause').classList.add('flex');
         };
         document.getElementById('btn-resume').onclick = () => {
-            isPaused = false;
-            lastTickTime = performance.now(); // 時間のジャンプを防ぐ
-            document.getElementById('modal-pause').classList.add('hidden');
-            document.getElementById('modal-pause').classList.remove('flex');
+            isPaused = false; lastTickTime = performance.now();
+            document.getElementById('modal-pause').classList.add('hidden'); document.getElementById('modal-pause').classList.remove('flex');
         };
         document.getElementById('btn-quit').onclick = () => {
-            isPaused = false;
-            isPlaying = false;
-            document.getElementById('modal-pause').classList.add('hidden');
-            document.getElementById('modal-pause').classList.remove('flex');
-            returnToHome(); // スコア保存せず戻る
+            isPaused = false; isPlaying = false;
+            document.getElementById('modal-pause').classList.add('hidden'); document.getElementById('modal-pause').classList.remove('flex');
+            returnToHome();
         };
 
-        // --- ゲームフロー管理 ---
+        // --- フロー制御 ---
         function resetGameState() {
             score = 0; coinsEarned = 0; timeLeft = 60;
             comboCount = 0; maxCombo = 0; lastClearTime = 0;
-            feverGauge = 0; feverTimeLeft = 0; isFever = false; 
-            skillGauge = 0;
+            feverGauge = 0; feverTimeLeft = 0; isFever = false; skillGauge = 0;
+            activeSkillBonusActive = false;
             playStats = { fever: 0, bombs: 0, cleared: 0 };
-            
-            lastTickTime = 0;
-            timeAccumulator = 0;
+            lastTickTime = 0; timeAccumulator = 0;
 
-            scoreEl.innerText = '0';
-            timerEl.innerText = '60';
-            endFever(); // UIリセット
-            skillBar.style.width = '0%';
-            comboDisplay.classList.add('hidden');
+            scoreEl.innerText = '0'; timerEl.innerText = '60';
+            endFever(); skillBar.style.width = '0%'; comboDisplay.classList.add('hidden');
             
-            btnSkill.disabled = true;
-            btnSkill.classList.replace('border-cyan-400', 'border-slate-700');
-            btnSkill.classList.remove('animate-pulse');
-            document.getElementById('skill-ready-fx').classList.add('opacity-0');
+            btnSkill.disabled = true; btnSkill.classList.replace('border-slate-700', 'border-cyan-400');
+            btnSkill.classList.remove('animate-pulse'); document.getElementById('skill-ready-fx').classList.replace('opacity-40', 'opacity-0');
         }
 
-        document.getElementById('btn-start').onclick = () => {
+        function startGame() {
             devUtils.initAudio();
-            if (user.hearts <= 0) {
-                showAlert('ハートが足りません！\n回復を待ってください。');
-                return;
-            }
+            if (user.hearts <= 0) { showAlert('ハートが足りません！\n時間経過で回復します。'); return; }
+            
             user.hearts--;
             if (user.hearts === HEART_MAX - 1) user.lastHeartTime = Date.now();
             saveUser();
 
             document.getElementById('view-home').classList.add('hidden');
-            viewGame.classList.remove('hidden');
+            document.getElementById('view-game').classList.remove('hidden');
 
-            resetGameState();
-            initPhysics();
+            resetGameState(); initPhysics();
             
-            // UI上のマイツムアイコンを更新
             const myTsum = ALL_TSUMS.find(t => t.id === user.myTsumId) || ALL_TSUMS[0];
             document.getElementById('skill-mytsum-emoji').innerText = myTsum.emoji;
 
-            isPlaying = true;
-            isPaused = false;
+            isPlaying = true; isPaused = false;
             animReqId = requestAnimationFrame(drawLoop);
+        }
+
+        document.getElementById('btn-start').onclick = () => {
+            if(!user.tutorialDone) showTutorial(true); else startGame();
         };
 
         function timeUp() {
             isPlaying = false;
-            
             // マジカルタイム判定
-            // ハイスコアが1000以上、今回スコアがハイスコアの90%以上、かつコインが300以上
             if (user.highScore > 1000 && score >= user.highScore * 0.9 && score <= user.highScore && user.coins >= 300) {
-                document.getElementById('modal-magical-time').classList.remove('hidden');
-                document.getElementById('modal-magical-time').classList.add('flex');
-            } else {
-                finishGame();
-            }
+                document.getElementById('modal-magical-time').classList.remove('hidden'); document.getElementById('modal-magical-time').classList.add('flex');
+            } else { finishGame(); }
         }
 
         document.getElementById('btn-extend-coin').onclick = () => {
-            user.coins -= 300;
-            saveUser();
-            document.getElementById('modal-magical-time').classList.add('hidden');
-            document.getElementById('modal-magical-time').classList.remove('flex');
-            
-            timeLeft = 10;
-            timerEl.innerText = timeLeft;
-            isPlaying = true;
-            lastTickTime = performance.now(); // タイマー再調整
-            animReqId = requestAnimationFrame(drawLoop);
+            user.coins -= 300; saveUser();
+            document.getElementById('modal-magical-time').classList.add('hidden'); document.getElementById('modal-magical-time').classList.remove('flex');
+            timeLeft = 10; timerEl.innerText = timeLeft; isPlaying = true;
+            lastTickTime = performance.now(); animReqId = requestAnimationFrame(drawLoop);
         };
-
         document.getElementById('btn-extend-giveup').onclick = () => {
-            document.getElementById('modal-magical-time').classList.add('hidden');
-            document.getElementById('modal-magical-time').classList.remove('flex');
+            document.getElementById('modal-magical-time').classList.add('hidden'); document.getElementById('modal-magical-time').classList.remove('flex');
             finishGame();
         };
 
+        // 1プレイ結果でのミッション判定
         function checkMission() {
             if (user.mission.cleared) return false;
             const m = MISSIONS.find(x => x.id === user.mission.id);
@@ -1363,30 +1485,60 @@
             if (m.type === 'score') val = score;
             if (m.type === 'bomb') val = playStats.bombs;
             if (m.type === 'clear') val = playStats.cleared;
+            if (m.type === 'coins') val = coinsEarned;
 
-            user.mission.progress += val;
-            
-            if (user.mission.progress >= m.target) {
-                user.mission.progress = m.target;
-                user.mission.cleared = true;
-                user.coins += m.reward;
-                return true; // Newly cleared
+            let resultStr = `${val} / ${m.target} 達成`;
+            if (val >= m.target) {
+                user.mission.cleared = true; user.coins += m.reward;
+                resultStr = `クリア！ (${val}/${m.target})`; return { isClear: true, str: resultStr };
             }
-            return false; // In progress
+            return { isClear: false, str: resultStr };
         }
 
         function finishGame() {
-            clearPhysics(); // Completely stop engine & clean memory
-            viewGame.classList.remove('fever-bg', 'fever-bg-light'); // Safety cleanup
-
+            clearPhysics(); 
             const isNewHigh = score > user.highScore;
             if (isNewHigh) user.highScore = score;
             user.coins += coinsEarned;
             
-            const missionClearedNow = checkMission();
+            const mResult = checkMission();
+
+            // --- プレイしたツムにEXP加算＆レベルアップ処理 ---
+            const myTsumId = user.myTsumId;
+            let currentLv = user.tsumLevels[myTsumId] || 1;
+            let currentExp = user.tsumExps[myTsumId] || 0;
+            
+            const expGained = 100; // 固定100獲得
+            currentExp += expGained;
+            
+            const expNeeded = currentLv * 150; // レベルアップに必要なEXP
+            let leveledUp = false;
+            if (currentExp >= expNeeded) {
+                currentExp -= expNeeded;
+                currentLv++;
+                leveledUp = true;
+            }
+            user.tsumLevels[myTsumId] = currentLv;
+            user.tsumExps[myTsumId] = currentExp;
+
             saveUser();
 
-            // リザルトUI反映
+            // リザルトEXP表示更新
+            const myTsum = ALL_TSUMS.find(t => t.id === myTsumId) || ALL_TSUMS[0];
+            document.getElementById('result-tsum-emoji').innerText = myTsum.emoji;
+            document.getElementById('result-tsum-name').innerText = myTsum.name;
+            document.getElementById('result-tsum-rank').innerText = `${myTsum.rank}ランク`;
+            document.getElementById('result-tsum-level').innerText = `Lv.${currentLv}`;
+            
+            // EXPゲージ
+            const expProgress = (currentExp / (currentLv * 150)) * 100;
+            const expBarEl = document.getElementById('result-exp-bar');
+            expBarEl.style.width = '0%';
+            setTimeout(() => { expBarEl.style.width = `${expProgress}%`; }, 100);
+
+            const lvAlert = document.getElementById('result-level-up-alert');
+            if (leveledUp) lvAlert.classList.remove('hidden'); else lvAlert.classList.add('hidden');
+
             document.getElementById('result-score').innerText = score.toLocaleString();
             document.getElementById('result-coins').innerText = coinsEarned;
             document.getElementById('result-max-combo').innerText = maxCombo;
@@ -1396,36 +1548,30 @@
             const hl = document.getElementById('result-highscore-label');
             if(isNewHigh) hl.classList.remove('hidden'); else hl.classList.add('hidden');
 
-            // ミッション結果表示
             const mBox = document.getElementById('result-mission-box');
-            const mText = document.getElementById('result-mission-text');
-            const mReward = document.getElementById('result-mission-reward');
-            const mData = MISSIONS.find(x => x.id === user.mission.id);
-            
-            if (mData) {
+            if (!user.mission.cleared || mResult) {
                 mBox.classList.remove('hidden');
-                mText.innerText = `${mData.desc} (${user.mission.progress}/${mData.target})`;
-                if (missionClearedNow) mReward.classList.remove('hidden');
-                else mReward.classList.add('hidden');
-            } else {
-                mBox.classList.add('hidden');
-            }
+                document.getElementById('result-mission-text').innerText = mResult ? mResult.str : '---';
+                if (mResult && mResult.isClear) document.getElementById('result-mission-reward').classList.remove('hidden');
+                else document.getElementById('result-mission-reward').classList.add('hidden');
+            } else { mBox.classList.add('hidden'); }
 
-            document.getElementById('modal-result').classList.remove('hidden');
-            document.getElementById('modal-result').classList.add('flex');
+            document.getElementById('modal-result').classList.remove('hidden'); document.getElementById('modal-result').classList.add('flex');
         }
 
         function returnToHome() {
-            clearPhysics();
-            endFever(); // UI cleanup just in case
-            document.getElementById('modal-result').classList.add('hidden');
-            document.getElementById('modal-result').classList.remove('flex');
-            viewGame.classList.add('hidden');
-            document.getElementById('view-home').classList.remove('hidden');
-            updateHomeUI(); // Refresh coins/hearts
+            document.getElementById('modal-result').classList.add('hidden'); document.getElementById('modal-result').classList.remove('flex');
+            document.getElementById('view-game').classList.add('hidden'); document.getElementById('view-home').classList.remove('hidden');
+            updateHomeUI();
         }
 
-        // Initialize
+        function retryGame() {
+            document.getElementById('modal-result').classList.add('hidden'); document.getElementById('modal-result').classList.remove('flex');
+            document.getElementById('view-game').classList.add('hidden'); document.getElementById('view-home').classList.remove('hidden');
+            startGame();
+        }
+
+        // --- Init ---
         loadUser();
 
     </script>
